@@ -34,16 +34,21 @@ Every AI score goes to the admin review queue. Unreviewed companies show "Not ye
 `app/` (Expo user app + admin routes), `pipeline/` (Node + TS jobs run by Actions), `packages/core/` (pure TS: zod schemas, validation, units, matching), `supabase/` (migrations, edge functions).
 **Why:** normalization and matching logic is shared by the pipeline, edge functions and the app; a pure package keeps it testable.
 
-## D-008 One product table — Proposed (confirm in P0.11)
+## D-008 One product table — Accepted (P0.11; schema in `docs/catalog/DATA_MODEL.md` §3.3)
 Legacy split products into an "ethical" `products` table and a grocery `catalog_products` table. The rebuild has one `products` table. Retailer listings and prices hang off it, and ownership goes product → brand → company through mapping tables.
 **Why:** the split duplicated identity and made matching ambiguous.
 
 ## D-009 One OpenRouter module, runtime-agnostic — Proposed (confirm in P0.12)
 `supabase/functions/_shared/ai/` written with `fetch` only, so both Deno edge functions (receipt parsing) and the Node pipeline (batch scoring) import the same code. Configurable model with a cheap default, zod-validated output, a per-call token and cost log table, and a mock mode for tests. The key exists only in edge function secrets and Actions secrets.
 
-## D-010 Raw data storage and retention — Proposed (finalise in P0.11)
-Raw responses are gzipped into a private Supabase Storage bucket, keyed `source/run_id/…`, with a content hash. Retention: the last 3 runs per source, 30 days at most. Bulk dumps (OFF, Wikidata) are processed on the Actions runner and never stored in Supabase; we store their URL, date and hash so a run can be reproduced. Total storage budget ≤ 700 MB.
-**Why:** 1 GB free storage limit.
+## D-010 Raw data storage and retention — Accepted (finalised in P0.11; detail in `docs/catalog/DATA_MODEL.md` §5)
+- **Where:** raw responses are gzipped into the private `raw` bucket as `raw/{source_key}/{run_id}/{seq}.json.gz`. Each file has a `raw_objects` row (sha256, size, request URL) linked from the facts parsed from it.
+- **Retention:** the last 3 runs per source and 30 days at most, with the exceptions listed in DATA_MODEL §5 (SEC filings, scoring responses).
+- **Bulk dumps (OFF, Wikidata):** never stored. The run records the dump URL, date and sha256. **Amended:** for OFF we also store the *filtered Canada extract* (only the fields we parse, ≈ 20 MB gz, last 3), so parsers can re-run without the multi-GB download.
+- **Not stored at all:** product images and logos (hotlinked with attribution).
+- **Budget:** storage ≤ 700 MB, estimated ≈ 289 MB (`docs/catalog/BUDGET.md`).
+
+**Why:** the 1 GB free storage limit, and CLAUDE.md's "re-run parsers without fetching again".
 
 ## D-011 Alternatives default to the same store — Accepted (owner brief), fallback Proposed
 Alternatives are products at the store the user shopped at. If that store has no data for the category, fall back to the same chain, then other nearby chains, clearly labelled as "at another store".
@@ -65,3 +70,16 @@ The repo is public (D-003). Screenshots in `docs/baseline/` and `.screenshots/`,
 **Why:** grocer terms limit use to personal, non-commercial purposes and several sites block automation (D-002). Open sources cover products and ownership well.
 **Consequence:** store-price coverage depends on receipt volume. Phase 3 has no retailer tasks.
 **Still open:** the pipeline User-Agent contact, and whether Sarvis is commercial.
+
+## D-014 Catalog schema conventions — Accepted (P0.11)
+- **Ids:** uuid ids for entities. `bigint` identity for high-volume rows (prices, events, logs, candidates, queue, receipt lines).
+- **Stable keys:** every stable natural key is unique, and imports upsert on those keys.
+- **Provenance:** every fact carries `source_id`, `source_url`, `fetched_at`, `method`, `method_version`, `ingestion_run_id` and `raw_object_id`. `source_url` may be null only when `sources.url_template` + `external_id` rebuilds it exactly, and a view exposes it.
+- **Product identity:** the primary GTIN (normalized to GTIN-14) lives on `products`. `product_identifiers` holds only secondary codes.
+- **Ownership:** a product links to a brand only. The company comes from `brand_ownership` → `company_ownership` (CLAUDE.md ownership rule). There's no company column on products.
+- **Chains:** the operating chain is a `companies` row referenced by `banners`, so there's no separate chains table. Banner-specific names and receipt abbreviations are `store_listings`, replacing legacy `product_aliases`.
+- **Receipt prices:** they reach the shared catalog only as weekly aggregates (`price_points_weekly`, with a k-anonymity floor) of consenting users' lines. They're never copied per line.
+- **Review:** reviewable facts carry `review_status`, and RLS shows `approved` only. `review_queue` tracks the work.
+- **Evidence:** citations and articles share one `documents` table. Full text is never stored.
+
+**Why:** these keep the catalog at ≈ 294 MB against a 350 MB budget (`docs/catalog/BUDGET.md`; the first pass was ≈ 425 MB), and they satisfy every CLAUDE.md catalog rule (DATA_MODEL §6, 27/27).

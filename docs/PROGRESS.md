@@ -4,6 +4,38 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.11 Design the catalog data model and free-tier budget
+
+**What changed**
+- `docs/catalog/DATA_MODEL.md`:
+  - conventions: ids and stable keys, the provenance block, slug and GTIN rules, review status, RLS levels;
+  - a Mermaid ER diagram;
+  - 42 tables across 9 domains (pipeline, ownership, products, stores and prices, matching and review, scoring and evidence, editorial, AI and audit, user data), each with its columns, keys and RLS level;
+  - views; raw storage and retention;
+  - a rule checklist, a key-field map, a legacy → new table map, and open points.
+- `docs/catalog/BUDGET.md`: per-table DB estimates (reproducible method), a storage estimate, the cuts that were designed in, alarm thresholds, levers and a growth note.
+- `docs/DECISIONS.md`: D-008 and D-010 marked Accepted (D-010 amended: store OFF's *filtered* Canada extract); new **D-014** schema conventions.
+
+**Verification**
+- **Rule checklist:** all 11 CLAUDE.md "Catalog and data rules" map to R1–R24, plus R25–R27 for conventions. 27/27 rows have a schema element, **0 unmapped**.
+- **Budget:**
+  - catalog **≈ 294 MB ≤ 350 MB** (267 MB plus 10% bloat);
+  - whole DB ≈ 373 MB, under the 400 MB alarm;
+  - storage **≈ 289 MB ≤ 700 MB**.
+  - The first pass was ≈ 425 MB. The cuts are listed in BUDGET §4 and already applied in the model.
+- **Key fields:** all 76 (key) fields across 24 sources in SOURCES.md have a home in DATA_MODEL §7, **0 missing**.
+- **Cross-check:** all 60 `table.column` references in §6–§7 resolve to columns defined in §3.
+
+**Things you should know**
+- **Headroom is thin at scale.** At about 200–250 active users the DB hits the 400 MB alarm within a year (BUDGET §8). Past that, it's a paid tier or archiving user history. That's a Phase 10 decision, not now.
+- **Product grades:** I dropped legacy hand-set product scores. A product's grade would derive from its owner company's published score (DATA_MODEL §9). Tell me if you want product-level scores kept. Otherwise P0.12 / Phase 7 confirms this.
+- **Receipt privacy:** receipt prices are shared only as weekly aggregates with at least 2 receipts. The final privacy rule and the consent wording are yours to approve in Phase 8.
+- **Estimates need checking:** they get checked against real `pg_total_relation_size` after the first seed (Phase 2) and the OFF sample (Phase 3).
+
+**Next:** P0.12 Refine Phase 1 into session-sized tasks.
+
+---
+
 ## 2026-10-26 — P0.10 Research and compare catalog sources → SOURCES.md
 
 **What changed**

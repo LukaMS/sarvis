@@ -149,7 +149,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The decisions list exists and names each "ask owner" source.
   - ✅ The owner answered the decisions list on 2026-10-26 (D-013): no retailer sources. Still open: the pipeline User-Agent contact (needed before the first P3 run) and whether Sarvis is commercial.
 
-### [ ] P0.11 Design the catalog data model and free-tier budget
+### [x] P0.11 Design the catalog data model and free-tier budget
 - **Goal:** a target schema design, with sizes, that satisfies every catalog rule in `CLAUDE.md`.
 - **Deps:** P0.1, P0.9, P0.10.
 - **In:**
