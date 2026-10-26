@@ -1,0 +1,4 @@
+[{"key":"enrichment_models","value":["moonshotai/kimi-k2.6"],"description":"OpenRouter text models used by the enrich-content edge function for company/product research, tried in order on rate-limit.","updated_at":"2026-07-13T00:04:53.89021+00:00"},
+{"key":"enrichment_web_search","value":true,"description":"When true, the enrich-content edge function asks OpenRouter to ground answers with web search (higher quality, slightly higher cost).","updated_at":"2026-07-13T00:04:53.890177+00:00"},
+{"key":"receipt_match_threshold","value":0.45,"description":"Minimum confidence (0-1) for process-receipt to auto-attach a product match to a receipt item.","updated_at":"2026-07-13T00:04:53.900942+00:00"},
+{"key":"receipt_models","value":["google/gemini-3.1-flash-lite"],"description":"OpenRouter models used by the process-receipt edge function, tried in order on rate-limit.","updated_at":"2026-07-13T00:04:53.900954+00:00"}]

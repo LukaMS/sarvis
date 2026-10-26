@@ -4,6 +4,30 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.2 Export legacy content as seed JSON
+
+**What changed**
+- `docs/legacy/data/*.json`: 11 files (companies 11, brands 49, ethical_scores 55, certifications 6, boycotts 2, controversies 5, products 13, product_features 30, transparency_steps 20, impact_stories 6, app_settings 4). All rows are verbatim `row_to_json`, with UUIDs kept.
+- `docs/legacy/data/README.md`: row counts, md5s, export method, quality notes for the P2 re-import.
+
+**Verification**
+- Row count of every file = live `count(*)` (all 11 equal).
+- Stronger check: every file, re-serialised as `jsonb::text`, has the same md5 as `md5(jsonb_agg(to_jsonb(x) ORDER BY id)::text)` in the live DB (11/11).
+- Secrets grep (JWT, `sk-`, `sbp_`, api_key, secret, password, token, bearer, service_role, email regex): 0 hits.
+- Example records:
+  - `brands`: `{"id":"9ae05a4b-…","name":"KitKat","slug":null,"company_id":"00000000-0000-4000-a000-000000000002",…}`
+  - `controversies`: `{"title":"Water depletion in Rajasthan, India","date_text":"2022 (ongoing)","severity":"critical","source_url":null,…}`
+
+**Things you should know**
+- The legacy content has no source URLs anywhere, and the scores have no citations. Brands have no slugs, and only 1 of 13 products is linked to a brand.
+- Bolthouse Farms and Sun-Brite scores are placeholders.
+- Probable errors: Kashi attributed to General Mills, "Uncle Ben's", stale CEOs.
+- The full list is in the README. All of this goes to the review queue on re-import (P2).
+
+**Next:** P0.3 Write SPEC.md, part 1: the user app.
+
+---
+
 ## 2026-10-26 — P0.1 Dump the legacy schema
 
 **What changed**

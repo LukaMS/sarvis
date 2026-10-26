@@ -44,7 +44,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The number of functions equals the count of `public` functions in `pg_proc`.
   - Report the three counts in PROGRESS.
 
-### [ ] P0.2 Export legacy content as seed JSON
+### [x] P0.2 Export legacy content as seed JSON
 - **Goal:** save the legacy editorial content so it can be re-imported into the new schema later (P2) with `legacy-import` provenance.
 - **Deps:** P0.1.
 - **In:** companies, brands, ethical_scores, certifications, boycotts, controversies, products, product_features, transparency_steps, impact_stories, and the non-secret `app_settings` rows. Read-only `select` via `supabase-legacy`.
