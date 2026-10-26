@@ -3,7 +3,7 @@
 What the legacy app ("Conscious Curator", repo `MobileDev/Ethical-App`) does, written from its source code on 2026-10-26. This is the functional reference for the rebuild; it describes legacy behaviour, including bugs, and doesn't decide what to keep.
 
 - **Part 1 (P0.3):** user app screens, flows, services, offline cache. *(this file, below)*
-- **Part 2 (P0.4):** edge functions, AI prompts, RPCs, RLS, admin portal. *(to be appended)*
+- **Part 2 (P0.4):** edge functions, AI prompts, RPCs, RLS, admin portal, catalog-worker pointer. *(after the user-app sections)*
 
 Related: [`SCHEMA.md`](SCHEMA.md) (database), `THEME.md` (visual language, P0.5), `docs/baseline/` (screenshots, P0.6–P0.8).
 
@@ -360,7 +360,7 @@ One section per file under `src/app/` (19 files).
 1. Scan tab → **Scan Barcode** → camera permission (or a fallback alert) → camera modal.
 2. On detection: lock, haptic, `lookupBarcodeSmart(code)`:
    1. Exact `products.barcode = code` (no normalization, so UPC-A vs EAN-13 with a leading 0 don't match here).
-   2. On a miss, edge function `lookup-product`: Open Food Facts lookup. If OFF's brand resolves to a tracked company, it auto-creates a draft product (`source = 'auto_created'`) and returns it; else it returns the OFF info.
+   2. On a miss, edge function `lookup-product`: Open Food Facts lookup. If OFF's brand resolves to a tracked company, it auto-creates a draft product (row `source = 'auto_barcode'`; the response says `source: "auto_created"`) and returns it; else it returns the OFF info. See Edge functions below.
 3. **Found** → record the scan → result card → product detail.
 4. **Not found / OFF-only** → alert with Request addition / Try again / Close.
 
@@ -547,3 +547,546 @@ Every exported function, by module.
 13. **Unused code:** `QuickStatsBar` component; `getSession` / `getUser` service wrappers; `LegalLinks.accountDeletion`.
 14. **Dark mode:** only the navigator chrome switches; screens are always light.
 15. **No spending tracking** beyond a per-receipt total; no per-store or per-company spending views, which the rebuild needs (Phase 8).
+
+---
+
+# Part 2 — Backend, AI and admin (P0.4)
+
+## Edge functions
+
+Three Deno edge functions live in `LEGACY/supabase/functions/`. All three are deployed and ACTIVE in the legacy project:
+
+| Function | Deployed version | `verify_jwt` | Called by |
+|---|---|---|---|
+| `process-receipt` | 6 | true | app `receipt-service.parseReceiptImage`; admin `enrich.testReceiptImage` (Receipt Lab) |
+| `enrich-content` | 3 | true | admin `enrich.enrichCompany` / `enrichProduct` / `researchBrandOwner` |
+| `lookup-product` | 1 | true | app `data-service.lookupBarcodeSmart` |
+
+**Common to all three:**
+- CORS `Access-Control-Allow-Origin: *`; `OPTIONS` returns `"ok"`.
+- JSON responses; errors are returned as `{error: string}` with an HTTP status.
+- `verify_jwt = true` only requires *a* valid JWT, and the public anon key is one. So **any holder of the anon key** (it ships in the app) can call every function directly. None checks the caller's identity or role. `enrich-content` and `process-receipt` spend OpenRouter credit per call; `lookup-product` writes product rows with the service role.
+- Each creates a **service-role** Supabase client from `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (standard edge env) for settings reads and DB access.
+- OpenRouter secret: `OPENROUTER_API_KEY`. Optional env: `SITE_URL` (default `https://conscious-curator.app`) and `SITE_NAME` (default `Conscious Curator`), sent as `HTTP-Referer` / `X-Title`.
+
+### `process-receipt` (v2 in source)
+
+- **Purpose:** read a receipt photo with a vision model, then match every line against `products` server-side.
+- **Request:** `POST {image_base64: string}`, a JPEG base64 string without the data-URL prefix. The app sends `quality: 0.5` images.
+- **Settings** (`app_settings`, cached 30 s per instance):
+  - `receipt_models: string[]`: the model chain. Code default `["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-nano-12b-v2-vl:free"]`; live value `["google/gemini-3.1-flash-lite"]`.
+  - `receipt_match_threshold: number` in (0, 1]. Default and live value 0.45.
+- **Model call:** OpenRouter `chat/completions` with `response_format: {type: "json_object"}`, `temperature: 0.1`, the system prompt below, and a user message `[{type:"text", text:"Parse this receipt."}, {type:"image_url", image_url:{url:"data:image/jpeg;base64,…"}}]`.
+- **Fallback chain:** tries each model in order.
+  - HTTP 429/400/404 → next model.
+  - Network error → next model.
+  - Unparseable JSON → next model.
+  - Any other non-2xx → **abort** with 502.
+  - All models fail → 429 with the last error.
+  - Markdown code fences are stripped before `JSON.parse`.
+- **Sanitising:** max 100 items; drop items without `name`; `raw` defaults to `name`; `brand` → null if empty; `price`/`quantity` must be finite numbers, else null. There is no schema library: hand-written type guards only.
+- **Matching:** for each item, build the query strings `name`, `brand + " " + name`, `raw`, and any run of 6+ digits in `raw`/`name` (a barcode). Call RPC `match_receipt_items(p_queries, p_limit=3)` with the service role. Map rows back to items, de-duplicate per product (keep the highest confidence), keep the top 3 per item.
+- **Response 200:**
+  ```
+  { model_used, store_name, match_threshold,
+    items: [{ name, price, quantity,            // v1-compatible fields
+              raw, brand,
+              product_id | null,                 // set only if best.confidence >= threshold
+              confidence | null,                 // best candidate's, 3 dp
+              match_type | null,                 // set only when attached
+              candidates: [{product_id, product_name, brand, company_name,
+                            ethical_score, grade, confidence, match_type}] }] }
+  ```
+- **Errors:**
+  - 500: `OPENROUTER_API_KEY` missing.
+  - 400: invalid JSON, or missing `image_base64`.
+  - 429/502: model chain failure.
+  - An RPC failure is logged and items come back unmatched (still 200).
+- **Not done:**
+  - No token, cost or latency logging.
+  - No per-user rate limit.
+  - The image is not stored, which matches the privacy copy.
+  - The receipt date and per-line quantity are not persisted by the app.
+
+### `enrich-content` (v2 in source)
+
+- **Purpose:** AI research for the admin console. It fills company profiles, product profiles, and brand-ownership answers, with server-side validation. Nothing is written to the DB: the admin reviews the result and saves it through the normal table writes.
+- **Request bodies:**
+  - `{type: "company", name, context?}`: context is typically a Wikipedia summary and the known facts from the editor.
+  - `{type: "product", name?, barcode?, context?}`: name or barcode is required; context holds Open Food Facts data and the owning company's ratings.
+  - `{type: "brand_owner", name, context?}`
+- **Settings** (`app_settings`, cached 30 s):
+  - `enrichment_models: string[]`. Code default `["google/gemini-2.5-flash-lite", "openai/gpt-4o-mini", "google/gemma-3-27b-it:free"]`; live value `["moonshotai/kimi-k2.6"]`.
+  - `enrichment_web_search: boolean` (live: `true`). When true it adds `plugins: [{id: "web", max_results: 5}]` (OpenRouter web grounding, an extra cost per call).
+- **Model call:** same chain and fallback rules as process-receipt; `json_object`, `temperature: 0.1`.
+- **User prompt templates:**
+  - company: `Research and enrich this company.\nName: {name}\nContext (JSON):\n{context pretty-printed}`
+  - product: `Research and enrich this product.\nName: {name | "(unknown)"}\nBarcode: {barcode | "(none)"}\nContext (JSON):\n{context}`
+  - brand_owner: `Which company owns this brand?\nBrand: {name}\nContext (JSON):\n{context}`
+- **Validation (company):**
+  - `founded` must be 1400–current year, else dropped.
+  - Ratings are coerced case-insensitively to Good/Mixed/Poor; an invalid overall rating becomes null.
+  - **Exactly 5 `ethical_scores`** in canonical order; a missing or invalid category becomes `Mixed`, with a warning.
+  - Certifications ≤ 12 (date must be ISO `YYYY-MM-DD`).
+  - Boycotts ≤ 10 (status Active/Resolved/Paused, default Active).
+  - Controversies ≤ 12 (severity default `medium`).
+  - `source_url` must match `^https?://\S+$`, else null.
+  - Brands ≤ 15.
+  - String lengths are capped per field (e.g. description 1500).
+- **Validation (product):**
+  - `ethical_score` is clamped to an integer 0–100 (a warning when changed); `grade = scoreToGrade(score)` (same scale as the app).
+  - Features ≤ 4, icon from a 24-icon allow-list (else `leaf`).
+  - **Exactly 4 `transparency_steps`** titled Sourcing, Production, Packaging, Distribution, matched by `step_number` or title.
+  - Certifications ≤ 10.
+- **Validation (brand_owner):** `confidence` high/medium/low; invalid → `low`.
+- **Response 200:** `{model_used, web_search, type, data, warnings: string[]}`, where `warnings` lists every coercion or drop.
+- **Errors:** same pattern as process-receipt; 400 for a bad `type` or missing name/barcode.
+- **Not done:**
+  - No citations: the schema has no evidence or sources field except optional `source_url` on boycotts and controversies.
+  - No confidence on company or product output.
+  - No rubric version.
+  - No cost logging.
+  - The model and date are not stored with the saved data.
+  - The model is told to "say so in notes" when unsure, so uncertainty lives only in free-text notes.
+
+### `lookup-product`
+
+- **Purpose:** fallback barcode lookup with automatic brand → company resolution. No AI.
+- **Request:** `POST {barcode: string}` (trimmed; no GTIN normalization).
+- **Steps:**
+  1. Service-role re-check of `products.barcode = barcode` (another scanner may have added it) → `{found: true, source: "database", product}`.
+  2. Open Food Facts: `GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json?fields=product_name,brands,categories_tags,image_url` with `User-Agent: ConsciousCurator/1.0`.
+     - The first comma-separated brand is used.
+     - Category is the **last** `categories_tags` entry, with the language prefix stripped and hyphens turned into spaces.
+     - No OFF product, or no name and no brand → `{found: false, source: "none", off: null}`.
+  3. **Brand resolution:**
+     - Load **all** `brands` rows into memory.
+     - Normalise names: lowercase, `&` → "and", non-alphanumerics → space.
+     - Exact normalised match first; else one-sided containment with a ≥ 4-char brand, preferring the longest.
+     - No brand, or a brand without `company_id` → `{found: false, source: "off", off: {name, brand, category, imageUrl}}`.
+  4. **Auto-create** a `products` row: name = OFF name or "{brand} product", plus `brand_id`, `company_id`, category, barcode, `image_url`, description "Auto-created from a barcode scan via Open Food Facts.", and `source: "auto_barcode"`. No score or grade.
+     - Response: `{found: true, source: "auto_created", product}`.
+     - If the insert fails → `{found: false, source: "off", off}`.
+- **Risks:**
+  - Containment matching can attach the wrong company (e.g. a short brand name contained in a longer unrelated one).
+  - Anyone with the anon key can create product rows.
+  - OFF is called without caching or rate limiting.
+
+## AI prompts (verbatim)
+
+**Every OpenRouter call site** (`grep -rn openrouter LEGACY/supabase LEGACY/admin/src LEGACY/src`):
+
+| Call site | Function | Prompts used |
+|---|---|---|
+| `supabase/functions/process-receipt/index.ts:174` | `parseWithModels` | Receipt `SYSTEM_PROMPT` |
+| `supabase/functions/enrich-content/index.ts:191` | `callModels` | `COMPANY_SYSTEM_PROMPT`, `PRODUCT_SYSTEM_PROMPT`, `BRAND_OWNER_SYSTEM_PROMPT` |
+
+The app and the admin never call OpenRouter directly; they only invoke the edge functions.
+
+### Receipt parser — `process-receipt` `SYSTEM_PROMPT`
+
+```text
+You are a receipt parser for a consumer-ethics app. Given a photo of a shopping receipt, extract the purchased products.
+Return ONLY valid JSON — no markdown, no explanation:
+{
+  "store_name": string | null,
+  "items": [
+    {
+      "raw": string,          // the line exactly as printed on the receipt
+      "name": string,         // cleaned, human-readable product name with abbreviations expanded ("ORG" → "Organic", "WW BRD" → "Whole Wheat Bread")
+      "brand": string | null, // brand if identifiable from the line (e.g. "KFT" → "Kraft", "GV" → "Great Value"), else null
+      "price": number | null,
+      "quantity": number | null
+    }
+  ]
+}
+Rules:
+- One entry per purchased product line. Ignore totals, subtotals, tax, deposits, discounts, loyalty points, payment lines and store metadata.
+- Expand common receipt abbreviations in "name". Keep it concise (2-6 words).
+- If a quantity multiplier line applies (e.g. "2 @ 3.99"), set quantity and the total price for the line.
+- If you cannot read the receipt clearly, return {"store_name": null, "items": []}.
+```
+
+Expected response shape: `{store_name: string|null, items: [{raw, name, brand|null, price|null, quantity|null}]}`.
+
+### Company research — `enrich-content` `COMPANY_SYSTEM_PROMPT`
+
+```text
+You are a research assistant for an ethical-consumer app.
+Given a company name and optional context (Wikipedia summary, known facts), return ONLY valid JSON matching this schema — no markdown, no explanation:
+
+{
+  "company_name": string,
+  "legal_name": string | null,
+  "headquarters": "City, Country" | null,
+  "founded": number | null,
+  "public_or_private": "Public" | "Private" | null,
+  "stock_ticker": string | null,
+  "revenue_range": string | null,
+  "ceo": string | null,
+  "description": "2-4 sentence factual overview of the company and its ethical reputation",
+  "overall_ethical_rating": "Good" | "Mixed" | "Poor",
+  "brands": string[],
+  "ethical_scores": [
+    { "category": "environment" | "labour" | "animal_welfare" | "politics_and_tax" | "human_rights", "rating": "Good" | "Mixed" | "Poor", "notes": "1-2 sentence factual summary" }
+  ],
+  "certifications": [ { "name": string, "verified": boolean, "verified_date": "YYYY-MM-DD" | null } ],
+  "boycotts": [ { "name": string, "reason": string, "status": "Active" | "Resolved" | "Paused", "source_url": string | null } ],
+  "controversies": [ { "title": string, "date_text": string, "description": string, "source_url": string | null, "severity": "low" | "medium" | "high" | "critical" } ]
+}
+
+Rules:
+- Always return all 5 ethical_scores categories exactly once.
+- Prefer well-known, recent (2023–2026) facts. If unsure, use "Mixed" and say so in notes.
+- Overall: Good = majority Good with no Poor; Poor = 2+ Poor or any critical ongoing controversy; else Mixed.
+- Include notable certifications, active boycotts, and major controversies when known; empty arrays are fine.
+- NEVER invent source URLs or statistics — use null when unsure. Accuracy beats completeness.
+- Keep brands to major consumer brands owned by this company (up to ~10).
+```
+
+Note: the "Overall" rule line is the only written rating rubric in the legacy system. It has no version.
+
+### Product research — `enrich-content` `PRODUCT_SYSTEM_PROMPT`
+
+```text
+You are a research assistant for an ethical-consumer app.
+Given a product (name and/or barcode) plus optional context from Open Food Facts and the owning company, return ONLY valid JSON matching this schema — no markdown, no explanation:
+
+{
+  "name": string,
+  "brand": string | null,
+  "brand_owner": string | null,
+  "category": string | null,
+  "description": "1-2 sentence product description focused on what it is and any ethical angles",
+  "ethical_score": number,
+  "certifications": string[],
+  "features": [ { "icon": string, "title": string, "description": string } ],
+  "transparency_steps": [ { "step_number": number, "title": string, "description": string } ]
+}
+
+Rules:
+- ethical_score is 0–100 and should reflect the owning company's ethics plus product-specific factors (packaging, sourcing, certifications).
+- If owning-company ethical ratings are provided in context, stay consistent with them.
+- brand: the consumer-facing brand printed on the packaging (e.g. "Unico"). Often different from the owner.
+- brand_owner: the company that owns the brand (e.g. "Sun-Brite Foods"). null only if genuinely unknown.
+- features: 2–4 items. icon must be one of: sprout, recycle, water-outline, molecule-co2, leaf, package-variant, rabbit, hand-heart, dna, cow, snowflake, water-alert, bottle-soda, factory, alert-circle, certificate, earth, shield-check, account-group, tree, fish, flash, truck-delivery, store
+- transparency_steps: exactly 4 steps titled Sourcing, Production, Packaging, Distribution (step_number 1–4) describing this product's supply chain as factually as possible.
+- Prefer Open Food Facts context for name/category/certifications when provided.
+- NEVER invent certifications or statistics you are unsure about.
+```
+
+### Brand owner — `enrich-content` `BRAND_OWNER_SYSTEM_PROMPT`
+
+```text
+You identify which company owns a consumer brand.
+Given a brand name (and optional product context), return ONLY valid JSON — no markdown, no explanation:
+
+{
+  "brand": string,               // canonical brand spelling
+  "owner_company_name": string | null,  // the company that owns this brand today (ultimate consumer-facing parent, e.g. "Nestlé" not a holding shell)
+  "confidence": "high" | "medium" | "low",
+  "note": string                 // one sentence: how the brand relates to the owner (acquisition year, subsidiary chain, etc.)
+}
+
+Rules:
+- Report the CURRENT owner after any acquisitions you know about.
+- If the brand is owned through a subsidiary, name the well-known parent and mention the subsidiary in the note.
+- If you do not recognize the brand, set owner_company_name to null and confidence to "low". Never guess.
+```
+
+### `app_settings` keys
+
+| Key | Type | Live value | Read by | Edited in |
+|---|---|---|---|---|
+| `receipt_models` | string[] | `["google/gemini-3.1-flash-lite"]` | process-receipt | admin Settings → AI pipeline |
+| `receipt_match_threshold` | number | `0.45` | process-receipt (the app mirrors 0.45 as a constant) | admin Settings |
+| `enrichment_models` | string[] | `["moonshotai/kimi-k2.6"]` | enrich-content | admin Settings |
+| `enrichment_web_search` | boolean | `true` | enrich-content | admin Settings |
+
+## RPCs
+
+All are in `schema.sql` (bodies) and `SCHEMA.md` (summary). Call sites, found by grepping `.rpc("` across `src`, `admin/src`, `supabase/functions` and `catalog-worker/src`:
+
+| RPC | Called from | Role used | Notes |
+|---|---|---|---|
+| `search_all(p_query, p_filter)` | app Search tab | user JWT | ILIKE over products and companies, 20 each. |
+| `match_receipt_items(p_queries, p_limit)` | app receipt fallback (`p_limit` 1); process-receipt (3, service role); admin Receipt Lab (3) | user / service | Tiers: alias exact 1.0, barcode 0.99, name exact 0.98, brand+name exact 0.95, trigram ×0.9, alias trigram ×0.9. |
+| `check_content_freshness(...)` | app `sync-service` | user | **Signature mismatch**: called with `{since_ts}`, but defined with 3 `p_*_since` args returning an object. Always fails silently. |
+| `delete_own_account()` | app Settings | user | **Not in the live DB** (the migration was never applied). |
+| `claim_scrape_job(p_worker_id, p_stale_before)` | catalog-worker | service | Atomic claim with `SKIP LOCKED`; reclaims stale jobs. |
+| `request_scrape_job_cancel(p_id)` | admin Jobs | service | queued → cancelled; running → cancelling. |
+| `get_user_stats(p_user_id)` | **nobody** | — | SECURITY DEFINER, executable by anon; leaks stats (SCHEMA.md security note 2). |
+
+Unused DB objects: `user_stats_view` and `company_details_view` have no client callers.
+
+## RLS (per table)
+
+From `SCHEMA.md`. Legend: **R** public read (`USING true`); **own** = `auth.uid()` = owner column; **—** = RLS on, no policies (service role only).
+
+| Table | SELECT | INSERT | UPDATE | DELETE | Who writes in practice |
+|---|---|---|---|---|---|
+| companies, brands, ethical_scores, certifications, boycotts, controversies, products, product_features, transparency_steps, impact_stories | R | — | — | — | admin SPA (service role); `lookup-product` inserts products (service role) |
+| product_aliases | — | — | — | — | admin Receipt Lab (service role) |
+| app_settings | — | — | — | — | admin Settings (service role); read by edge functions (service role) |
+| profiles | own | — (trigger) | own | — | `handle_new_user` trigger; app Settings |
+| scan_history | own | own | own | own | app |
+| receipt_scans | own | own | own | own | app |
+| receipt_items | own (via receipt_scans) | own (via receipt_scans) | **—** | own (via receipt_scans) | app insert; admin Receipt Lab relinks with the service role |
+| community_submissions | own | own | own while `pending` | own while `pending` | app insert; admin review (service role) |
+| retailers, retailer_stores, retailer_categories, catalog_products, retailer_products, retailer_product_categories, store_products, store_product_price_history, scrape_jobs, scrape_job_events, retailer_request_profiles | — | — | — | — | admin Retailer Catalogue pages and catalog-worker (both service role) |
+
+**Implication:** with only the anon key, the admin console can read the public editorial tables but cannot write anything, cannot read `app_settings`, and cannot see any catalogue table. **Every admin write therefore depends on the service-role key held in the browser.**
+
+## Admin portal (`LEGACY/admin/`)
+
+**Stack:** Vite 5 + React 18 + TypeScript SPA with `react-router-dom` hash routing (`#/…`) and hand-rolled CSS (`src/index.css`, 1650 lines; see THEME.md, P0.5). Run with `npm run dev` from `admin/`. It is **meant to run locally only**.
+
+**Connection model** (`src/lib/supabase.ts`, flagged): **the service-role key is used in the browser.**
+- Settings → "Supabase connection" takes a URL (default: the legacy project) and a key, labelled "API key (service_role recommended)". Both are stored in plain text in `localStorage["cc-admin-connection"]`.
+- The key's JWT `role` claim is decoded; the sidebar then shows "Service role · full access", or warns that an anon key "only allows reading public data".
+- A single supabase-js client (no session) is built from that key and used for **every** query, insert, update, delete and edge-function call.
+- There is no admin login, no user identity, and no audit of who changed what. Anyone with the browser profile, or any XSS, gets full DB access.
+- All data access goes through `src/lib/api.ts` (editorial), `src/lib/catalog-api.ts` (retailer catalogue), `src/lib/settings.ts` (`app_settings`) and `src/lib/enrich.ts` (edge functions). Pages never build queries directly.
+- External calls straight from the browser (`src/lib/external.ts`): Open Food Facts product API and `cgi/search.pl` name search; Wikipedia `w/api.php` search and the REST page summary.
+
+**Navigation** (`components/Layout.tsx`): a sidebar with sections and a connection status pill.
+- Dashboard.
+- **Catalog:** Products, Brands, Companies.
+- **Intake:** Receipt Lab, Submissions.
+- **Content:** Stories, QR Codes.
+- **Retailer Catalogue:** Overview, Retailers, Stores, Categories, Jobs, Product Explorer.
+- **System:** Activity, Settings.
+
+Pages are listed below, one section per file under `admin/src/pages/` (19 files). "Key" is the key each page needs to work: service role, unless it is read-only on public tables.
+
+### Dashboard — `admin/src/pages/Dashboard.tsx`
+
+- Route `#/`.
+- **Data health** counters (`getDataHealth`), each linking to a filtered list:
+  - products without a barcode;
+  - products not linked to a brand;
+  - brands without an owner company;
+  - companies without ethical scores;
+  - receipt items not matched to products;
+  - auto-created products awaiting review (`source <> 'manual'`).
+- Quick barcode check (`findProductByBarcode`) with "Create it now →" → Product editor.
+- **Recent scans** (`listScanHistory`) and **Pending submissions** (`listSubmissions`).
+- Row counts (`countRows`).
+- **Key:** service role (reads `scan_history`, `receipt_items` and `community_submissions` across all users).
+
+### Products — `admin/src/pages/Products.tsx`
+
+- Route `#/products`. Table: thumbnail, product, Brand → Company, category, barcode, score/grade.
+- Filters: text, "Missing barcode", "Missing brand link". Paged. Delete with a confirm dialog (`deleteProduct`).
+- "Add your first product" → editor.
+- **Key:** service role for delete; the list works with anon.
+
+### Product editor — `admin/src/pages/ProductEditor.tsx`
+
+- Routes `#/products/new` and `#/products/:id`; also opened from Submissions with a `prefill` state.
+- **Intro text:** "Look up a barcode or search by name, link the brand, then AI-fill the rest."
+- **Lookup:**
+  - The barcode field (6–14 digits) → Open Food Facts lookup, which prefills name, brand, category, image, labels and description.
+  - "Search products by name (Open Food Facts)…" → pick a result.
+  - Duplicate-barcode check (`findProductByBarcode`).
+- **Identity & ownership:**
+  - Brand combobox (search existing brands or create one inline: `insertBrand`, with an optional new owner company via `insertCompany`).
+  - "Research owner" → `researchBrandOwner` (AI brand_owner).
+  - The company is derived from the brand's owner ("edit on the brand"); without a brand, an owner company must be picked.
+- **Fields:**
+  - name, category, description, image URL (must be http(s));
+  - ethical score 0–100 (grade auto-computed with `scoreToGrade`);
+  - certifications (chips);
+  - Key features (icon / title / description, from the allow-listed icons);
+  - Transparency steps;
+  - **Receipt aliases** (`addProductAlias` / `deleteProductAlias`; "learned automatically from Receipt Lab corrections").
+- **AI fill:**
+  - "AI enrich" → `enrichProduct({name, barcode, context: OFF data + owning-company ratings})`, with a progress overlay (`EnrichProgress`, plus an unload guard).
+  - A **"Review AI suggestions"** modal shows the proposed values and warnings; the admin applies them selectively, then saves.
+- **Save:** `insertProduct` / `updateProduct`, then `replaceProductChildren` (**delete + reinsert** `product_features` and `transparency_steps`).
+- **Provenance written:** none. There is no record that a value came from AI, OFF or a person; `products.source` stays `manual` for editor-created rows.
+- **Key:** service role.
+
+### Brands — `admin/src/pages/Brands.tsx`
+
+- Route `#/brands`. Table: brand, owner company (RatingBadge), product count. Filter.
+- Edit modal: name, owner company (pick or create), notes. Saving relinks products via DB triggers ("Brand updated — its products were relinked automatically.").
+- **Merge into another brand** (`mergeBrands`: move products, delete the source).
+- Delete with a confirm dialog.
+- "Research owner" (AI brand_owner) per brand.
+- **Bulk brand link** (`components/BulkBrandLink.tsx`): proposes a brand for every product without `brand_id`, using:
+  1. the product's text `brand` equals a brand name;
+  2. the product name starts with a brand name (longest wins);
+  3. the product's company owns exactly one brand.
+  Each proposal shows its reason, the admin confirms, then `linkProductToBrand` runs.
+- **Key:** service role.
+
+### Companies — `admin/src/pages/Companies.tsx`
+
+- Route `#/companies`. Table: company, rating, brands, products. Filter, delete with confirm (`deleteCompany`, which cascades to scores, products etc. per the FKs).
+- **Key:** service role for delete.
+
+### Company editor — `admin/src/pages/CompanyEditor.tsx`
+
+- Routes `#/companies/new` and `#/companies/:id`.
+- **Intro text:** "Wikipedia for basics · AI for ethics data (reviewed before apply)".
+- **Wikipedia:** search (`searchWikipedia`) → pick → `fetchWikiSummary` prefills the description and basics ("Basics filled from Wikipedia. Run AI Enrich for ethics data.").
+- **Fields:**
+  - Company basics: name, slug (required, `slugify`), legal name, HQ, founded, public/private (segmented), ticker, revenue range, CEO, logo URL, description.
+  - **Parent company** ("For subsidiaries of other companies you track").
+  - Overall rating.
+  - **Category scores:** 5 categories × Good/Mixed/Poor with notes.
+  - Certifications (name, verified, date).
+  - Boycotts (name, reason, status, source URL).
+  - Controversies (title, date text, description, source URL, severity).
+- **Owned brands:**
+  - Add a brand: an existing brand is re-linked (`findBrandByName` + `updateBrand`), else it is created on save.
+  - Unlink a brand.
+- **AI enrich:** `enrichCompany(name, context)` → a "Review AI research" modal with warnings → "Applied. Review the form, then save."
+- **Save:**
+  - `insertCompany` / `updateCompany`.
+  - Then `replaceCompanyChildren` for each of ethical_scores, certifications, boycotts and controversies: **delete all rows, then reinsert**. Any history of individual rows is lost on every save.
+  - Then brand inserts and links.
+- **Provenance written:** none (no model, date, sources or reviewer).
+- **Key:** service role.
+
+### Receipt Lab — `admin/src/pages/ReceiptLab.tsx`
+
+- Route `#/receipts`.
+- **Parser test:**
+  - Upload a receipt image → `testReceiptImage` (process-receipt).
+  - Shows the preview, Parse summary (model, store, items found, matched to database, auto-match threshold), and per line: receipt text, best suggestion, a `ConfidenceBar`, and "Too uncertain to accept in one click" below the threshold.
+- **Unmatched queue:**
+  - `listUnmatchedReceiptItems` (all users' `receipt_items` with `product_id IS NULL`), grouped by text with a "Seen" count.
+  - Suggestions come from `matchReceiptItems` (RPC).
+  - **Link to product:** product search (`listProducts`) → `linkReceiptItemsToProduct` (updates every unmatched item with that exact text) **and** `addProductAlias(text)`, so future receipts match.
+  - "Queue is clear — every receipt item is matched."
+- **Key:** service role (reads and updates other users' receipt items).
+
+### Submissions — `admin/src/pages/Submissions.tsx`
+
+- Route `#/submissions`. Inbox of `community_submissions`: type, suggestion, barcode, where from (the `data.source`), submitted, status.
+- Filter pending/all ("No pending submissions — inbox zero.").
+- **Actions:**
+  - **Approve & create record:** sets `status=approved`, `reviewed_at`, `reviewer_notes`, then navigates to the Product (or Company) editor with `prefill = submission.data`.
+  - **Approve without creating a record.**
+  - **Reject** with reviewer notes ("visible to admins only").
+- `reviewed_by` is never set (there is no admin identity).
+- Users are not notified.
+- **Key:** service role.
+
+### Stories — `admin/src/pages/Stories.tsx`
+
+- Route `#/stories`. Table: story, category, company, published, status ("No body" flag).
+- Modal: title (required), subtitle, category, body, cover image URL, related company, published date, Featured.
+- **Featured is single-select:** saving calls `unfeatureOtherStories`.
+- Create, update, delete (`insertStory` / `updateStory` / `deleteStory`).
+- **Key:** service role.
+
+### QR Codes — `admin/src/pages/QrCodes.tsx`
+
+- Route `#/qr-codes`. Lists products with barcodes and renders a QR code per barcode (`components/QrImage.tsx`, client-side). Download or print.
+- Custom QR value field ("e.g. a barcode you're about to assign").
+- Purpose: test the app's scanner without physical products (the app accepts `qr` codes).
+- **Key:** anon is enough (reads public products).
+
+### Activity — `admin/src/pages/Activity.tsx`
+
+- Route `#/activity`.
+- **Recent scans** (`listScanHistory`, 200) with the user's display name (`listProfiles`), type, product and grade.
+- **Recent receipts** (`listReceiptScans`, 200) with store, items, total and trip rating.
+- Counts of active users and "Unresolved scans".
+- **Key:** service role. It exposes every user's activity; there is no PII minimisation.
+
+### Settings — `admin/src/pages/Settings.tsx`
+
+- Route `#/settings`.
+- **Supabase connection:** URL + key (with JWT and URL validation), "Test connection" (`testConnection`: select 1 company), save/clear. "Local use only."
+- **AI pipeline** (`getSetting` / `setSetting` on `app_settings`):
+  - Receipt vision models (chips; "Needs vision-capable models").
+  - Receipt match threshold (0–1).
+  - Enrichment models (chips).
+  - Web search grounding toggle ("slightly higher cost").
+  - Validation: at least one model per chain.
+- **Key:** service role (`app_settings` has no policies).
+
+### Retailer Catalogue — Overview — `admin/src/pages/catalog/Overview.tsx`
+
+- Route `#/catalog`.
+- KPI tiles (`getOverview`): retailers, enabled stores, catalog products, retailer products, store price points, active jobs, failed jobs (7 days), last successful sync.
+- Recent jobs table (type, store, status, products, requested).
+- **Key:** service role.
+
+### Retailer Catalogue — Retailers — `admin/src/pages/catalog/Retailers.tsx`
+
+- Route `#/catalog/retailers`. Table: retailer, provider key ("Fixed — maps to the worker provider."), country, currency, status.
+- Edit modal: name, base URL (`configuration_json`), default currency, enabled.
+- There is no create: retailers come from seed migrations ("Apply the seed migration to add Fortinos.").
+- **Key:** service role.
+
+### Retailer Catalogue — Stores — `admin/src/pages/catalog/Stores.tsx`
+
+- Route `#/catalog/stores`. Table: store, retailer, external id, status, last sync.
+- Create/edit modal: retailer, external store id ("The retailer's own store id (e.g. Fortinos storeId)."), display name, city, province, postal code, enabled.
+- Delete with a confirm dialog (cascades to `store_products`).
+- **Queue jobs** per store (`createJob`): full sync, "Dry run (fetch + normalize, no writes)", "Count only (no writes)".
+  - Guard: refuses a second full/incremental sync while one is queued or running for the store.
+- **Key:** service role.
+
+### Retailer Catalogue — Categories — `admin/src/pages/catalog/Categories.tsx`
+
+- Route `#/catalog/categories`. Per-retailer category list: name, external id, URL path, last count, last sync, enabled.
+- Create/edit modal: external category id, name, URL path (e.g. `food/dairy-eggs`), nav id (e.g. `flyout-L2-Dairy-and-Eggs`), enabled. Delete with confirm.
+- **Count-only test** against a chosen store (queues a `count_only` job with `categoryExternalIds`).
+- **Key:** service role.
+
+### Retailer Catalogue — Jobs — `admin/src/pages/catalog/Jobs.tsx`
+
+- Route `#/catalog/jobs`. "Catalogue ingestion jobs and their progress."
+- Table: type, store, status (labelled), progress, products, requested. Filter by status.
+- **Key:** service role.
+
+### Retailer Catalogue — Job details — `admin/src/pages/catalog/JobDetails.tsx`
+
+- Route `#/catalog/jobs/:id`. Live view ("Live — polling every 3s…") of `getJob` + `listJobEvents`:
+  - requested / started / heartbeat / completed timestamps;
+  - counters;
+  - the event log (time, severity, event, category/page, message).
+- **Cancel** → RPC `request_scrape_job_cancel` ("Cancellation requested"). **Retry** re-queues the same parameters (`retryJob`).
+- **Key:** service role.
+
+### Retailer Catalogue — Product Explorer — `admin/src/pages/catalog/ProductExplorer.tsx`
+
+- Route `#/catalog/products`. Pick a store, then filter by name, brand and availability ("Any" / "Available online").
+- Table (`searchStoreProducts`): product, regular price, effective price, unit price, availability, checked-at. Read-only.
+- **Key:** service role.
+
+### Admin components with behaviour
+
+- `components/BulkBrandLink.tsx`: see Brands.
+- `components/EnrichProgress.tsx`: progress overlay while AI runs, plus `useUnloadGuard` (warns before closing the tab mid-request).
+- `components/QrImage.tsx`: client-side QR rendering.
+- `components/RequireConnection.tsx`: gate that shows a "Connect to Supabase" prompt when no connection is stored.
+- `components/pickers.tsx`, `components/ui.tsx`: form controls, tables, modals, toasts, badges. Visual detail goes in THEME.md.
+
+## Catalog worker (pointer)
+
+`LEGACY/catalog-worker/` is a separate Node + TypeScript process (Vitest tests) that runs on the developer's machine:
+- It polls `scrape_jobs` with the service role and claims jobs via `claim_scrape_job`.
+- It runs a **provider** per `provider_key`; only **Fortinos** exists (Loblaw Next.js data routes). It attaches to a real Chrome session over CDP to get past Akamai bot protection (dropped by D-002).
+- It normalises listings into `catalog_products` → `retailer_products` → `store_products` with batched upserts, appends `store_product_price_history` when a price or promotion field changes, and writes progress and heartbeat to `scrape_jobs` / `scrape_job_events`.
+
+The legacy DB has 96 Fortinos products from 12 jobs. A file-by-file keep/adapt/drop review is task **P0.9** (`docs/legacy/CATALOG_REVIEW.md`).
+
+## Backend and admin: issues for the rebuild
+
+1. **Service-role key in the browser** (admin). The rebuild needs real admin auth (D-005: role on `profiles` + `is_admin()` + RLS) and server-side privileged operations only.
+2. **Edge functions are open to anyone with the anon key**, including the paid OpenRouter calls and product auto-creation. They need auth checks (user, or admin for enrichment), rate limits, and a spend guard (D-009).
+3. **No AI provenance:** the model, date, prompt or rubric version, sources and confidence are not stored. The only "rubric" is one line in the company prompt. Phase 7 needs all of these.
+4. **No cost or token logging** for OpenRouter.
+5. **Delete-and-reinsert saves** for company and product child rows destroy row identity and any future per-row provenance.
+6. **No admin identity:** `community_submissions.reviewed_by` is never set, and there is no change history.
+7. **Validation is hand-written** in Deno, with no shared schema between server and client (the rebuild uses zod in `packages/core`).
+8. **`lookup-product` brand resolution** loads every brand into memory and uses loose containment matching; there is no confidence or review queue for auto-created products beyond a Dashboard counter.
+9. **Barcode lookups** (app and edge function) don't normalize GTINs.
+10. **Brand data is duplicated:** `companies.brands[]`, `brands`, and `products.brand` text, kept in sync by triggers. The app reads the array, while the admin and the edge functions use the table.

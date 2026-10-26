@@ -63,7 +63,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Every exported function in `LEGACY/src/lib/*-service.ts` is named in SPEC.
   - Paste the check output into PROGRESS.
 
-### [ ] P0.4 Write SPEC.md, part 2: backend, AI and admin
+### [x] P0.4 Write SPEC.md, part 2: backend, AI and admin
 - **Goal:** document the legacy backend contracts and the admin portal.
 - **Deps:** P0.1, P0.3.
 - **In:**

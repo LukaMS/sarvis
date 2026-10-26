@@ -4,6 +4,56 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.4 Write SPEC.md, part 2: backend, AI and admin
+
+**What changed**
+- `docs/legacy/SPEC.md` part 2 appended:
+  - 3 edge functions (request/response shapes, settings, model chains, fallbacks, errors);
+  - all 4 OpenRouter prompts verbatim, with their expected JSON shapes;
+  - `app_settings` keys with live values;
+  - the RPC call-site table;
+  - RLS per table;
+  - the admin portal (connection model + 19 page sections + behavioural components);
+  - a catalog-worker pointer;
+  - 10 backend and admin issues for the rebuild.
+- Fixed part 1, F2: auto-created products have `source='auto_barcode'`; `auto_created` is only the response flag.
+
+**Verification: mapping**
+
+Edge functions → SPEC section:
+- `process-receipt` → "### `process-receipt`"
+- `enrich-content` → "### `enrich-content`"
+- `lookup-product` → "### `lookup-product`"
+
+OpenRouter call sites (`grep -rn openrouter LEGACY/supabase LEGACY/admin/src LEGACY/src`, 2 hits):
+- `supabase/functions/process-receipt/index.ts:174` → AI prompts table + "Receipt parser"
+- `supabase/functions/enrich-content/index.ts:191` → AI prompts table + "Company research", "Product research", "Brand owner"
+
+Admin page files → SPEC section (19/19, 0 missing):
+- Activity, Brands, Companies, CompanyEditor, Dashboard, ProductEditor, Products, QrCodes, ReceiptLab, Settings, Stories, Submissions
+- catalog/Categories, catalog/JobDetails, catalog/Jobs, catalog/Overview, catalog/ProductExplorer, catalog/Retailers, catalog/Stores
+
+Extra check: all 4 system prompts in SPEC are byte-identical to the source (4/4).
+
+**Things you should know**
+- **Service-role key in the browser (confirmed):**
+  - The admin stores the key in `localStorage`; every admin read and write uses it.
+  - There is no admin login or identity, and `reviewed_by` is never set.
+  - Activity and Receipt Lab read and update all users' data.
+- **Edge functions open to anyone with the public anon key** (`verify_jwt` only checks for a JWT, and the anon key is one):
+  - `enrich-content` spends OpenRouter credit (live: `moonshotai/kimi-k2.6` with web search on).
+  - `process-receipt` spends credit too.
+  - `lookup-product` inserts products with the service role.
+- **No AI provenance or cost logging:**
+  - There are no sources, confidence, model, date or rubric version on saved scores.
+  - The only rubric is one line of the company prompt.
+- **Destructive admin saves:** company and product editors delete and reinsert child rows on every save.
+- **Unused objects:** `get_user_stats`, `user_stats_view` and `company_details_view` have no callers.
+
+**Next:** P0.5 Write THEME.md.
+
+---
+
 ## 2026-10-26 — P0.3 Write SPEC.md, part 1: the user app
 
 **What changed**
