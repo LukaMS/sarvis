@@ -4,6 +4,28 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.8 Capture baseline screenshots: admin portal
+
+**What changed**
+- `docs/baseline/admin/`: 22 full-page PNGs at 1440 × 900 (1.9 MB): the not-connected gate plus every admin route (product and company editors in both new and existing modes).
+- `docs/baseline/README.md`: an admin section covering method, the anon-key rationale, a page file → route → screenshot → state table, and the console log.
+
+**Verification**
+- One screenshot or stated reason per page file in `LEGACY/admin/src/pages/`: 19/19 (script). All referenced files exist and none are unreferenced.
+- Opened at random: 02-products, 04-product-editor-existing, 15-catalog-overview. Also checked 01, 09, 12, 14 and 20. One README row was corrected after viewing (Receipt Lab's default tab).
+- Console: the only error is `favicon.ico` 404. There are 21 warnings, all React Router v7 future-flag notices.
+- Browse only: no save, enrich, delete, link, look-up or job actions. Legacy repo git status and diff hash identical.
+
+**Things you should know**
+- **Anon key only:** I connected the admin with the *public anon key*, not the service role. The legacy admin needs the service-role key in the browser for most pages, but that would give a tool write access to production data (CLAUDE.md "Don'ts").
+  - The key was injected without being printed; its role was checked to be `anon`; the connection was removed and the browser closed afterwards.
+- **Empty pages:** editorial pages show real data. User data, `app_settings` and every Retailer Catalogue page show empty states because RLS returns no rows to anon. Older data-filled admin shots taken with a service-role key exist in `LEGACY/playwright-admin-audit-screenshots/` as hints.
+- **If you want filled captures** of those pages, a service-role session would be your call. It would break the no-write-access rule, so I haven't added it to the plan. The rebuilt admin (Phase 5) will have its own data and screenshots anyway.
+
+**Next:** P0.9 Write a frank review of the legacy catalog and scraper.
+
+---
+
 ## 2026-10-26 — P0.7 Capture baseline screenshots: user app on Android
 
 **What changed**

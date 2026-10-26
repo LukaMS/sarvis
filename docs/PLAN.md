@@ -109,7 +109,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/baseline/android/NN-<screen>.png`, and fill the Android column in `docs/baseline/README.md`.
 - **Verification:** the README Android column is filled or reasoned for every row. Note differences from web (safe areas, tab bar, camera).
 
-### [ ] P0.8 Capture baseline screenshots: admin portal
+### [x] P0.8 Capture baseline screenshots: admin portal
 - **Goal:** visual and feature reference for every legacy admin page.
 - **Deps:** P0.4.
 - **In:** run `LEGACY/admin` with `npm run dev` (Vite) read-only. Use a 1440×900 viewport, one screenshot per page in `LEGACY/admin/src/pages/`. **Browse only:** do not click save, enrich, delete, bulk link, or create job.

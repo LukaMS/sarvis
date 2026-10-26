@@ -6,7 +6,7 @@ Visual targets for the rebuild: what the legacy app ("Conscious Curator") looks 
 |---|---|---|
 | `web/` | User app on web, 390 × 844 viewport | P0.6 (done 2026-10-26) |
 | `android/` | User app on the Android emulator (Expo Go), 640 × 1428 (half of 1280 × 2856) | P0.7 (done 2026-10-26) |
-| `admin/` | Admin portal, 1440 × 900 | P0.8 |
+| `admin/` | Admin portal, 1440 × 900 viewport, full-page captures | P0.8 (done 2026-10-26) |
 
 ## How the web set was captured (P0.6)
 
@@ -69,6 +69,47 @@ Rows 3/4 share `auth.tsx`, so all 19 route files are covered: 17 with screenshot
 - **Camera:** works on Android (permission prompt → scanner modal). On web it's a silent dead end (see web row 6).
 - **Modal:** Profile opens as a full-screen card with a back arrow on Android; on web it's a normal page.
 - **Console (Android, from the Metro log):** `[sync] freshness check failed … check_content_freshness(since_ts)` ×23 (the known SPEC bug, on each foreground and focus), plus one `setLayoutAnimationEnabledExperimental is currently a no-op in the New Architecture` warning from the Help FAQ accordion (`LayoutAnimation` won't animate there).
+
+## Admin portal (P0.8)
+
+**How captured**
+- `LEGACY/admin` served with `npx vite --port 5180 --strictPort` (the project's `npm run dev` with a fixed port). Playwright at 1440 × 900, `fullPage: true`.
+- **Browse only:** no save, enrich, delete, link, look-up, test or job buttons were pressed. The legacy repo was unchanged afterwards (git status and diff hash identical).
+- **Connected with the public anon key only, deliberately.** The legacy admin expects the service-role key in the browser (SPEC › Admin portal), and that would give a tool write access to production data, which CLAUDE.md forbids.
+  - The key was read from `LEGACY/src/constants/config.ts` and injected into `localStorage` by a gated init script, without ever being printed. Its JWT role was checked to be `anon` before any page loaded.
+  - The connection was removed and the browser closed afterwards. The API-key field on Settings is a password input (dots) and was masked as well.
+- **What the anon key shows:** RLS lets the anon role read only the public editorial tables. So:
+  - the editorial pages (Products, Brands, Companies, editors, Stories, QR Codes) show **real data**;
+  - user data (Activity, Submissions, Receipt Lab's unmatched queue, Dashboard's scans, receipts and users counts), `app_settings` (Settings › AI pipeline shows defaults and placeholders, not live values) and every Retailer Catalogue table show **empty/zero states**, because RLS returns no rows rather than errors.
+  - Data-filled versions of those pages, taken with a service-role key on an older build, exist in `LEGACY/playwright-admin-audit-screenshots/`. Use them as hints only.
+- **Full-page artifact:** on pages longer than the viewport, the fixed sidebar appears only in the first 900 px.
+
+**Pages** (one row per file in `LEGACY/admin/src/pages/`, 19 files)
+
+| # | Page file | Route | Admin file | State captured |
+|---|---|---|---|---|
+| — | (connection gate) `components/RequireConnection.tsx` | `#/` with no connection | `00-not-connected.png` | "Connect to Supabase" prompt |
+| 1 | `admin/src/pages/Dashboard.tsx` | `#/` | `01-dashboard.png` | Real counts for products/brands/companies and data health. Scans, receipts, users and submissions are 0 (RLS). |
+| 2 | `admin/src/pages/Products.tsx` | `#/products` | `02-products.png` | Real: 13 products, filter chips, 12 "no brand". |
+| 3 | `admin/src/pages/ProductEditor.tsx` | `#/products/new`, `#/products/:id` | `03-product-editor-new.png`, `04-product-editor-existing.png` (KitKat) | Quick fill bar, identity and ownership, features, supply-chain steps, QR. Not saved. |
+| 4 | `admin/src/pages/Brands.tsx` | `#/brands` | `05-brands.png` | Real: 49 brands with owners. Bulk link and merge not opened. |
+| 5 | `admin/src/pages/Companies.tsx` | `#/companies` | `06-companies.png` | Real: 11 companies. |
+| 6 | `admin/src/pages/CompanyEditor.tsx` | `#/companies/new`, `#/companies/:id` | `07-company-editor-new.png`, `08-company-editor-existing.png` (Nestlé) | Wikipedia search, basics, category scores, certifications, boycotts, controversies, owned brands. Not saved. |
+| 7 | `admin/src/pages/ReceiptLab.tsx` | `#/receipts` | `09-receipt-lab.png` | Default "Parser test bench" tab (drop zone, Run parser disabled). The "Unmatched queue" tab was not opened; it would be empty under RLS. No image was parsed, since that would call the paid edge function. |
+| 8 | `admin/src/pages/Submissions.tsx` | `#/submissions` | `10-submissions.png` | Empty inbox (RLS; 6 real rows exist). |
+| 9 | `admin/src/pages/Stories.tsx` | `#/stories` | `11-stories.png` | Real: 6 stories with "No body" flags. |
+| 10 | `admin/src/pages/QrCodes.tsx` | `#/qr-codes` | `12-qr-codes.png` | Real: QR per product barcode. |
+| 11 | `admin/src/pages/Activity.tsx` | `#/activity` | `13-activity.png` | Empty (RLS on scans, receipts and profiles). |
+| 12 | `admin/src/pages/Settings.tsx` | `#/settings` | `14-settings.png` | Connection card shows "Current key type: anon"; the AI pipeline fields are empty (app_settings unreadable). |
+| 13 | `admin/src/pages/catalog/Overview.tsx` | `#/catalog` | `15-catalog-overview.png` | All zeros (RLS; 96 real products exist). |
+| 14 | `admin/src/pages/catalog/Retailers.tsx` | `#/catalog/retailers` | `16-catalog-retailers.png` | Empty (RLS). |
+| 15 | `admin/src/pages/catalog/Stores.tsx` | `#/catalog/stores` | `17-catalog-stores.png` | Empty (RLS). |
+| 16 | `admin/src/pages/catalog/Categories.tsx` | `#/catalog/categories` | `18-catalog-categories.png` | Empty (RLS). |
+| 17 | `admin/src/pages/catalog/Jobs.tsx` | `#/catalog/jobs` | `19-catalog-jobs.png` | Empty (RLS). |
+| 18 | `admin/src/pages/catalog/JobDetails.tsx` | `#/catalog/jobs/:id` | `20-catalog-job-details.png` | "Job not found" (no readable job id with anon). |
+| 19 | `admin/src/pages/catalog/ProductExplorer.tsx` | `#/catalog/products` | `21-catalog-product-explorer.png` | "Select a store" with no stores listed (RLS). |
+
+**Console (admin):** the only error is `favicon.ico` 404 (the admin has no favicon). There are 21 warnings, all the React Router v7 future-flag notice (`v7_startTransition`), one per page load. No request errors: RLS-filtered selects return 200 with empty arrays.
 
 ## Console (web)
 
