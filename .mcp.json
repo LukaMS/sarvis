@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "mobile": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@mobilenext/mobile-mcp@latest"]
+    },
+    "playwright": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@playwright/mcp@latest"]
+    },
+    "chrome-devtools": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--isolated"]
+    },
+    "supabase-legacy": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=chaidwvlizbayyugnphw&read_only=true"
+    },
+    "supabase-dev": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=smqovgawfjmxernqlxjd&features=database,docs,debugging,development,functions,storage"
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    }
+  }
+}

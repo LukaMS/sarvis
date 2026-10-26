@@ -1,0 +1,21 @@
+{
+  "enableAllProjectMcpServers": true,
+  "permissions": {
+    "additionalDirectories": ["C:/Users/lukam/Coding Projects/MobileDev/Ethical-App"],
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run:*)",
+      "Bash(npx expo:*)",
+      "Bash(npx tsc:*)",
+      "Bash(adb devices:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  }
+}

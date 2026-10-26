@@ -1,0 +1,30 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Working screenshots (baselines live in docs/baseline/)
+.screenshots/
+
+# Dependencies
+node_modules/
+
+# Expo / build output
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+
+# Pipeline local caches and raw data (never commit scraped data)
+.cache/
+pipeline/.cache/
+pipeline/raw/
+
+# Test output
+playwright-report/
+test-results/
+coverage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
