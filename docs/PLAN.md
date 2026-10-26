@@ -147,7 +147,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Every source row has every column filled, or "unknown" with a reason.
   - Every terms claim has a URL and the date checked.
   - The decisions list exists and names each "ask owner" source.
-  - 🟡 After this task, the owner answers the decisions list before any P3 retailer task.
+  - ✅ The owner answered the decisions list on 2026-10-26 (D-013): no retailer sources. Still open: the pipeline User-Agent contact (needed before the first P3 run) and whether Sarvis is commercial.
 
 ### [ ] P0.11 Design the catalog data model and free-tier budget
 - **Goal:** a target schema design, with sizes, that satisfies every catalog rule in `CLAUDE.md`.
@@ -231,7 +231,8 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Wikidata: brand → company → parent ownership, with dates and Wikidata QIDs as stable IDs.
   - Open Prices: Canadian store price observations.
   - StatCan average retail prices, as a price-sanity reference.
-  - 🟡 Retailer catalog sources: only those marked **use**, or approved by the owner, in SOURCES.md (D-002). One task pair per retailer.
+  - Retailer catalog sources: **none** for now. All Ontario grocers, Walmart, Costco and Flipp are avoided (D-013). Revisit only if the owner gets written permission.
+  - 🟡 Before the first run: the owner picks the project contact for pipeline User-Agent headers (OFF, Wikimedia and SEC require one).
   - A budget check after each scale-up task.
 
 ## Phase 4 — Normalization and matching (outline)
@@ -302,7 +303,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - History and spending tracking: by month, store and company.
   - Stories/articles.
   - Profile, settings, about, help, privacy. Offline cache.
-  - 🟡 Whether prices read from users' receipts feed the shared price catalog (privacy and consent wording), per D-002.
+  - Receipt prices feed the shared price catalog, and consenting users' prices may be contributed to Open Prices (D-013). 🟡 The owner approves the consent and privacy wording.
 
 ## Phase 9 — Ethical alternatives (outline)
 

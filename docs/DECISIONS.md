@@ -52,3 +52,16 @@ Alternatives are products at the store the user shopped at. If that store has no
 ## D-012 Screenshots and fixtures carry no personal data — Accepted (P0.6)
 The repo is public (D-003). Screenshots in `docs/baseline/` and `.screenshots/`, test fixtures, and logs must not show real names, emails or account data. Real-account captures replace them in the page DOM before capture (name → "Alex", email → `you@example.com`), with a leak check. Tool working folders that can hold typed input (`.playwright-mcp/`) are gitignored and deleted after use. Credentials are never written to files.
 **Why:** baselines need a real signed-in session, but anything committed to a public repo is permanent.
+
+## D-013 Catalog source choices — Accepted (2026-10-26, owner answers to SOURCES.md §7)
+- **D1:** Accept ODbL share-alike for Open Food Facts and Open Prices. Keep OFF-derived tables separable, publish an ODbL extract, and attribute in the app.
+- **D2:** Avoid every Ontario grocer website (Loblaw banners, Sobeys/Voilà/FreshCo/Foodland, Metro/Food Basics, Longo's, Farm Boy, Giant Tiger), and Walmart.ca and Costco.ca.
+- **D3:** No Flipp (or Reebee) scraping, and no data partnership for now.
+- **D4:** Publisher RSS is in use with a provisional list chosen by me (see SOURCES.md S24). The owner narrows it later. Each feed's terms are checked before it's added.
+- **D5:** Skip UPCitemdb.
+- **D6:** B Corp, Fairtrade and KnowTheChain evidence is entered manually per company with a citation URL. No bulk import.
+- **D7:** Users' receipts are the main source of store prices. Consenting users' prices may be contributed to Open Prices. Consent wording is approved in Phase 8.
+
+**Why:** grocer terms limit use to personal, non-commercial purposes and several sites block automation (D-002). Open sources cover products and ownership well.
+**Consequence:** store-price coverage depends on receipt volume. Phase 3 has no retailer tasks.
+**Still open:** the pipeline User-Agent contact, and whether Sarvis is commercial.

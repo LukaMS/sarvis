@@ -4,6 +4,7 @@ The catalog sources we could use, what each allows, and a verdict:
 - **use**: the terms allow our use. Build it in Phase 3.
 - **ask owner**: needs your decision before any code is written.
 - **avoid**: don't build it.
+- **manual only**: an admin may cite it by hand, but there's no automated import.
 
 The CLAUDE.md scraper rules apply to every source used: robots.txt, about 1 request per second per host, backoff, caching, provenance and raw storage.
 
@@ -32,21 +33,21 @@ In **Key fields**, the fields marked **(key)** are the ones the P0.11 data model
 
 | # | Source | Area | Verdict |
 |---|---|---|---|
-| S1 | Open Food Facts: bulk exports | Products | **use** (licence decision D1) |
+| S1 | Open Food Facts: bulk exports | Products | **use** (ODbL accepted, D1) |
 | S2 | Open Food Facts: product API | Products | **use** (lookup fallback only) |
-| S3 | UPCitemdb (free tier) | Products | **ask owner** |
+| S3 | UPCitemdb (free tier) | Products | **avoid** (owner: skip, D5) |
 | S4 | GS1 Canada (ECCnet / Verified by GS1) | Products | **avoid** (paid; note only) |
-| S5 | Open Prices (Open Food Facts) | Prices | **use** (thin in Canada; licence decision D1) |
+| S5 | Open Prices (Open Food Facts) | Prices | **use** (thin in Canada; ODbL accepted, D1) |
 | S6 | Statistics Canada 18-10-0245-01 | Prices (sanity reference) | **use** |
-| S7 | Loblaw banners (PC Express platform) | Retailer | **ask owner** (recommend avoid) |
-| S8 | Sobeys group (Voilà, Sobeys, FreshCo, Foodland) | Retailer | **ask owner** (recommend avoid) |
-| S9 | Metro / Food Basics | Retailer | **ask owner** (recommend avoid) |
-| S10 | Walmart.ca | Retailer | **avoid** |
-| S11 | Costco.ca | Retailer | **avoid** |
-| S12 | Longo's | Retailer | **ask owner** (recommend avoid) |
-| S13 | Farm Boy | Retailer | **ask owner** (recommend avoid) |
-| S14 | Giant Tiger | Retailer | **ask owner** (recommend avoid) |
-| S15 | Flipp | Flyer aggregator | **ask owner** (recommend a partnership request, not scraping) |
+| S7 | Loblaw banners (PC Express platform) | Retailer | **avoid** (owner, D2) |
+| S8 | Sobeys group (Voilà, Sobeys, FreshCo, Foodland) | Retailer | **avoid** (owner, D2) |
+| S9 | Metro / Food Basics | Retailer | **avoid** (owner, D2) |
+| S10 | Walmart.ca | Retailer | **avoid** (owner confirmed, D2) |
+| S11 | Costco.ca | Retailer | **avoid** (owner confirmed, D2) |
+| S12 | Longo's | Retailer | **avoid** (owner, D2) |
+| S13 | Farm Boy | Retailer | **avoid** (owner, D2) |
+| S14 | Giant Tiger | Retailer | **avoid** (owner, D2) |
+| S15 | Flipp | Flyer aggregator | **avoid** (no scraping; no partnership for now, D3) |
 | S16 | Reebee | Flyer aggregator | **avoid** (same platform as Flipp) |
 | S17 | Wikidata: SPARQL query service | Ownership | **use** |
 | S18 | Wikidata: dumps | Ownership | **avoid** (too large; S17 covers it) |
@@ -55,12 +56,12 @@ In **Key fields**, the fields marked **(key)** are the ones the P0.11 data model
 | S21 | Corporations Canada (federal corporations) | Ownership (identity check) | **use** (low priority) |
 | S22 | OpenCorporates API | Ownership | **avoid** (licence and limits; revisit with D1) |
 | S23 | GDELT DOC 2.0 API | Articles | **use** |
-| S24 | Publisher RSS feeds | Articles | **ask owner** |
+| S24 | Publisher RSS feeds | Articles | **use** (provisional feed list, D4; terms checked per feed) |
 | S25 | Google News RSS | Articles | **avoid** |
 | S26 | NewsAPI (free tier) | Articles | **avoid** |
-| S27 | B Corp directory (B Lab) | Ratings evidence | **ask owner** (automated access banned) |
-| S28 | Fairtrade Canada brand finder | Ratings evidence | **ask owner** |
-| S29 | KnowTheChain benchmarks | Ratings evidence | **ask owner** |
+| S27 | B Corp directory (B Lab) | Ratings evidence | **manual only** (cite per company, D6) |
+| S28 | Fairtrade Canada brand finder | Ratings evidence | **manual only** (cite per company, D6) |
+| S29 | KnowTheChain benchmarks | Ratings evidence | **manual only** (cite per company, D6) |
 | S30 | Ethical Consumer | Ratings evidence | **avoid** (paid; note only) |
 
 **What this means for the catalog:**
@@ -69,7 +70,7 @@ In **Key fields**, the fields marked **(key)** are the ones the P0.11 data model
   - Open Prices holds only **697 CAD prices** in total.
   - StatCan has averages, not store prices.
   - Every Ontario grocer's terms limit their site to "personal, non-commercial use". Several also put bot protection in front of it (Akamai on Loblaw and Sobeys; a "press and hold" challenge on Walmart).
-- So under D-002, real store prices depend on two things: **users' receipts** (the D-002 consent wording is still open), and any retailer you approve in §7.
+- With every grocer avoided (D2), real store prices come from **users' receipts** (D7; the consent wording is still a Phase 8 task), plus Open Prices.
 
 ---
 
@@ -90,7 +91,7 @@ In **Key fields**, the fields marked **(key)** are the ones the P0.11 data model
 | Freshness | Full export nightly; deltas daily. Deltas can't signal deletions, so a periodic full import is needed. |
 | Key fields | **`code` (GTIN, key)**, **`product_name` (key)**, **`brands` / `brands_tags` (key)**, **`quantity` (key)**, **`categories_tags` (key)**, `labels_tags`, **`countries_tags` (key; filter)**, `image_url`, **`last_modified_t` (key; change detection)**, `ingredients_text`, `nutriscore_grade`. |
 | Est. rows / size | About 129k Canadian products. The dump is several GB, processed on the runner only. A selected-column extract is roughly 0.5–1 KB per row, so about 65–130 MB before indexes. P0.11 must budget this, possibly importing only products with a name and a brand. |
-| Verdict | **use**, subject to licence decision **D1** (ODbL share-alike). Attribution in the app UI is required. |
+| Verdict | **use**. ODbL share-alike **accepted** (D1): keep OFF-derived tables separable, publish an ODbL extract, and show attribution in the app UI. |
 
 ### S2 Open Food Facts: product API
 
@@ -124,7 +125,7 @@ In **Key fields**, the fields marked **(key)** are the ones the P0.11 data model
 | Freshness | Unknown (not documented). |
 | Key fields | `ean`/`upc` (key), `title`, `brand`, `images`. |
 | Est. rows / size | At most 100 lookups a day. Negligible. |
-| Verdict | **ask owner** (D5). The value is low next to OFF, and whether results may be stored and shown is unclear. My recommendation: skip it for now. |
+| Verdict | **avoid** (owner: skip, D5). The value is low next to OFF, and whether results may be stored and shown is unclear. |
 
 ### S4 GS1 Canada (ECCnet Registry / Verified by GS1)
 
@@ -162,7 +163,7 @@ In **Key fields**, the fields marked **(key)** are the ones the P0.11 data model
 | Freshness | Dumps regenerated daily. Observations are sporadic. |
 | Key fields | **`product_code` (GTIN, key)**, **`price` (key)**, **`currency` (key)**, **`date` (key)**, **`price_is_discounted` (key)**, `price_without_discount`, `price_per`, **`location_osm_id` / `location_osm_type` (key)**, `proof_id`, `source`. |
 | Est. rows / size | Hundreds of Canadian rows today. Negligible size. |
-| Verdict | **use**: free, open and GTIN-keyed. Too thin to rely on, but our users' receipts could later be **contributed back** (decision D1/D7). |
+| Verdict | **use**: free, open and GTIN-keyed (ODbL accepted, D1). Too thin to rely on. Prices from consenting users' receipts may be contributed back (D7). |
 
 ### S6 Statistics Canada table 18-10-0245-01 (monthly average retail prices)
 
@@ -208,7 +209,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live; prices change weekly or more often. |
 | Key fields | store id (key), product id / article number (key), name, brand, package size, regular / sale / member price (key), unit price, promo end date. **No GTIN in listing tiles** (legacy: 0 of 96). |
 | Est. rows / size | Unknown (no product sitemap). Tens of thousands of SKUs per banner, per store. |
-| Verdict | **ask owner (D2), recommend avoid.** The terms are personal and non-commercial, Akamai protection is active, and legacy got blocked. The only lawful route would be written permission or a data partnership with Loblaw. |
+| Verdict | **avoid** (owner decision D2, 2026-10-26): personal, non-commercial terms. No scraping and no workaround (D-002). Revisit only through written permission or a partnership. |
 
 ### S8 Sobeys group: Voilà, Sobeys, FreshCo, Foodland
 
@@ -225,7 +226,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live. |
 | Key fields | product id (key), name, brand, size, price (key), promo (key), store/region (key). GTIN availability unknown (not inspected). |
 | Est. rows / size | Unknown (not inspected; would need scraping). |
-| Verdict | **ask owner (D2), recommend avoid**: personal and non-commercial terms; `/api/` is disallowed; banner sites are Akamai-blocked. |
+| Verdict | **avoid** (owner decision D2, 2026-10-26): personal, non-commercial terms. No scraping and no workaround (D-002). Revisit only through written permission or a partnership. |
 
 ### S9 Metro / Food Basics
 
@@ -242,7 +243,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live; weekly flyers. |
 | Key fields | product id (key), name, brand, size, price (key), store (key). GTIN: unknown (not inspected). |
 | Est. rows / size | Unknown (not inspected). |
-| Verdict | **ask owner (D2), recommend avoid**: personal and non-commercial terms, reproduction ban, and robots.txt disallows the pagination and store parameters a price crawl would need. |
+| Verdict | **avoid** (owner decision D2, 2026-10-26): personal, non-commercial terms. No scraping and no workaround (D-002). Revisit only through written permission or a partnership. |
 
 ### S10 Walmart.ca
 
@@ -259,7 +260,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live. |
 | Key fields | product id (key), name, brand, price (key), store (key). |
 | Est. rows / size | Unknown (not inspected). |
-| Verdict | **avoid**: active bot challenge (D-002), and the terms couldn't be confirmed. |
+| Verdict | **avoid** (owner confirmed, D2): active bot challenge (D-002), and the terms couldn't be confirmed. |
 
 ### S11 Costco.ca
 
@@ -276,7 +277,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live. |
 | Key fields | item number (key), name, price (key). |
 | Est. rows / size | Unknown (not inspected). |
-| Verdict | **avoid**: the terms explicitly ban bots and collecting prices. |
+| Verdict | **avoid** (owner confirmed, D2): the terms explicitly ban bots and collecting prices. |
 
 ### S12 Longo's
 
@@ -293,7 +294,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live. |
 | Key fields | product id (key), name, price (key), store (key). |
 | Est. rows / size | Unknown (not inspected). |
-| Verdict | **ask owner (D2), recommend avoid**: personal and non-commercial terms; Akamai-blocked. |
+| Verdict | **avoid** (owner decision D2, 2026-10-26): personal, non-commercial terms. No scraping and no workaround (D-002). Revisit only through written permission or a partnership. |
 
 ### S13 Farm Boy
 
@@ -310,7 +311,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Weekly flyer. |
 | Key fields | product name, price (key), flyer dates (key). |
 | Est. rows / size | Flyer items only: about 100 a week (estimate from a typical flyer, not measured). |
-| Verdict | **ask owner (D2), recommend avoid**: personal and non-commercial terms. robots.txt is permissive, but the terms aren't. |
+| Verdict | **avoid** (owner decision D2, 2026-10-26): personal, non-commercial terms. No scraping and no workaround (D-002). Revisit only through written permission or a partnership. |
 
 ### S14 Giant Tiger
 
@@ -327,7 +328,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live. |
 | Key fields | product handle/id (key), title, price (key). |
 | Est. rows / size | Unknown (not inspected). |
-| Verdict | **ask owner (D2), recommend avoid**: personal and non-commercial terms. |
+| Verdict | **avoid** (owner decision D2, 2026-10-26): personal, non-commercial terms. No scraping and no workaround (D-002). Revisit only through written permission or a partnership. |
 
 ### S15 Flipp (flyer aggregator)
 
@@ -344,7 +345,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Weekly (flyer cycle). |
 | Key fields | merchant (key), flyer validity dates (key), item name, sale price (key), postal-code region (key). No GTIN. |
 | Est. rows / size | Unknown: thousands of items a week across Ontario chains (estimate, not measured). |
-| Verdict | **ask owner (D3)**. Using undocumented APIs to redistribute retailers' flyer content isn't acceptable under D-002. A **business data partnership request** to Flipp would be the lawful route. |
+| Verdict | **avoid** (owner decision D3): no scraping. A data partnership isn't being pursued for now. |
 
 ### S16 Reebee (flyer aggregator)
 
@@ -361,7 +362,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Weekly. |
 | Key fields | Same as S15. |
 | Est. rows / size | Unknown (not inspected). |
-| Verdict | **avoid**: it duplicates S15. Decide Flipp first. |
+| Verdict | **avoid**: it duplicates S15, which is avoided (D3). |
 
 ---
 
@@ -505,7 +506,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live. |
 | Key fields | item link (key), title (key), pubDate (key), feed/source (key). |
 | Est. rows / size | Small (store only matched items: headline, link, date). |
-| Verdict | **ask owner (D4)**: approve a feed list first. I'll then check each feed's terms and store only headline + link + date, never full text. |
+| Verdict | **use** with a provisional feed list (D4, owner to narrow it later): CBC News Business, The Globe and Mail (Report on Business), Financial Post, Canadian Grocer (trade), Food in Canada (trade), The Narwhal (environment). Before any feed is added in Phase 7, check its terms and robots.txt and record them here. Store only headline, link and date, never full text. |
 
 ### S25 Google News RSS
 
@@ -556,7 +557,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Live (certifications renew every 3 years). |
 | Key fields | company name (key), certification status and date (key), overall score, directory URL (key; citation). |
 | Est. rows / size | A few hundred relevant companies at most. Small. |
-| Verdict | **ask owner (D6)**: automated access is banned. Options: ask B Lab for written consent or a data feed, or record B Corp status manually per company with a citation URL. |
+| Verdict | **manual only** (owner decision D6): automated access is banned. An admin records B Corp status per company with the directory URL as the citation. No bulk import. |
 
 ### S28 Fairtrade Canada: brand and product finder
 
@@ -573,7 +574,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Unknown (not stated). |
 | Key fields | brand name (key), product category, certification (key), page URL (key; citation). |
 | Est. rows / size | Small (dozens to a few hundred brands, estimated). |
-| Verdict | **ask owner (D6)**: terms unknown. Manual entry with a citation is safe in the meantime. |
+| Verdict | **manual only** (owner decision D6): an admin records Fairtrade certification per brand with the finder URL as the citation. No bulk import. |
 
 ### S29 KnowTheChain benchmarks (Business & Human Rights Resource Centre)
 
@@ -590,7 +591,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Freshness | Benchmark every 2–3 years (food and beverage 2026). |
 | Key fields | company (key), benchmark year (key), score (key), report URL (key; citation). |
 | Est. rows / size | 45 companies per edition. Tiny. |
-| Verdict | **ask owner (D6)**: citing the public reports manually is fine. A bulk import needs the data terms, which come with the sign-up. |
+| Verdict | **manual only** (owner decision D6): an admin cites the public benchmark report per company. No bulk import. |
 
 ### S30 Ethical Consumer
 
@@ -612,6 +613,25 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 ---
 
 ## 7. Decisions for owner
+
+**Answered 2026-10-26** (recorded as DECISIONS.md D-013). The original questions are kept below with each answer.
+
+| # | Answer |
+|---|---|
+| D1 | **Accept** ODbL share-alike for OFF / Open Prices data. |
+| D2 | **Avoid all** Ontario grocer websites (S7, S8, S9, S12, S13, S14). S10 Walmart.ca and S11 Costco.ca avoided too. |
+| D3 | **No** Flipp scraping, and no data partnership for now. |
+| D4 | I pick a provisional feed list (S24); the owner narrows it later. |
+| D5 | **Skip** UPCitemdb. |
+| D6 | **Manual** citation per company for B Corp, Fairtrade and KnowTheChain. |
+| D7 | **Yes**: receipts are the main store-price source, and consenting users' prices may go to Open Prices. The consent wording is still a Phase 8 task. |
+
+**Still open:**
+- the project contact for pipeline User-Agent headers (required by OFF, Wikimedia and SEC; needed before the first Phase 3 run);
+- whether Sarvis is a commercial product (it affects whether any retailer permission request is worth making later).
+
+### Original questions
+
 
 Answer these before any P3 retailer task (PLAN P0.10 🟡). Each item names its sources.
 
