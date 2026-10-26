@@ -4,6 +4,37 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.10 Research and compare catalog sources → SOURCES.md
+
+**What changed**
+- `docs/catalog/SOURCES.md` (new folder `docs/catalog/`): 30 source cards across products, prices, retailers, ownership and evidence.
+  - Each card has the same 12 fields, from what the source provides through to a verdict.
+  - Every licence and terms claim carries a verbatim quote, a URL and the date checked.
+  - Includes a summary table and **§7 Decisions for owner** (D1–D7).
+
+**Verification** (script over the cards)
+- 30/30 cards have all 12 fields filled, 0 missing.
+- Every Licence and Terms row has a URL plus 2026-10-26, or "Unknown" with a reason.
+- 12 "ask owner" sources (S3, S7, S8, S9, S12, S13, S14, S15, S24, S27, S28, S29), all named in §7.
+- No scrapers run. I read only robots.txt (one request per host, 40 hosts), terms pages and API docs. Six terms pages that block plain fetches were opened once in a normal browser view; the Playwright working folder was deleted afterwards (D-012).
+
+**Things you should know**
+- **Prices are the gap.**
+  - Open Prices has only **697 CAD prices** in total.
+  - StatCan (110 products, monthly, Ontario level) is only a sanity reference.
+  - Every Ontario grocer limits its site to personal, non-commercial use. Loblaw, Sobeys and Longo's add Akamai; Walmart has a bot challenge; Costco explicitly bans bots and price collection.
+  - So under D-002, real store prices come from receipts (D7) unless you approve a retailer (D2).
+- **Products and ownership are well covered:**
+  - OFF: about **129k Canadian products**. Its ODbL share-alike needs your call (D1).
+  - Wikidata (CC0), Wikipedia, SEC EDGAR and GDELT are all "use".
+- **Budget flag for P0.11:** an OFF Canada extract could be 65–130 MB before indexes.
+- **Mistake on my part:** the robots.txt check sent a User-Agent containing your email address to the 40 hosts. It should have had no contact email (or a project address). Future pipeline User-Agents will use a project contact you choose. OFF, Wikimedia and SEC all require one, so that's worth deciding with D1.
+- 🟡 **Your answers to §7 D1–D7 are needed before any P3 retailer task.** P0.11 can proceed without them.
+
+**Next:** P0.11 Design the catalog data model and free-tier budget.
+
+---
+
 ## 2026-10-26 — P0.9 Write a frank review of the legacy catalog and scraper
 
 **What changed**

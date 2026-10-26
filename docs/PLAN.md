@@ -131,7 +131,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/legacy/CATALOG_REVIEW.md`, with a keep/adapt/drop table (file or concept → verdict → reason → where it goes in the rebuild) and a "lessons" section.
 - **Verification:** the table covers every file in `catalog-worker/src/` (check with a file-list diff), the 3 edge functions, and the admin catalog pages. The legacy test result (pass/fail counts) is recorded.
 
-### [ ] P0.10 Research and compare catalog sources → SOURCES.md
+### [x] P0.10 Research and compare catalog sources → SOURCES.md
 - **Goal:** pick the data sources before writing any scraper.
 - **Deps:** none (P0.9 helps).
 - **In:** for each source, record: what it provides, licence, terms on automated access (quote plus URL), robots.txt summary, access method (bulk dump / API / HTML / internal JSON), auth needs, rate limits, Ontario coverage, freshness, key fields, estimated row count and size, and a verdict (**use** / **ask owner** / **avoid**). Candidates:
