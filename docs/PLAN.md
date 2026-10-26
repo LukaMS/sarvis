@@ -76,7 +76,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/legacy/SPEC.md` (sections "Edge functions", "AI prompts", "RPCs", "RLS", "Admin portal").
 - **Verification:** each of the 3 edge functions, every `fetch(...openrouter...)` call site (find with `grep -rn openrouter LEGACY/supabase LEGACY/admin/src LEGACY/src`), and every admin page file maps to a SPEC section. List the mapping in PROGRESS.
 
-### [ ] P0.5 Write THEME.md
+### [x] P0.5 Write THEME.md
 - **Goal:** record the legacy visual language precisely enough to rebuild it without redesigning.
 - **Deps:** none.
 - **In:**
@@ -201,6 +201,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Supabase wiring: migrations folder, type-generation script, base schema (`profiles` with `role`, an `is_admin()` security-definer helper), RLS. No service-role key in any client.
   - Auth: providers per SPEC (email first; others as separate tasks, Apple likely out on Android/web). Account deletion RPC.
   - Theme tokens and UI primitives from THEME.md (GradeBadge, RatingPill, ScoreRing, cards, chips, buttons, empty/error states), with a component gallery route for screenshot checks.
+    - 🟡 **Decision:** legacy renders in system fonts, but the Stitch designs specify Epilogue and Public Sans (see THEME.md › Fonts). Default: keep system fonts, matching the legacy app. Loading the Stitch fonts is a design change.
   - App shell: tabs and stack routes as placeholders whose layout matches the baseline. Web-only `/admin` route group gated by role (D-005).
 
 ## Phase 2 — Catalog core: schema and ingestion framework (outline)

@@ -4,6 +4,38 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.5 Write THEME.md
+
+**What changed**
+- `docs/legacy/THEME.md` (new). It covers:
+  - all M3 colour tokens with hex, usage counts and roles; hard-coded colours; the tint convention;
+  - grade and rating colour maps;
+  - `AppColors` and `Radius`, plus the unused `theme.ts` template tokens;
+  - fonts, the measured type scale, spacing, shadows, icons;
+  - tab bar, headers, status-bar scrim, motion;
+  - a spec for each of the 9 `components/ui` files and every home/search/history/scan card, plus screen-level patterns;
+  - the admin portal palette;
+  - the Stitch designs as a secondary reference.
+- `docs/PLAN.md`: ticked P0.5; added a 🟡 font decision under the Phase 1 theme milestone.
+
+**Verification** (script against `LEGACY/src/constants/{colors,theme}.ts` and `src/components/ui/`)
+```
+src/constants/colors.ts: 90 keys checked
+src/constants/theme.ts: 27 keys checked
+token keys: 117, missing: 0
+ui components: 9, missing: 0
+```
+
+**Things you should know**
+- **Fonts:** legacy loads no custom fonts; everything renders in system fonts, with heavy weights (900 heroes) carrying the look. The Stitch mocks use Epilogue and Public Sans. The rebuild defaults to system fonts; the alternative is a 🟡 decision in Phase 1.
+- **Design is flat:** cards have no shadows; separation comes from white cards on the warm `#fcf9f4` surface. The only shadow is on the tab bar.
+- **Admin palette:** the admin uses its own palette (accent `#157a4e`, Inter), not the app's `#173809` green. Whether to align them is flagged for P5.0.
+- **Unused tokens:** `theme.ts` is unused template code, and several M3 tokens have 0 uses.
+
+**Next:** P0.6 Capture baseline screenshots: user app on web. It needs your decision on a legacy login before the logged-in screens.
+
+---
+
 ## 2026-10-26 — P0.4 Write SPEC.md, part 2: backend, AI and admin
 
 **What changed**
