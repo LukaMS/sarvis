@@ -4,6 +4,35 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.9 Write a frank review of the legacy catalog and scraper
+
+**What changed**
+- `docs/legacy/CATALOG_REVIEW.md`:
+  - a summary and the legacy catalog's real numbers (read-only DB counts);
+  - test and typecheck state;
+  - keep/adapt/drop tables for all 48 `catalog-worker/src/` files, the 3 edge functions plus `match_receipt_items`, and the admin catalog pages and tools;
+  - a concepts table (including why the Akamai/CDP workaround is dropped);
+  - lessons, and inputs for P0.10, P0.11, P2 and P4.
+
+**Verification**
+- File-list diff: 48/48 `catalog-worker/src/` files have a table row (0 missing). There are rows for 3/3 edge functions and 7/7 `admin/src/pages/catalog/` pages, plus `BulkBrandLink` and `enrich.ts`.
+- Legacy tests (`npx vitest run` in `LEGACY/catalog-worker`): **8 files, 61 tests, 61 passed, 0 failed.**
+- `npx tsc --noEmit`: **6 errors**, all DOM types in `fortinos/client.ts`.
+- No network scraping. The legacy DB was read with `select` only. Legacy `git diff` hash unchanged (`6f0b037…`).
+
+**Things you should know**
+- **What legacy actually ingested:** 96 Fortinos products from 2 categories, exactly 48 each. That means pagination never got past page 1.
+  - 0 of the 96 have a UPC, so none link to a rated product.
+  - 7 of 12 scrape jobs failed on Akamai blocks.
+- **Worth porting:** the generic plumbing (errors, retry, logger, env, safeguards, change-only price history, conservative deactivation) and the pure parsing helpers.
+- **Dropped:** all Fortinos access code (D-002).
+- **Your call:** the legacy folder has a full Chrome profile with live cookies at `catalog-worker/.fortinos-cdp-profile/` (gitignored). You may want to delete it yourself. I can't edit the legacy folder.
+- No new decisions or plan tasks. The review's suggestions feed P0.10, P0.11 and Phase 2, which are already planned.
+
+**Next:** P0.10 Research and compare catalog sources → SOURCES.md.
+
+---
+
 ## 2026-10-26 — P0.8 Capture baseline screenshots: admin portal
 
 **What changed**

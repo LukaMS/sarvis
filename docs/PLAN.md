@@ -117,7 +117,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/baseline/admin/NN-<page>.png`, and an admin section in `docs/baseline/README.md`.
 - **Verification:** one screenshot or reason per admin page file (19). Console errors are recorded.
 
-### [ ] P0.9 Write a frank review of the legacy catalog and scraper
+### [x] P0.9 Write a frank review of the legacy catalog and scraper
 - **Goal:** decide what to keep, adapt or drop from the legacy catalog code and data tools.
 - **Deps:** P0.1, P0.4.
 - **In:**
