@@ -547,6 +547,7 @@ Every exported function, by module.
 13. **Unused code:** `QuickStatsBar` component; `getSession` / `getUser` service wrappers; `LegalLinks.accountDeletion`.
 14. **Dark mode:** only the navigator chrome switches; screens are always light.
 15. **No spending tracking** beyond a per-receipt total; no per-store or per-company spending views, which the rebuild needs (Phase 8).
+16. **Web barcode scanning is a silent dead end** (seen in P0.6): with no camera permission on web, `Alert.alert` is a no-op on react-native-web, so tapping Scan Barcode does nothing. Every web `Alert.alert` (confirmations, errors, request sent) has the same problem.
 
 ---
 

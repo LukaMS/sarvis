@@ -92,7 +92,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/legacy/THEME.md`.
 - **Verification:** a small script lists every exported token key in `colors.ts`/`theme.ts` and confirms that each one appears in THEME.md (0 missing). Every `components/ui/*.tsx` file has a section.
 
-### [ ] P0.6 Capture baseline screenshots: user app on web
+### [x] P0.6 Capture baseline screenshots: user app on web
 - **Goal:** visual targets for every legacy user screen on web.
 - **Deps:** P0.3.
 - 🟡 **Decision/action:** logged-in screens need a legacy account. Either you log in yourself in the Playwright browser when prompted, or you give me a test account. Creating a new account would be a write to the legacy project, so I won't do it.

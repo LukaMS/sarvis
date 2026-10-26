@@ -48,3 +48,7 @@ Raw responses are gzipped into a private Supabase Storage bucket, keyed `source/
 ## D-011 Alternatives default to the same store — Accepted (owner brief), fallback Proposed
 Alternatives are products at the store the user shopped at. If that store has no data for the category, fall back to the same chain, then other nearby chains, clearly labelled as "at another store".
 **Why:** a swap is only realistic where the user already shops; the fallback avoids empty results while store coverage is thin.
+
+## D-012 Screenshots and fixtures carry no personal data — Accepted (P0.6)
+The repo is public (D-003). Screenshots in `docs/baseline/` and `.screenshots/`, test fixtures, and logs must not show real names, emails or account data. Real-account captures replace them in the page DOM before capture (name → "Alex", email → `you@example.com`), with a leak check. Tool working folders that can hold typed input (`.playwright-mcp/`) are gitignored and deleted after use. Credentials are never written to files.
+**Why:** baselines need a real signed-in session, but anything committed to a public repo is permanent.

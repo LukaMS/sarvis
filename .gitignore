@@ -28,3 +28,6 @@ coverage/
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Playwright MCP working files (page snapshots, console logs; may contain typed input)
+.playwright-mcp/

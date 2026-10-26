@@ -4,6 +4,36 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.6 Capture baseline screenshots: user app on web
+
+**What changed**
+- `docs/baseline/web/`: 33 PNGs at 390 × 844 covering every user-app route.
+  - Logged out: sign-in, sign-up.
+  - Logged in: home, scan, search (empty/results/no results), history (+ filter), receipt detail, product (+ scrolled, alternatives, not found), company (top/mid/bottom, sparse profile), stories, story, receipt scan, receipt results (empty), profile, settings ×3, privacy ×2, help, about.
+- `docs/baseline/README.md`: capture method; a route → web file → Android file → notes table; "not captured: requires write" reasons; console log.
+- `docs/DECISIONS.md`: D-012 (no personal data in screenshots, fixtures or logs).
+- `docs/legacy/SPEC.md`: known issue 16 (`Alert.alert` is a no-op on web, so web barcode scanning is a silent dead end).
+- `.gitignore`: `.playwright-mcp/`.
+
+**Verification**
+- The README table has a web file or a stated reason for all 19 route files in SPEC part 1 (script: 19/19, 0 missing).
+- All 33 referenced files exist; none are unreferenced.
+- Opened at random: 29-privacy, 25-profile, 19-company-sparse. The first pass caught two bad captures (mid-animation, still loading), so the whole set was recaptured with a spinner-gone + 1.5 s settle and re-checked, along with 01, 08, 12, 21 and 28.
+- Console: the only error is the known `check_content_freshness` 404 (signature mismatch); otherwise just react-native-web deprecation warnings.
+- Legacy repo: `git status` and the diff hash were identical before and after. No DB writes: products opened by URL, no scans, submissions, receipts or saves.
+
+**Things you should know**
+- **Credentials:**
+  - Your legacy password was reset to the one you shared in chat. Consider changing it once P0.7 (Android) is done.
+  - The credentials appear in no file; the one Playwright log containing them was deleted.
+- **Redacted screenshots:** your name and email are replaced with "Alex" / `you@example.com` (D-012).
+- **Not capturable without writes:** sign-up "check inbox", scan result card, populated receipt results, request-sent states, empty history.
+- **Web camera is a dead end:** on web, Scan Barcode silently does nothing. Android (P0.7) should capture the camera.
+
+**Next:** P0.7 Capture baseline screenshots: user app on Android (the emulator is running).
+
+---
+
 ## 2026-10-26 — P0.5 Write THEME.md
 
 **What changed**
