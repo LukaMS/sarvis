@@ -4,6 +4,38 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.3 Write SPEC.md, part 1: the user app
+
+**What changed**
+- `docs/legacy/SPEC.md` (new). It covers:
+  - overview (stack, config flags, navigation map, auth gate, shared UI states);
+  - one section for each of the 19 route files;
+  - flows F1–F9 (auth, barcode, receipt, search, history, stories, profile/settings, account deletion, community submissions);
+  - every exported function in `src/lib/*-service.ts`;
+  - offline cache and freshness;
+  - 15 known issues and gaps.
+- Part 2 (backend, AI, admin) will be appended in P0.4.
+
+**Verification** (script checks against `LEGACY/src`)
+```
+route files: 19, missing: 0
+exported functions: 55, missing: 0   (auth 14, cache 6, data 25, receipt 8, sync 2)
+```
+
+**Things you should know**
+- **Account deletion:** fails in the live legacy app because `delete_own_account` was never applied.
+- **Password reset:** has no completion screen.
+- **Offline freshness check:** never works (RPC argument/shape mismatch).
+- **Search pollutes History:** opening a product from search logs it as a scan.
+- **Receipts:** auto-save before the user reviews the matches, and results are held only in memory.
+- **Scaling:** receipt matching loads the whole products table plus every company (N+1). Fine at 13 products, not at catalogue scale.
+- **Sign-in:** only email/password is live; Google, Apple and guest sit behind flags that default off.
+- **For P0.12:** Phase 1 auth should include a password-reset completion screen and a working deletion RPC.
+
+**Next:** P0.4 Write SPEC.md, part 2: backend, AI and admin.
+
+---
+
 ## 2026-10-26 — P0.2 Export legacy content as seed JSON
 
 **What changed**

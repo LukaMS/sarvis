@@ -52,7 +52,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/legacy/data/<table>.json`, `docs/legacy/data/README.md` (row counts, export date, notes on quality).
 - **Verification:** the row count in each JSON file equals a live `count(*)` for that table. Show two example records. `grep` finds no keys, tokens or emails in the export.
 
-### [ ] P0.3 Write SPEC.md, part 1: the user app
+### [x] P0.3 Write SPEC.md, part 1: the user app
 - **Goal:** document every screen and flow of the legacy user app.
 - **Deps:** none.
 - **In:** every route under `LEGACY/src/app/` (19 files). For each: purpose, entry points, data read and written (tables, RPCs, edge functions), components used, loading/empty/error states, auth requirement, and navigation out. Also cover the flows end to end: sign-up/sign-in (which providers), barcode scan, receipt scan → results → save, search, history and filters, stories, profile/settings, account deletion. Cover the services in `LEGACY/src/lib/` (data, sync, cache, receipt, auth) and how offline caching and freshness checks work.
