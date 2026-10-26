@@ -22,24 +22,34 @@ Scrapers, imports, matching and AI batch jobs run as scheduled GitHub Actions wo
 Five categories (environment, labour, animal welfare, politics & tax, human rights), each rated Good/Mixed/Poor, rolled up into a 0–100 score shown as a letter grade (A+…F, legacy `scoreToGrade` thresholds). New: every category score carries cited sources, a confidence value, the model and rubric version.
 **Why:** owner likes it; the UI already expresses it.
 
-## D-005 Admin portal lives in the same Expo app as web-only routes — Proposed (confirm in P0.12)
+## D-005 Admin portal lives in the same Expo app as web-only routes — Accepted (P0.12)
 `/admin/*` routes in the Expo Router app, rendered only on web (native redirects away), gated by `profiles.role = 'admin'`. Authorization is enforced in the database (RLS with an `is_admin()` helper) and in edge functions, never by hiding UI. No service-role key in any client (the legacy admin SPA used one in the browser).
 **Why:** one codebase, shared types, theme and Supabase client, one dev server and one web deploy. Data-heavy tables can use web-only components. Alternative considered: a separate Vite SPA, which is better for heavy data grids but doubles the tooling, and the legacy split is part of what made it messy.
 **Risk:** admin code ships in the web bundle. That's acceptable because security lives in RLS; lazy-load the admin routes to keep the user bundle small.
+**Confirmed in P0.12:**
+- The legacy admin's 19 pages (P0.8 baseline) are tables, forms and modals. They can be built with web-only components inside the `(admin)` group.
+- The audit found that every legacy admin write depended on a browser-held service-role key (SPEC "Backend and admin: issues" #1), so server-side checks are needed whatever the hosting.
+- P1.12 proves the gate, and P1.12 verification checks that the admin code lands in a separate lazy chunk.
 
 ## D-006 AI scores are never auto-published until the owner sets a rule — Proposed
 Every AI score goes to the admin review queue. Unreviewed companies show "Not yet rated". An auto-publish rule (e.g. high confidence + 2 independent sources) is a 🟡 decision in Phase 7.
 
-## D-007 Repo layout: npm workspaces — Proposed (confirm in P0.12)
+## D-007 Repo layout: npm workspaces — Accepted (P0.12)
 `app/` (Expo user app + admin routes), `pipeline/` (Node + TS jobs run by Actions), `packages/core/` (pure TS: zod schemas, validation, units, matching), `supabase/` (migrations, edge functions).
 **Why:** normalization and matching logic is shared by the pipeline, edge functions and the app; a pure package keeps it testable.
+**Confirmed in P0.12:** the audit added more shared code (GTIN rules, unit parser, safeguards, change detection; CATALOG_REVIEW §4). Expo SDK 54's Metro resolves npm workspaces, and P1.2 verifies it by importing from `packages/core`. Generated DB types live in `packages/core/src/db/` so the app and pipeline share them (P1.5).
 
 ## D-008 One product table — Accepted (P0.11; schema in `docs/catalog/DATA_MODEL.md` §3.3)
 Legacy split products into an "ethical" `products` table and a grocery `catalog_products` table. The rebuild has one `products` table. Retailer listings and prices hang off it, and ownership goes product → brand → company through mapping tables.
 **Why:** the split duplicated identity and made matching ambiguous.
 
-## D-009 One OpenRouter module, runtime-agnostic — Proposed (confirm in P0.12)
+## D-009 One OpenRouter module, runtime-agnostic — Accepted with amendments (P0.12)
 `supabase/functions/_shared/ai/` written with `fetch` only, so both Deno edge functions (receipt parsing) and the Node pipeline (batch scoring) import the same code. Configurable model with a cheap default, zod-validated output, a per-call token and cost log table, and a mock mode for tests. The key exists only in edge function secrets and Actions secrets.
+**Amendments (P0.12):**
+- The module must not touch runtime globals (`Deno.env`, `process.env`). Config (key, model, budget) is passed in by the caller.
+- Bare imports such as `zod` resolve through an import map in `supabase/functions/deno.json` on Deno and through npm on Node.
+- Calls are logged to `ai_calls` (DATA_MODEL §3.8); full responses go to Storage via `raw_objects`.
+- Phase 7's first task is a spike proving one file runs in both runtimes. If it fails, fall back to a copy-free build step and record a new decision.
 
 ## D-010 Raw data storage and retention — Accepted (finalised in P0.11; detail in `docs/catalog/DATA_MODEL.md` §5)
 - **Where:** raw responses are gzipped into the private `raw` bucket as `raw/{source_key}/{run_id}/{seq}.json.gz`. Each file has a `raw_objects` row (sha256, size, request URL) linked from the facts parsed from it.

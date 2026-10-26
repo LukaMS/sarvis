@@ -4,6 +4,54 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.12 Refine Phase 1 into session-sized tasks
+
+**What changed**
+- `docs/PLAN.md` Phase 1: the outline became **14 tasks** (P1.1–P1.14), each with ID, Slice, Goal, Deps, In, Out, Files and Verification, plus a milestone coverage table (M1–M6 plus exit). P1.0 is ticked.
+- Phases 2–10 milestones were amended with audit findings:
+  - P2: port the CATALOG_REVIEW Keep/Adapt modules; run-twice idempotency test; budget check vs BUDGET.md.
+  - P3: OFF import filter and ODbL extract; adds Wikipedia, SEC EDGAR and Corporations Canada.
+  - P4: receipt-abbreviation matching; calibrate the legacy tiers.
+  - P5: manual certification forms; sources page.
+  - P6: retention and budget thresholds.
+  - P7: Deno/Node spike first; GDELT weekly; RSS per-feed terms.
+  - P8: receipts early; new 🟡 items.
+  - P9: thin same-store coverage note.
+  - P10: attributions; paid-tier threshold.
+- `docs/DECISIONS.md`:
+  - **D-005** (admin in the Expo app) and **D-007** (npm workspaces) Accepted.
+  - **D-009** Accepted with amendments: no runtime globals, an import map for Deno, logging to `ai_calls`, and a Phase 7 spike.
+  - D-008 and D-010 were already Accepted in P0.11.
+
+**Verification** (script over PLAN.md)
+- 14/14 Phase 1 tasks have ID plus all 6 other fields (0 missing).
+- Each task names **exactly one** feature slice (10 slices defined).
+- Milestones covered: M1 → P1.1–P1.3; M2 → P1.4; M3 → P1.5 (+P1.10 client); M4 → P1.10, P1.11, P1.14; M5 → P1.6–P1.8; M6 → P1.9, P1.12; exit → P1.13. **0 uncovered.**
+- All deps resolve.
+
+**Open 🟡 decisions** (shown to the owner)
+
+| When | Decision / action | Default |
+|---|---|---|
+| P1.4 | Create a public GitHub repo, or install `gh` and let me. I ask before the first push. | — (blocks P1.4) |
+| P1.10 | Test users: put the **dev** project's service-role key in `.env`, or turn off email confirmation in dev. | (a) dev key in `.env` |
+| P1.14 | Extra sign-in providers (Google / guest). | None |
+| M5 (P1.6) | Fonts: system (legacy) vs Stitch Epilogue / Public Sans. | System fonts |
+| Before P3 runs | Project contact for pipeline User-Agent headers. | — (blocks first P3 run) |
+| Open | Is Sarvis a commercial product? | — |
+| P5 | GitHub token scope for triggering runs from admin. | — |
+| P7 | Approve rubric v1; the auto-publish rule (D-006). | No auto-publish |
+| P8 | Receipt consent wording and k-anonymity rule; product grades (derive from company vs product-level); community submissions keep or drop. | ≥ 2 receipts; derive; — |
+| P10 | Web hosting; Android distribution; a paid Supabase tier past ≈ 200–250 users. | — |
+
+**Things you should know**
+- **P1.1–P1.3 and P1.5–P1.9 need nothing from you.** P1.4 waits on the GitHub repo, and P1.10's verification waits on the test-user choice.
+- **Android package id:** I picked `com.lukams.sarvis` and scheme `sarvis`. They can change before any store build.
+
+**Next:** P1.1 Scaffold the npm workspace and root tooling.
+
+---
+
 ## 2026-10-26 — P0.11 Design the catalog data model and free-tier budget
 
 **What changed**
