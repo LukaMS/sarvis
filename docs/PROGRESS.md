@@ -4,6 +4,36 @@ Newest entry first.
 
 ---
 
+## 2026-10-26 — P0.7 Capture baseline screenshots: user app on Android
+
+**What changed**
+- `docs/baseline/android/`: 34 PNGs at 640 × 1428 (half of the Pixel 10 Pro emulator's 1280 × 2856), 5.1 MB.
+  - Same screen set as web, plus the barcode camera: the system permission prompt and the scanner modal.
+- `docs/baseline/README.md`:
+  - Android column filled for all 20 rows;
+  - a "How the Android set was captured" section;
+  - an "Android vs web — differences" section (native ← headers, status and gesture bars, tab bar overlapping Home cards, Roboto vs browser font, taller screen, working camera, Profile as a full-screen card, console).
+
+**Verification**
+- `adb devices` → `emulator-5554` (Pixel_10_Pro, Android 17). Expo Go wasn't installed; Expo installed it.
+- The README Android column has a file or reason for every row (20/20, 0 placeholders left). All 34 files exist and are referenced.
+- Opened at random: 07-search-empty, 29-privacy, 25-profile (redacted). Also checked 03, 05c, 12, 15, 19, 21 and 26.
+- Device console (Metro log): only the known `check_content_freshness` warning ×23, plus one LayoutAnimation no-op warning (New Architecture).
+- Legacy repo: `git status` and diff hash identical to the pre-P0.6 snapshot. No DB writes:
+  - screens opened via `exp://…/--/` deep links;
+  - the sign-up form was only toggled, never submitted;
+  - the camera modal was closed with nothing scanned (Recent Impact unchanged).
+
+**Things you should know**
+- **Emulator changes:** Expo Go is now installed on the emulator, and the camera permission was granted "only this time".
+- **Redaction (D-012):** done in the image (paint over + placeholder text) since there's no DOM on Android. Raw full-resolution captures stayed in the scratchpad.
+- **Tooling:** `uiautomator dump` can't run while the mobile MCP is attached (it's killed with exit 137), so element bounds came from the MCP list.
+- **Password:** you can now change the legacy account password you shared in chat. P0.8 (admin) doesn't need the user account.
+
+**Next:** P0.8 Capture baseline screenshots: admin portal.
+
+---
+
 ## 2026-10-26 — P0.6 Capture baseline screenshots: user app on web
 
 **What changed**

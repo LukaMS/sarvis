@@ -101,7 +101,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/baseline/web/NN-<screen>.png`, `docs/baseline/README.md` (table: screen → route → web file → Android file → notes).
 - **Verification:** the README table has a web file, or a stated reason, for every route in SPEC part 1. Open 3 random PNGs to confirm they're the right screens.
 
-### [ ] P0.7 Capture baseline screenshots: user app on Android
+### [x] P0.7 Capture baseline screenshots: user app on Android
 - **Goal:** the same screen set on the Android emulator.
 - **Deps:** P0.6.
 - **In:** `adb devices` confirms the emulator. Run the legacy app in Expo Go (as in the legacy audit). Use the mobile MCP to navigate and save the screenshots. Same login rule as P0.6.
