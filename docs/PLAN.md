@@ -32,7 +32,7 @@ Every phase must keep these in view. Phase 0 (P0.11) turns them into numbers.
 
 Goal: know exactly what the legacy app does and looks like, what the catalog sources allow, and what the new data model must hold, before any code is written.
 
-### [ ] P0.1 Dump the legacy schema
+### [x] P0.1 Dump the legacy schema
 - **Goal:** capture the complete legacy database schema as SQL plus a readable summary.
 - **Deps:** none.
 - **In:** every table, column, type, default, constraint, index, view, function/RPC (with body), trigger, RLS policy, storage bucket, extension, and current row counts. Use read-only `supabase-legacy` MCP queries against `pg_catalog`/`information_schema`, plus `list_migrations`. Compare with the 11 files in `LEGACY/supabase/migrations/` and note drift: tables whose base schema exists only in the live DB.
