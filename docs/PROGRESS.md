@@ -4,6 +4,50 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.8 Interaction and state primitives
+
+**What changed**
+- New in `app/src/components/ui/`:
+  - `PressableScale`
+  - `Button` (primary / secondary / text, pill / block, icon, loading, disabled, destructive)
+  - `FilterChips`
+  - `Card`
+  - `EmptyState`
+  - `ErrorState` (plus the `FriendlyError` type)
+  - `StatusBarScrim`
+  - `RouteErrorBoundary`
+  - Every interactive element takes a `testID`.
+- Gallery: a section for each primitive, the scrim drawn over the screen, and a button that opens `/dev/error-boundary`. That's a new dev-only route that throws while rendering and exports `RouteErrorBoundary` as its `ErrorBoundary`.
+- E2E:
+  - `e2e/gallery.spec.ts` has 2 new tests: (1) presses and state, (2) the error boundary.
+  - `e2e/helpers.ts` adds `tap()`.
+- New dependency: `@expo/vector-icons` (**D-023**). No Reanimated or expo-linear-gradient yet. PressableScale uses RN `Animated`, and the scrim fade uses `react-native-svg`.
+- Two files outside the plan's list, both needed for the verification: `app/src/app/dev/error-boundary.tsx` and `e2e/helpers.ts`.
+
+**Verification**
+- **Web (Playwright MCP, 390 wide):** `.screenshots/p1.8-gallery-web.png` (new sections) and `p1.8-error-boundary-web.png`. 0 console errors or warnings on the gallery.
+  - Compared with `09-search-no-results.png`: the EmptyState (magnify 48 in `outlineVariant`, 16 / 600 title, 14 `outline` message), the filter chips (active `primary` / white, inactive `surfaceContainerLow`, 34 high, 13 / 600) and the Request pill (primary, + icon, 14 / 700) all match.
+  - Compared with `11-history-barcode-filter.png`: the All / Barcode / Receipt chips match.
+- **Android (Pixel_10_Pro, Expo Go):** `.screenshots/p1.8-gallery-android-{1,2,3}.png` and `p1.8-error-boundary-android.png`.
+  - Tapping Primary counted 1, and Disabled stayed at 1. Tapping the Barcode chip moved the selection, and Android reports it as `selected`. Tapping the pressable card counted 1.
+  - Content fades under the status bar (scrim).
+  - "Open error test screen" showed RouteErrorBoundary (after dismissing the dev LogBox overlay).
+- **`npm run e2e`:** 4 passed, and 4 of 4 on the final run.
+  - The test presses Primary (0 → 1); presses on Disabled and Loading don't count.
+  - Tapping the Barcode chip sets `aria-selected` and changes the label to "History filter: Barcode".
+  - Card and retry counters go to 1. The not-retryable ErrorState has no retry button.
+  - The boundary renders with Try again and Go back, and Go back returns to the gallery.
+  - No console errors, except React's expected log of the deliberate error.
+- typecheck, lint, `npm test` (16 passed) and format:check all exit 0.
+
+**Things you should know**
+- **The plan said "renders ErrorState"** for the boundary test. Legacy's RouteErrorBoundary has its own full-screen layout (not ErrorState), and the rebuild keeps that. The test checks that layout.
+- **Android, dev only:** a caught render error also pops React Native's LogBox overlay. It's a development feature; release builds show only the boundary.
+
+**Next:** P1.9 App shell: tabs, stack routes and headers as placeholders.
+
+---
+
 ## 2026-10-27 — P1.7 Rating primitives and the component gallery route
 
 **What changed**

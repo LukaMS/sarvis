@@ -328,7 +328,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `e2e/gallery.spec.ts` asserts each component's testID is visible.
   - typecheck, lint and tests pass.
 
-### [ ] P1.8 Interaction and state primitives
+### [x] P1.8 Interaction and state primitives
 - **Slice:** ui-primitives.
 - **Goal:** the remaining shared building blocks from THEME.md, added to the gallery.
 - **Deps:** P1.7.
