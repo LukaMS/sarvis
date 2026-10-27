@@ -21,3 +21,9 @@ export function passwordFor(user: { passwordEnv: string }): string {
   if (!password) throw new Error(`${user.passwordEnv} is not set; global setup didn't run.`);
   return password;
 }
+
+/** Created fresh by account-deletion.spec, then deleted through the UI. */
+export const DELETE_USER = {
+  email: 'e2e-delete@example.com',
+  displayName: 'E2E Delete',
+} as const;

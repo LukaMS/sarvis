@@ -30,7 +30,7 @@ interface ButtonProps {
   disabled?: boolean;
   /** Shows a spinner in place of the icon and blocks presses. */
   loading?: boolean;
-  /** Use the `error` colour for the label (Sign Out, Delete). Text variant only. */
+  /** Error colours: the label on text buttons (Sign Out); an `errorContainer` fill on primary (Delete). */
   destructive?: boolean;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
@@ -67,7 +67,7 @@ export function Button({
       style={({ pressed }) => [
         styles.base,
         shape === 'block' ? styles.block : styles.pill,
-        variant === 'primary' && styles.primary,
+        variant === 'primary' && (destructive ? styles.primaryDestructive : styles.primary),
         variant === 'secondary' && styles.secondary,
         variant === 'text' && styles.text,
         inactive && styles.inactive,
@@ -86,8 +86,10 @@ export function Button({
 }
 
 function labelStyle(variant: ButtonVariant, shape: ButtonShape, destructive?: boolean): TextStyle {
-  if (variant === 'primary')
-    return shape === 'block' ? styles.primaryBlockText : styles.primaryText;
+  if (variant === 'primary') {
+    const base = shape === 'block' ? styles.primaryBlockText : styles.primaryText;
+    return destructive ? { ...base, color: M3Colors.error } : base;
+  }
   if (variant === 'secondary') return styles.secondaryText;
   return destructive ? { ...styles.textLabel, color: M3Colors.error } : styles.textLabel;
 }
@@ -114,6 +116,9 @@ const styles = StyleSheet.create({
   },
   primary: {
     backgroundColor: M3Colors.primary,
+  },
+  primaryDestructive: {
+    backgroundColor: M3Colors.errorContainer,
   },
   secondary: {
     backgroundColor: M3Colors.surfaceContainerLow,

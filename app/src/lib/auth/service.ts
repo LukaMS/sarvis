@@ -63,3 +63,13 @@ export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
+
+/**
+ * Deletes the signed-in user's account and everything that cascades from it (SPEC F8), then clears the
+ * local session. The server already revoked the refresh token, so a server-side sign-out would fail.
+ */
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.rpc('delete_own_account');
+  if (error) throw error;
+  await supabase.auth.signOut({ scope: 'local' });
+}

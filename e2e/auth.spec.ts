@@ -1,25 +1,10 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
-import { tap } from './helpers';
+import { collectConsoleErrors, signIn, tap } from './helpers';
 import { AUTH_USER, passwordFor } from './users';
 
 // Start signed out, unlike the other specs.
 test.use({ storageState: { cookies: [], origins: [] } });
-
-function collectConsoleErrors(page: Page) {
-  const errors: string[] = [];
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') errors.push(msg.text());
-  });
-  return errors;
-}
-
-async function signIn(page: Page, email: string, password: string) {
-  await page.goto('/auth', { waitUntil: 'networkidle' });
-  await page.getByTestId('auth-email').fill(email);
-  await page.getByTestId('auth-password').fill(password);
-  await tap(page.getByTestId('auth-submit'));
-}
 
 test('signed out, / redirects to /auth', async ({ page }) => {
   const consoleErrors = collectConsoleErrors(page);

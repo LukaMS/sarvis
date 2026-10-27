@@ -387,7 +387,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Auth screen screenshots compared with baseline `01-auth-sign-in.png` and `02-auth-sign-up.png` (web and Android).
   - 0 console errors. `grep` confirms no service-role key in `app/`.
 
-### [ ] P1.11 Account deletion RPC and the Settings action
+### [x] P1.11 Account deletion RPC and the Settings action
 - **Slice:** account-deletion.
 - **Goal:** a signed-in user can delete their own account and nothing else (SPEC F8; the legacy RPC was never applied).
 - **Deps:** P1.10.
@@ -427,6 +427,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **In:**
   - A clean clone, `npm ci`, the full Commands table run row by row.
   - Web and Android sign-in.
+  - Android: Settings → Delete my account shows both native confirmations with the legacy button labels (Cancel / Continue, Keep my account / Delete permanently). Use a throwaway `npm run dev:test-user` account, confirm both, and check that the app lands on `/auth`. P1.11 couldn't check this because the emulator was unresponsive.
   - `/admin` denied to non-admins.
   - The latest CI run is green.
   - Update CLAUDE.md Commands with anything missing (rows that only apply later, such as "Run a scraper on a sample", stay "TBD (Phase 2)").

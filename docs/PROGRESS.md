@@ -4,6 +4,46 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.11 Account deletion RPC and the Settings action
+
+**What changed**
+- Migration `20261027205021_delete_own_account.sql`, applied to dev:
+  - `private.delete_own_account()` is security definer with `search_path = ''`. It deletes `auth.users` for `auth.uid()`, which cascades to `profiles`, and raises if there is no uid.
+  - `public.delete_own_account()` is a security-invoker wrapper, so the app can call it with `rpc()`.
+  - Both have `EXECUTE` revoked from `public` and `anon` and granted to `authenticated`.
+  - Types regenerated (`Functions.delete_own_account`), and `supabase/README.md` lists the migration.
+- `deleteAccount()` in `lib/auth/service.ts` calls the RPC, then signs out locally.
+- New `lib/dialogs.ts` (`confirmAsync` / `showAlert`): `window.confirm` on web, because RN Web's `Alert` does nothing, and `Alert.alert` on native.
+- The Settings placeholder gets a Danger zone with "Delete my account", two confirmations with the legacy copy, and an error alert. `Button` `destructive` now also styles the primary variant (an `errorContainer` pill).
+- E2E: new `e2e/account-deletion.spec.ts`. `signIn` and `collectConsoleErrors` moved from `auth.spec` to `e2e/helpers.ts`. **D-026** records the decisions.
+
+**Verification**
+- **SQL** (dev, in a rolled-back transaction with two inserted users A and B; 0 rows left afterwards):
+  - the trigger created both profiles;
+  - anon calling `public.delete_own_account()` → "permission denied for function";
+  - anon calling `private.delete_own_account()` → "permission denied for schema private";
+  - authenticated with no `sub` → "Not authenticated";
+  - after A's call, A has 0 `auth.users` rows and 0 profiles, and B still has 1 and 1;
+  - public is `secdef=false`, private is `secdef=true`, and both have `search_path=""`.
+- **`get_advisors` (security):** nothing for the new functions. The only warning is the project-wide "Leaked password protection disabled" Auth setting, which was already there and needs a paid plan.
+- **`npm run e2e`:** 23 passed on each of 3 runs in a row. `account-deletion.spec`:
+  - creates `e2e-delete@example.com`, signs in and opens Settings;
+  - cancel at step 1 does nothing, and "Keep my account" at step 2 does nothing;
+  - confirming both lands on `/auth`, which survives a reload;
+  - signing in again shows "Incorrect email or password.";
+  - the only failed requests are `403 /auth/v1/logout` (expected, D-026) and `400 /auth/v1/token`.
+  - SQL afterwards: 0 `e2e-delete` users and 0 orphan profiles.
+- **Web screenshot:** `.screenshots/p1.11-settings-danger-web.png` matches the Danger zone card in `docs/baseline/web/28-settings-danger.png`. 0 console errors or warnings.
+- typecheck, lint and format:check all exit 0.
+
+**Things you should know**
+- **Android wasn't checked.** PLAN doesn't require it for this task, but the native `Alert` path is untested on a device. The adb server from yesterday was wedged, with about 30 adb clients queued. I killed adb and restarted it, and the emulator reconnected, but then even `screencap` hung. The emulator itself (running since 2026-10-26 15:00) probably needs a cold restart. I added the check to **P1.13**.
+- A stale Expo web server from an earlier session (started 16:37) was still on :8081 and serving an old bundle, which made the first e2e run fail. I stopped it. If e2e shows old UI, check what's on :8081.
+
+**Next:** P1.12 Web-only `/admin` route group gated by role.
+
+---
+
 ## 2026-10-27 — P1.10 Email sign-up, sign-in, sign-out and AuthGate
 
 **What changed**

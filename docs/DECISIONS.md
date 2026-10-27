@@ -209,3 +209,11 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
   - `e2e/global-setup.ts` creates `e2e-shell@example.com` and `e2e-auth@example.com` with new random passwords on every run. Passwords are passed to workers through env and never written to disk.
   - Global setup then signs the shell user in through the UI and saves its storage state (`e2e/.auth/`, gitignored), which is the default for every spec. `auth.spec` starts signed out and uses its own user, because a global sign-out would revoke the shared session.
   - E2E needs the dev service-role key, so it still runs locally only, not in CI.
+
+## D-026 Account deletion RPC and cross-platform confirms — Accepted (P1.11)
+
+- **RPC shape:** `private.delete_own_account()` (security definer, `search_path = ''`) deletes `auth.users where id = auth.uid()` and raises if there is no uid. `public.delete_own_account()` is a security-**invoker** SQL wrapper, so the app can call `rpc('delete_own_account')` while the privileged body stays in `private` (D-020). Both have `EXECUTE` revoked from `public` and `anon` and granted to `authenticated`. The security advisor flags nothing.
+- **Cascade, not an explicit list:** unlike legacy, the function doesn't delete table by table. Every user-owned table must reference `auth.users` with `on delete cascade` (profiles already does). Later phases keep to that, so deletion stays one statement.
+- **Client:** `deleteAccount()` calls the RPC, then `signOut({ scope: 'local' })`. supabase-js still calls `/logout`, which returns 403 because the session is gone. supabase-js treats that as signed out, and the browser logs it. The e2e test allows that one request and nothing else.
+- **Dialogs:** `app/src/lib/dialogs.ts` (`confirmAsync`, `showAlert`). React Native Web's `Alert.alert` does nothing, so legacy's two-step delete never opened on web. On web the helper uses `window.confirm` / `window.alert`, which can't label their buttons, and native keeps `Alert.alert` with the legacy button labels. Phase 8 can swap in a styled modal without changing callers.
+- **Button:** `destructive` on the primary variant now gives the legacy delete look (an `errorContainer` fill with an `error` label).
