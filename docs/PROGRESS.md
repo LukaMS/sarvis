@@ -4,6 +4,36 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.7 Rating primitives and the component gallery route
+
+**What changed**
+- `app/src/components/ui/`:
+  - `GradeBadge.tsx` (with `isRatedGrade`): sm/md/lg, plus a dashed "Not rated" or hidden state.
+  - `RatingPill.tsx`: Good / Mixed / Poor, plus the dashed "Not rated" state.
+  - `ScoreRing.tsx`: an SVG ring; unscored shows the track and "–".
+  - `SectionHeader.tsx`: optional uppercase action with hitSlop.
+  - All built to THEME.md using the P1.6 theme tokens, and each takes a `testID`.
+- `app/src/app/dev/gallery.tsx`: dev-only `/dev/gallery` (redirects to `/` when `!__DEV__`).
+- `e2e/gallery.spec.ts`: checks 99 testIDs, the text of a few of them, a press on the SectionHeader action, and 0 console errors.
+- New dependency: `react-native-svg` 15.12.1 (**D-022**).
+- `CLAUDE.md` Commands: Android deep-link command updated (`adb reverse` + `exp://127.0.0.1:8081/--/<route>`).
+
+**Verification**
+- **Web:** Playwright MCP at 390 × 844 → `.screenshots/p1.7-gallery-web.png`, plus `p1.7-gallery-web-tall.png` (390 × 2400, the whole gallery). 0 console errors and 0 warnings.
+  - Compared with `13-product.png`: the B badge is olive at ~9% tint with weight 700, radius 6. The 78 ring is olive on an `outlineVariant` track, and the arc starts at 9 o'clock, as in the baseline.
+  - Compared with `16-company.png`: Poor and Mixed pills have matching colours, radius 12 and 12 / 600 text.
+- **Android:** Expo Go on the Pixel_10_Pro emulator → `.screenshots/p1.7-gallery-android.png` and `p1.7-gallery-android-bottom.png`. All variants render the same as on web. Tapping SEE ALL changed the counter to "Action pressed 1 times".
+- `npm run e2e`: 2 passed (smoke and gallery). Run twice from a cold Metro start, and both runs passed.
+- `npm run typecheck`, `npm run lint` and `npm test` (16 passed) all exit 0.
+
+**Things you should know**
+- **ScoreRing arc start:** legacy's arc starts at 9 o'clock (a side effect of rotate plus dash offset), and the rebuild copies it so it matches the baselines. If you'd prefer 12 o'clock, it's a one-line change, but it's a design change, so it's your call (D-022).
+- **Android:** `exp://10.0.2.2:8081` reopened a stale cached bundle (sitemap listed only `index.tsx`). `adb reverse tcp:8081 tcp:8081` with `exp://127.0.0.1:8081/--/dev/gallery` loaded a fresh one. The Commands table is updated.
+
+**Next:** P1.8 Interaction and state primitives.
+
+---
+
 ## 2026-10-27 — P1.6 Theme tokens from THEME.md
 
 **What changed**

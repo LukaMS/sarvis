@@ -313,7 +313,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A `scoreToGrade` boundary test passes.
   - `npm run typecheck` and `npm run lint` pass.
 
-### [ ] P1.7 Rating primitives and the component gallery route
+### [x] P1.7 Rating primitives and the component gallery route
 - **Slice:** ui-primitives.
 - **Goal:** GradeBadge, RatingPill, ScoreRing and SectionHeader rebuilt to THEME.md, shown on a dev-only gallery screen.
 - **Deps:** P1.6.
