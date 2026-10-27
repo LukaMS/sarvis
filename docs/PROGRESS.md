@@ -15,6 +15,7 @@ Newest entry first.
 - `app/` holds only a README placeholder until P1.2.
 - `.env.example` has three placeholders with comments.
 - `.gitignore` already covered everything needed (`node_modules`, `.env*` except `.env.example`, `.expo`, `dist`, `coverage`), so it's unchanged.
+- `.gitattributes` (`* text=auto eol=lf`): Git on this machine converts to CRLF on checkout, which would make `format:check` fail on a fresh Windows clone.
 - `docs/DECISIONS.md`: **D-016** lists every dev dependency with its reason.
 - `CLAUDE.md` Commands: the Install, Typecheck / lint and Unit tests rows are filled.
 
