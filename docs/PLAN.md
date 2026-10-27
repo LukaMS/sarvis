@@ -207,7 +207,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 
 **Feature slices** (each task touches exactly one): `tooling`, `ci`, `db-foundation`, `theme`, `ui-primitives`, `navigation`, `auth`, `account-deletion`, `admin-gate`, `release-check`.
 
-### [ ] P1.1 Scaffold the npm workspace and root tooling
+### [x] P1.1 Scaffold the npm workspace and root tooling
 - **Slice:** tooling.
 - **Goal:** a root npm workspace with strict TypeScript, ESLint, Prettier and Vitest working before any app code exists.
 - **Deps:** P0.12.
@@ -220,7 +220,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `.gitignore` confirmed for `node_modules`, `.env*` (except `.env.example`), `.expo`, `dist`, `coverage`.
   - A DECISIONS entry listing every new dependency with its reason (CLAUDE.md "no new dependencies without a reason").
 - **Out:** the Expo app (P1.2), Playwright (P1.3), CI (P1.4), Supabase (P1.5).
-- **Files:** `package.json`, `package-lock.json`, `tsconfig.base.json`, `eslint.config.mjs`, `.prettierrc.json`, `vitest.workspace.ts`, `packages/core/**`, `pipeline/**`, `.env.example`, `.gitignore`, `docs/DECISIONS.md`, `CLAUDE.md` (Commands).
+- **Files:** `package.json`, `package-lock.json`, `tsconfig.base.json`, `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`, `vitest.config.ts` (projects; workspace files were removed in Vitest 4, D-016), `packages/core/**`, `pipeline/**`, `.env.example`, `.gitignore`, `docs/DECISIONS.md`, `CLAUDE.md` (Commands).
 - **Verification:**
   - `npm install` from a clean clone, then `npm run typecheck`, `npm run lint` and `npm test`, all exit 0. Paste the output tails into PROGRESS.
   - A deliberately broken file makes `typecheck` and `lint` fail. Revert it, and record the check.

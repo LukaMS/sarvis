@@ -102,3 +102,22 @@ The repo is public (D-003). Screenshots in `docs/baseline/` and `.screenshots/`,
 - **Pipeline User-Agent contact:** the repo URL only, e.g. `Sarvis/<version> (+https://github.com/LukaMS/sarvis)`, with no email. If a source rejects that (SEC EDGAR asks for an email), stop and ask the owner.
 - **Commercial status:** non-commercial for now and probably for a while, but it may become commercial. Prefer sources whose licences allow commercial use. When a source is non-commercial-only, flag it and keep its data separable so it can be dropped later.
 **Why:** owner answers to the open 🟡 list from P0.12.
+
+## D-016 Root tooling and dev dependencies — Accepted (P1.1)
+Root dev dependencies only. The workspaces have no runtime dependencies yet.
+
+| Package | Version | Reason |
+|---|---|---|
+| `typescript` | ~5.9.3 | Strict type checking. Pinned to 5.9 because Expo SDK 54 expects ~5.9 and typescript-eslint supports < 6.1. TS 7 (the Go port) isn't supported by either yet. |
+| `eslint` + `@eslint/js` | ^9.39 | Linting (flat config). npm marks 9 as end-of-life, but `eslint-plugin-react` and `eslint-plugin-import`, which `eslint-config-expo` needs in P1.2, only support ESLint ≤ 9. Move to 10 when they do. |
+| `typescript-eslint` | ^8.72 | TypeScript rules and parser for ESLint. |
+| `eslint-config-prettier` | ^10.1 | Turns off ESLint rules that clash with Prettier. |
+| `globals` | ^17.13 | Node globals for the flat config. |
+| `prettier` | ^3.9 | One code format. `.prettierignore` skips Markdown, `docs/` and `.claude/`, so hand-written docs aren't reflowed. |
+| `vitest` | ^5.0 | Unit tests. It runs TS directly with no build step, and the same runner works for the app later. |
+| `rimraf` | ^6.1 | Cross-platform `clean` script (CLAUDE.md: no `rm -rf`). |
+| `@types/node` | ^22.20 | Node types for `pipeline/` (Node 22, as in CI). |
+
+- **Vitest projects:** the plan named `vitest.workspace.ts`, but Vitest 4+ removed workspace files. The root `vitest.config.ts` uses `test.projects`, and each package has its own `vitest.config.ts` (`defineProject`).
+- **Typecheck:** each workspace has `tsc -p tsconfig.json` (`noEmit`, extending `tsconfig.base.json`), and the root script runs them all with `--workspaces --if-present`.
+- **ESM:** the root and workspace packages are `"type": "module"`. `packages/core` is consumed as source (`main: src/index.ts`), with no build step.

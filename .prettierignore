@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.expo/
+web-build/
+package-lock.json
+docs/
+.screenshots/
+.playwright-mcp/
+*.md
+.claude/
+.mcp.json

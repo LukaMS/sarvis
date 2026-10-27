@@ -48,11 +48,11 @@ Fill these in during Phase 1 and keep them current.
 
 | Task | Command |
 |---|---|
-| Install | TBD |
+| Install | `npm install` (from the repo root; installs all workspaces) |
 | Start web | TBD (Expo web at http://localhost:8081) |
 | Start Android | TBD (emulator must be running; check with `adb devices`) |
-| Typecheck / lint | TBD |
-| Unit tests | TBD |
+| Typecheck / lint | `npm run typecheck` / `npm run lint` (format: `npm run format`, check only: `npm run format:check`) |
+| Unit tests | `npm test` (Vitest, all workspaces) |
 | E2E (web) | TBD |
 | Generate Supabase types | TBD |
 | Run a scraper on a sample | TBD |

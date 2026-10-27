@@ -4,6 +4,39 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.1 Scaffold the npm workspace and root tooling
+
+**What changed**
+- The root `package.json` (`"type": "module"`) has workspaces `app`, `packages/core` and `pipeline`, and scripts `typecheck`, `lint`, `format`, `format:check`, `test` and `clean` (rimraf).
+- `tsconfig.base.json` sets `strict`, `noUncheckedIndexedAccess`, `noImplicitOverride` and bundler resolution. Each workspace has a `tsconfig.json` that extends it.
+- `eslint.config.mjs` (flat config with typescript-eslint and eslint-config-prettier), `.prettierrc.json` and `.prettierignore`.
+- `vitest.config.ts` uses `test.projects`, with one project per package.
+- `packages/core` (`@sarvis/core`) exports `APP_NAME`. `pipeline` (`@sarvis/pipeline`) imports it to build the D-015 User-Agent. Each has one smoke test.
+- `app/` holds only a README placeholder until P1.2.
+- `.env.example` has three placeholders with comments.
+- `.gitignore` already covered everything needed (`node_modules`, `.env*` except `.env.example`, `.expo`, `dist`, `coverage`), so it's unchanged.
+- `docs/DECISIONS.md`: **D-016** lists every dev dependency with its reason.
+- `CLAUDE.md` Commands: the Install, Typecheck / lint and Unit tests rows are filled.
+
+**Verification**
+- I copied the tracked and new files into a fresh folder (no `node_modules`) and ran `npm install` there: 0 vulnerabilities.
+  - `npm run typecheck` → `@sarvis/core` and `@sarvis/pipeline` `tsc -p tsconfig.json`, **exit 0**
+  - `npm run lint` → `eslint . --max-warnings 0`, **exit 0**
+  - `npm test` → `Test Files 2 passed (2) / Tests 2 passed (2)`, **exit 0**
+  - `npm run format:check` → "All matched files use Prettier code style!"
+- **Broken-file check:** I added `packages/core/src/broken.ts` with an unused var, a string assigned to `number`, and an unchecked `xs[0] + 1`.
+  - typecheck **exit 2**: `TS2322 Type 'string' is not assignable to type 'number'` and `TS2532 Object is possibly 'undefined'`. The second error confirms `noUncheckedIndexedAccess` is on.
+  - lint **exit 1**: `'unused' is assigned a value but never used`.
+  - After I removed the file, both passed again.
+
+**Things you should know**
+- **ESLint 9:** it's pinned because Expo's lint plugins don't support ESLint 10 yet. npm prints a "no longer supported" warning on install, which is expected (D-016).
+- **TypeScript 5.9:** it's pinned for Expo SDK 54. TS 7 is out but isn't supported yet.
+
+**Next:** P1.2 Create the Expo app (SDK 54, Expo Router, strict TS).
+
+---
+
 ## 2026-10-27 — Owner answers to the open decisions (D-015)
 
 **What changed**
