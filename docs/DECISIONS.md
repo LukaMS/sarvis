@@ -121,3 +121,11 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Vitest projects:** the plan named `vitest.workspace.ts`, but Vitest 4+ removed workspace files. The root `vitest.config.ts` uses `test.projects`, and each package has its own `vitest.config.ts` (`defineProject`).
 - **Typecheck:** each workspace has `tsc -p tsconfig.json` (`noEmit`, extending `tsconfig.base.json`), and the root script runs them all with `--workspaces --if-present`.
 - **ESM:** the root and workspace packages are `"type": "module"`. `packages/core` is consumed as source (`main: src/index.ts`), with no build step.
+
+## D-017 Expo app setup — Accepted (P1.2)
+- **Template:** `create-expo-app` with `expo-template-blank-typescript@sdk-54`, plus Expo Router added with `npx expo install`, instead of the default tabs template. The tabs template ships example screens, themes and components that would have to be deleted, and the shell is rebuilt to the baseline in P1.9 anyway. Routes live in `app/src/app/`.
+- **Removed from the template:** `app/AGENTS.md`, which duplicates CLAUDE.md and conflicts with it (`npx expo lint` vs the root scripts), and `app/.claude/settings.json`, which enabled the `expo@claude-plugins-official` plugin. Turning on a Claude plugin is the owner's call.
+- **Runtime dependencies** (all SDK 54 versions picked by `expo install`): `expo-router` with its peers `react-native-safe-area-context`, `react-native-screens`, `expo-linking` and `expo-constants`; `expo-status-bar`; and `react-dom` plus `react-native-web` for web. `@sarvis/core` is used as source through the workspace.
+- **Dev dependency:** `eslint-config-expo` ~10.0.0 (the SDK 54 version; a bare `expo install -- -D` picked 58.x, so it's pinned by hand). It adds React, hooks, import and Expo rules. The root `eslint.config.mjs` scopes every block to `app/**`, so they don't apply to Node packages.
+- **tsconfig:** `app/tsconfig.json` extends `["../tsconfig.base.json", "expo/tsconfig.base"]`, and Expo's settings (lib, module, jsx) win. `strict` and `noUncheckedIndexedAccess` are set again explicitly.
+- **Metro:** no `metro.config.js` is needed. SDK 54 resolves npm workspaces out of the box, as the `@sarvis/core` import proves.

@@ -4,6 +4,40 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.2 Create the Expo app (SDK 54, Expo Router, strict TS)
+
+**What changed**
+- `app/` (`@sarvis/app`) is an Expo SDK 54 app (blank TypeScript template) with Expo Router 6, entry `expo-router/entry`, and routes in `src/app/`.
+  - `_layout.tsx` is a Stack with no header and a status bar.
+  - `index.tsx` is the placeholder (`testID="placeholder-home"`) and renders `APP_NAME` from `@sarvis/core`.
+- `app.json`: name Sarvis, slug and scheme `sarvis`, Android package `com.lukams.sarvis`, web `bundler: metro` with `output: static`, the `expo-router` plugin, and `typedRoutes`.
+- `app/tsconfig.json` extends the root base and Expo's base, keeping strict and `noUncheckedIndexedAccess`.
+- Root scripts `npm run web` and `npm run android`.
+- `eslint.config.mjs` adds `eslint-config-expo` (SDK 54 version), scoped to `app/**`.
+- `docs/DECISIONS.md`: **D-017**.
+- `CLAUDE.md` Commands: the Start web and Start Android rows are filled.
+
+**Verification**
+- **Web:** `npm run web`, then Playwright on http://localhost:8081.
+  - The page renders "Sarvis" and "Rebuild in progress". `.screenshots/p1.2-web.png` is saved.
+  - Console: **0 errors, 0 warnings** (2 info/log lines from React DevTools and AppRegistry).
+  - The SSR HTML contains `data-testid="placeholder-home"` and `placeholder-home-title`.
+- **Android:** `adb devices` shows `emulator-5554` (Pixel 10 Pro AVD). Expo Go 54.0.8 opened `exp://10.0.2.2:8081`.
+  - Metro: `Android Bundled 10477ms (1089 modules)`, with no warnings or errors in the log.
+  - The mobile MCP element list shows `id="placeholder-home"` and the TextView `"Sarvis"` with `id="placeholder-home-title"`. `.screenshots/p1.2-android.png` is saved.
+- **Workspace resolution:** "Sarvis" on both platforms comes from the `@sarvis/core` import.
+- `npm run typecheck` (app, core, pipeline), `npm run lint`, `npm test` and `npm run format:check` all **exit 0**.
+- `eslint --print-config`: app files get 58 react/expo/import rule entries. Pipeline files get only eslint-config-prettier's "off" entries.
+
+**Things you should know**
+- **npm audit:** 8 issues (6 moderate, 2 high), all in transitive dev tooling (`image-size`, `decode-uri-component`, `postcss` under Metro and the Expo CLI). They don't ship in the app bundle. Fixing them with `--force` would break the SDK 54 pins, so I left them.
+- **Template files:** I removed `app/AGENTS.md` and `app/.claude/settings.json`. The second would have turned on the `expo@claude-plugins-official` Claude plugin. Enable it yourself if you want it.
+- **Device id:** the mobile MCP calls the emulator `Pixel_10_Pro`. adb calls it `emulator-5554`.
+
+**Next:** P1.3 Add the Playwright web e2e harness.
+
+---
+
 ## 2026-10-27 — P1.1 Scaffold the npm workspace and root tooling
 
 **What changed**

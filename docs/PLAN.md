@@ -226,7 +226,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A deliberately broken file makes `typecheck` and `lint` fail. Revert it, and record the check.
   - CLAUDE.md Commands rows Install, Typecheck / lint and Unit tests are filled.
 
-### [ ] P1.2 Create the Expo app (SDK 54, Expo Router, strict TS)
+### [x] P1.2 Create the Expo app (SDK 54, Expo Router, strict TS)
 - **Slice:** tooling.
 - **Goal:** an Expo SDK 54 app in `app/` that starts on web and on the Android emulator from the workspace.
 - **Deps:** P1.1.

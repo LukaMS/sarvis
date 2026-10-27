@@ -12,6 +12,8 @@
     "node": ">=22.12"
   },
   "scripts": {
+    "web": "npm run web --workspace @sarvis/app",
+    "android": "npm run android --workspace @sarvis/app",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",

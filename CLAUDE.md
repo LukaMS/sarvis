@@ -49,8 +49,8 @@ Fill these in during Phase 1 and keep them current.
 | Task | Command |
 |---|---|
 | Install | `npm install` (from the repo root; installs all workspaces) |
-| Start web | TBD (Expo web at http://localhost:8081) |
-| Start Android | TBD (emulator must be running; check with `adb devices`) |
+| Start web | `npm run web` (Expo web at http://localhost:8081) |
+| Start Android | `npm run android` (emulator must be running; check with `adb devices`; opens in Expo Go). With Metro already running: `adb shell am start -a android.intent.action.VIEW -d exp://10.0.2.2:8081 host.exp.exponent` |
 | Typecheck / lint | `npm run typecheck` / `npm run lint` (format: `npm run format`, check only: `npm run format:check`) |
 | Unit tests | `npm test` (Vitest, all workspaces) |
 | E2E (web) | TBD |
