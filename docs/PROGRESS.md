@@ -4,6 +4,48 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.6 Theme tokens from THEME.md
+
+**What changed**
+- `app/src/theme/` holds the theme modules:
+  - `colors.ts`: 27 used M3 roles, `AppColors` (3 used aliases plus 5 named hard-coded colours), `TintAlpha` and `withAlpha`;
+  - `grades.ts`: the `Grade` type, `GRADE_THRESHOLDS`, `scoreToGrade`, `GradeColors` and `gradeToColor`;
+  - `ratings.ts`: the `Rating` type, `RatingColors`, `RatingBgColors` and the to-colour helpers;
+  - `radius.ts`, `spacing.ts`, `typography.ts` (13 type roles and `FontWeight`, system fonts), `elevation.ts` (tab-bar shadow and laser glow) and `index.ts`.
+- `app/` is now a Vitest project (`app/vitest.config.mts`, and the root `vitest.config.ts` lists `app`).
+- `app/src/theme/theme.test.ts` parses THEME.md and checks every token. It also has the `scoreToGrade` boundary tests.
+- `docs/DECISIONS.md`: **D-021**.
+
+**Verification**
+- `npx vitest run --project app`:
+  ```
+  THEME.md token check
+  m3             checked  27  missing 0  mismatched 0
+  hardcoded      checked   6  missing 0  mismatched 0
+  tint           checked   2  missing 0  mismatched 0
+  grades         checked  28  missing 0  mismatched 0
+  scoreToGrade   checked  14  missing 0  mismatched 0
+  ratings        checked   8  missing 0  mismatched 0
+  appColors      checked   4  missing 0  mismatched 0
+  radius         checked   6  missing 0  mismatched 0
+  typography     checked  36  missing 0  mismatched 0
+  spacing        checked   7  missing 0  mismatched 0
+  elevation      checked   9  missing 0  mismatched 0
+  TOTAL          checked 147  failures 0
+  Tests  14 passed (14)
+  ```
+- **scoreToGrade boundaries:** each threshold maps to its grade, threshold − 0.01 maps to the next grade, and 100 → A+, 0 → F, 9.99 → F. All pass.
+- **Negative check:** changing `primary` to `#173808` gave `m3 … mismatched 1`, `Tests 1 failed`. After the revert, all 14 passed.
+- `npm test` (3 files, 16 tests), `npm run typecheck`, `npm run lint` and `npm run format:check` all exit 0.
+
+**Things you should know**
+- **Left out:** the 14 unused M3 roles and the Expo template tokens. They're easy to add back when a screen needs one.
+- **Mixed rating:** the text is terracotta but the card is olive. It's kept as in legacy (THEME.md note).
+
+**Next:** P1.7 Rating primitives and the component gallery route.
+
+---
+
 ## 2026-10-27 — P1.5 Supabase base schema: profiles, roles, `is_admin()`, RLS and type generation
 
 **What changed**

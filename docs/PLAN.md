@@ -298,7 +298,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Paste the results.
   - `grep -ri service_role app packages` finds nothing. `npm run typecheck` passes with the generated types.
 
-### [ ] P1.6 Theme tokens from THEME.md
+### [x] P1.6 Theme tokens from THEME.md
 - **Slice:** theme.
 - **Goal:** one typed theme module holding every colour, grade, rating, radius, spacing, type and elevation token that legacy actually uses.
 - **Deps:** P1.2.
@@ -307,7 +307,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Unused legacy template tokens (THEME.md "all unused") are left out.
   - Fonts: system fonts (D-015).
 - **Out:** components (P1.7, P1.8), dark mode (legacy has none).
-- **Files:** `app/src/theme/**`, `app/src/theme/theme.test.ts`.
+- **Files:** `app/src/theme/**`, `app/src/theme/theme.test.ts`, `app/vitest.config.mts`, root `vitest.config.ts` (adds the `app` project).
 - **Verification:**
   - A Vitest test parses THEME.md's token tables and asserts that every listed key used by legacy exists in the theme with the same value: 0 missing, 0 mismatched. Paste the output.
   - A `scoreToGrade` boundary test passes.
