@@ -93,3 +93,12 @@ The repo is public (D-003). Screenshots in `docs/baseline/` and `.screenshots/`,
 - **Evidence:** citations and articles share one `documents` table. Full text is never stored.
 
 **Why:** these keep the catalog at ≈ 294 MB against a 350 MB budget (`docs/catalog/BUDGET.md`; the first pass was ≈ 425 MB), and they satisfy every CLAUDE.md catalog rule (DATA_MODEL §6, 27/27).
+
+## D-015 Phase 1 and pipeline owner answers — Accepted (2026-10-27)
+- **Repo:** public `LukaMS/sarvis` (D-003). `gh` is installed and logged in. Claude creates the repo in P1.4 and still asks before the first push.
+- **Test users (P1.10):** option (a). The **dev** project's service-role key goes in `.env` as `SUPABASE_DEV_SERVICE_ROLE_KEY`, for a dev-only script that creates confirmed test users. Email confirmation stays on.
+- **Fonts (P1.6):** system fonts, as in legacy. Epilogue and Public Sans are not loaded.
+- **Sign-in providers (P1.14):** email only for now. P1.14 is skipped.
+- **Pipeline User-Agent contact:** the repo URL only, e.g. `Sarvis/<version> (+https://github.com/LukaMS/sarvis)`, with no email. If a source rejects that (SEC EDGAR asks for an email), stop and ask the owner.
+- **Commercial status:** non-commercial for now and probably for a while, but it may become commercial. Prefer sources whose licences allow commercial use. When a source is non-commercial-only, flag it and keep its data separable so it can be dropped later.
+**Why:** owner answers to the open 🟡 list from P0.12.

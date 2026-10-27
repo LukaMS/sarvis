@@ -4,6 +4,24 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — Owner answers to the open decisions (D-015)
+
+**What changed**
+- `docs/DECISIONS.md`: new **D-015** with these answers:
+  - **Repo:** public `LukaMS/sarvis`. `gh` is installed and logged in.
+  - **Test users:** the dev service-role key goes in `.env`.
+  - **Fonts:** system fonts.
+  - **Sign-in:** email only, so P1.14 is skipped.
+  - **User-Agent contact:** the repo URL only, with no email.
+  - **Commercial status:** non-commercial for now, but it may become commercial. Prefer sources that allow commercial use, and flag the ones that don't.
+- `docs/PLAN.md`: the matching 🟡 markers are now ✅ (P1.4, M5/P1.6, P1.10, P1.14, P3, P0.10 note).
+
+**Still open:** P1.10 needs you to add `SUPABASE_DEV_SERVICE_ROLE_KEY` to `.env` before its verification. Later decisions: P5 token scope, P7 rubric and auto-publish, P8 privacy, grades and submissions, P10 hosting and distribution.
+
+**Next:** P1.1 Scaffold the npm workspace and root tooling.
+
+---
+
 ## 2026-10-26 — P0.12 Refine Phase 1 into session-sized tasks
 
 **What changed**

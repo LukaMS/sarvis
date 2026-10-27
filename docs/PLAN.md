@@ -147,7 +147,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Every source row has every column filled, or "unknown" with a reason.
   - Every terms claim has a URL and the date checked.
   - The decisions list exists and names each "ask owner" source.
-  - ✅ The owner answered the decisions list on 2026-10-26 (D-013): no retailer sources. Still open: the pipeline User-Agent contact (needed before the first P3 run) and whether Sarvis is commercial.
+  - ✅ The owner answered the decisions list on 2026-10-26 (D-013): no retailer sources. The User-Agent contact and commercial status were answered on 2026-10-27 (D-015).
 
 ### [x] P0.11 Design the catalog data model and free-tier budget
 - **Goal:** a target schema design, with sizes, that satisfies every catalog rule in `CLAUDE.md`.
@@ -202,7 +202,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **M3 Supabase wiring:** migrations folder, type-generation script, base schema (`profiles` with `role`, an `is_admin()` security-definer helper), RLS. No service-role key in any client.
 - **M4 Auth:** providers per SPEC (email first; others as separate tasks, Apple likely out on Android/web). Account deletion RPC.
 - **M5 Theme and UI primitives** from THEME.md (GradeBadge, RatingPill, ScoreRing, cards, chips, buttons, empty/error states), with a component gallery route for screenshot checks.
-  - 🟡 **Decision:** legacy renders in system fonts, but the Stitch designs specify Epilogue and Public Sans (see THEME.md › Fonts). **Default: keep system fonts**, matching the legacy app. Loading the Stitch fonts is a design change.
+  - ✅ **Decided (D-015):** system fonts, matching legacy. The Stitch fonts (Epilogue, Public Sans) are not loaded.
 - **M6 App shell:** tabs and stack routes as placeholders whose layout matches the baseline. Web-only `/admin` route group gated by role (D-005).
 
 **Feature slices** (each task touches exactly one): `tooling`, `ci`, `db-foundation`, `theme`, `ui-primitives`, `navigation`, `auth`, `account-deletion`, `admin-gate`, `release-check`.
@@ -263,7 +263,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Slice:** ci.
 - **Goal:** every push and PR runs typecheck, lint and unit tests on GitHub Actions.
 - **Deps:** P1.3.
-- 🟡 **Owner action:** the repo has no remote, and the `gh` CLI isn't installed. Either create a **public** GitHub repo (D-003) and tell me the URL, or install `gh`, log in, and let me create it. **The first push is outward-facing, so I'll ask before pushing.**
+- ✅ **Decided (D-015):** `gh` is installed and logged in as LukaMS. Create the public repo `LukaMS/sarvis` (D-003). **The first push is outward-facing, so ask before pushing.**
 - **In:**
   - `.github/workflows/ci.yml`: triggers on `push` and `pull_request`; Node 22; `npm ci` with the npm cache; `npm run typecheck`, `npm run lint`, `npm test`; a concurrency group that cancels superseded runs.
   - No secrets used. Default branch `main` (the local `master` is renamed or mapped).
@@ -305,7 +305,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **In:**
   - `app/src/theme/`: `colors.ts` (M3Colors plus the used AppColors), `grades.ts` (GradeColors, `scoreToGrade` thresholds per D-004), `ratings.ts` (RatingColors), `radius.ts`, `spacing.ts`, `typography.ts` (system font, weights 500–900 per THEME.md), `elevation.ts`, `index.ts`.
   - Unused legacy template tokens (THEME.md "all unused") are left out.
-  - The 🟡 font decision stays at its default: system fonts.
+  - Fonts: system fonts (D-015).
 - **Out:** components (P1.7, P1.8), dark mode (legacy has none).
 - **Files:** `app/src/theme/**`, `app/src/theme/theme.test.ts`.
 - **Verification:**
@@ -365,16 +365,14 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Slice:** auth.
 - **Goal:** email/password auth against the dev project, with the legacy auth screen look and route gating.
 - **Deps:** P1.5, P1.9.
-- 🟡 **Owner action (before the verification step):** Supabase's built-in email only reaches project team addresses and is heavily rate-limited, so e2e tests need pre-confirmed test users. Either:
-  - **(a, default)** put the **dev** project's service-role key in `.env` as `SUPABASE_DEV_SERVICE_ROLE_KEY`, so a dev-only Node script can create confirmed test users (never bundled, never the legacy project); or
-  - **(b)** turn off "Confirm email" in the dev project's Auth settings.
+- ✅ **Decided (D-015), option (a):** Supabase's built-in email only reaches project team addresses and is heavily rate-limited, so e2e tests need pre-confirmed test users. The **dev** project's service-role key goes in `.env` as `SUPABASE_DEV_SERVICE_ROLE_KEY`, for a dev-only Node script that creates confirmed test users. It is never bundled and never used against the legacy project. 🟡 **Owner action before verification:** the owner adds the key to `.env`.
 - **In:**
   - `app/src/lib/supabase.ts` (publishable/anon key from `EXPO_PUBLIC_*`; AsyncStorage on native, localStorage on web; `detectSessionInUrl` on web only).
   - `AuthProvider` + `useAuth`; AuthGate in the root layout (SPEC F1: no session → `/auth`, session → tabs).
   - `/auth` screen matching baseline `01`/`02`: sign-in/sign-up toggle, optional display name, password ≥ 8, mapped error messages, "Check your inbox" + resend, redirect scheme `sarvis://`.
   - Sign-out from the Profile placeholder.
   - `scripts/dev-create-test-user.ts` (option a) that refuses to run unless the URL is the dev project.
-- **Out:** Google / Apple / guest (P1.14 🟡), a password-reset screen, email change, account deletion (P1.11).
+- **Out:** Google / Apple / guest (P1.14, skipped per D-015), a password-reset screen, email change, account deletion (P1.11).
 - **Files:** `app/src/lib/supabase.ts`, `app/src/lib/auth/**`, `app/src/app/auth.tsx`, `app/src/app/_layout.tsx`, `scripts/dev-create-test-user.ts`, `e2e/auth.spec.ts`, `.env.example`.
 - **Verification:**
   - `e2e/auth.spec.ts`:
@@ -437,11 +435,11 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - A checklist in PROGRESS with evidence for each exit bullet: screenshots in `.screenshots/p1.13-*`, the e2e summary, the CI run URL, and the Commands table diff.
 
-### [ ] P1.14 🟡 Optional: additional sign-in providers
+### [ ] P1.14 Optional: additional sign-in providers (skipped, D-015)
 - **Slice:** auth.
 - **Goal:** add Google (and/or guest) sign-in only if the owner wants it. Legacy shipped email only (SPEC F1).
 - **Deps:** P1.10.
-- 🟡 **Decision:** which providers, if any. Google needs a free Google Cloud OAuth client created by the owner. Apple sign-in is out on Android and web (no iOS target). **Default: none for now.**
+- ✅ **Decided (D-015):** none for now. Email only. Skip this task in Phase 1 and revisit if the owner asks. (Google would need an OAuth client from the owner. Apple is out on Android and web.)
 - **In:** the chosen providers' buttons on `/auth`, OAuth redirect handling on web and Android, and the provider enabled in the dev project.
 - **Out:** Apple; account linking UI.
 - **Files:** `app/src/lib/auth/**`, `app/src/app/auth.tsx`, `e2e/auth.spec.ts`.
@@ -454,7 +452,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M1 Repo scaffold | P1.1 (workspaces, strict TS, ESLint, Prettier, Vitest, `.env.example`), P1.2 (Expo SDK 54 + Router), P1.3 (Playwright e2e) |
 | M2 CI workflow | P1.4 |
 | M3 Supabase wiring | P1.5 (migrations, type-gen, `profiles.role`, `is_admin()`, RLS, no service key in clients); client side in P1.10 |
-| M4 Auth | P1.10 (email), P1.11 (account deletion RPC), P1.14 (other providers, 🟡 optional) |
+| M4 Auth | P1.10 (email), P1.11 (account deletion RPC), P1.14 (other providers, skipped per D-015) |
 | M5 Theme and UI primitives | P1.6 (tokens, font default), P1.7 (rating primitives + gallery), P1.8 (buttons, chips, cards, states) |
 | M6 App shell | P1.9 (tabs and stack placeholders), P1.12 (web-only `/admin` gate) |
 | Exit criteria | P1.13 |
@@ -496,7 +494,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - SEC EDGAR Exhibit 21 (S20) → `pending` company ownership edges.
   - Corporations Canada (S21, low priority): an identity check only.
   - Retailer catalog sources: **none** for now. All Ontario grocers, Walmart, Costco and Flipp are avoided (D-013). Revisit only if the owner gets written permission.
-  - 🟡 Before the first run: the owner picks the project contact for pipeline User-Agent headers (OFF, Wikimedia and SEC require one).
+  - ✅ User-Agent contact (D-015): the repo URL only, `Sarvis/<version> (+https://github.com/LukaMS/sarvis)`. If SEC EDGAR rejects it without an email, stop and ask the owner.
   - A budget check after each scale-up task.
 
 ## Phase 4 — Normalization and matching (outline)
