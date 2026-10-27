@@ -135,3 +135,9 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Config:** `playwright.config.ts` at the root, tests in `e2e/`. There's one project, `mobile-web`, at 390 × 844 (the baseline size). `webServer` runs `npm run web` on :8081 and reuses a running server locally (never in CI). Traces are kept on failure.
 - **Smoke test conventions:** tests find elements by `testID` (`getByTestId`) and fail on any console error.
 - **Typecheck:** `e2e/tsconfig.json` covers `e2e/` and `playwright.config.ts`, and the root `typecheck` script runs it after the workspaces. Vitest doesn't pick up `e2e/` (its projects are `packages/core` and `pipeline`).
+
+## D-019 GitHub repo and CI — Accepted (P1.4)
+- **Repo:** https://github.com/LukaMS/sarvis, public (D-003), default branch `main` (the local `master` was renamed).
+- **Commit identity:** before the first push, all local commits were rewritten from the owner's Gmail address to the GitHub noreply address `13386597+LukaMS@users.noreply.github.com` (owner's choice). The rewrite changed only author and committer emails, and the tree was identical before and after. This repo's `git config user.email` is set to the noreply address.
+- **CI:** `.github/workflows/ci.yml` runs on every push and PR: `actions/checkout@v7`, `actions/setup-node@v7` (Node 22, npm cache), `npm ci`, then typecheck, lint and test. `permissions: contents: read`, no secrets, a 15-minute timeout, and a concurrency group per ref that cancels superseded runs. E2E stays local in Phase 1.
+- **Public by design:** `.mcp.json` (Supabase project refs, not keys) and `.claude/settings.json` (a local folder path) are in the public repo. No keys, tokens or personal emails were found in the history before the push.

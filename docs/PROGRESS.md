@@ -4,6 +4,37 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.4 Set up the GitHub repo and CI workflow
+
+**What changed**
+- Public repo **https://github.com/LukaMS/sarvis** created with `gh`. `master` was renamed to `main`, and `main` is the default branch.
+- **Before the push** (your choice): all 20 commits were rewritten from your Gmail address to `13386597+LukaMS@users.noreply.github.com`.
+  - Only the author and committer emails changed. The tree is identical, and the Gmail address appears 0 times in `git log -p main`.
+  - This repo's `git config user.email` is now the noreply address.
+  - The backup refs were deleted after the check, so the old commits can't be pushed by accident.
+- **Pre-push scan of the whole history:**
+  - **0 hits** for JWT, Supabase (`sbp_`, `sb_secret_`, `sb_publishable_`), OpenAI-style `sk-`, GitHub token, AWS key and private-key patterns, and for `service_role` assignments.
+  - Emails found: only `you@example.com` (scrubbed fixtures), the legacy `support@` address, an npm author in the lockfile, and the commit trailers.
+  - `docs/legacy/data/` is editorial content only (user tables were never exported, as P0.2 notes).
+- `.github/workflows/ci.yml` runs on push and PR:
+  - Node 22 with the npm cache, then `npm ci`, typecheck, lint and test;
+  - `contents: read`, no secrets, a concurrency group that cancels superseded runs, and a 15-minute timeout.
+- `docs/DECISIONS.md`: **D-019**.
+
+**Verification**
+- **Green:** the push of `main` → https://github.com/LukaMS/sarvis/actions/runs/40555272184. `success`, and every step passed (checkout, setup-node, `npm ci`, typecheck, lint, test).
+- **Red:** the throwaway branch `ci-red-check` added an unused const to `packages/core/src/index.ts` → https://github.com/LukaMS/sarvis/actions/runs/40555421163. `failure` at `Run npm run lint`:
+  `error 'unusedForCiCheck' is assigned a value but never used ... @typescript-eslint/no-unused-vars`, `✖ 1 problem (1 error, 0 warnings)`.
+- **Revert:** the branch was deleted locally and on GitHub and was never merged. `main` doesn't contain the error.
+
+**Things you should know**
+- **Public files:** `.mcp.json` (the Supabase project refs for dev and legacy, but no keys) and `.claude/settings.json` (your local legacy-folder path) are public. Neither is a secret.
+- **Other clones:** commit hashes before 97bb19e changed with the rewrite. That doesn't matter for this repo, but any other local clone of it is now out of date.
+
+**Next:** P1.5 Supabase base schema: profiles, roles, `is_admin()`, RLS and type generation.
+
+---
+
 ## 2026-10-27 — P1.3 Add the Playwright web e2e harness
 
 **What changed**

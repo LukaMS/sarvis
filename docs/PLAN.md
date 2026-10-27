@@ -259,7 +259,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Changing the expected testID makes it fail. Revert it, and record the check.
   - Commands row E2E (web) is filled.
 
-### [ ] P1.4 Set up the GitHub repo and CI workflow
+### [x] P1.4 Set up the GitHub repo and CI workflow
 - **Slice:** ci.
 - **Goal:** every push and PR runs typecheck, lint and unit tests on GitHub Actions.
 - **Deps:** P1.3.
