@@ -4,6 +4,44 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.5 Supabase base schema: profiles, roles, `is_admin()`, RLS and type generation
+
+**What changed**
+- Migration `supabase/migrations/20261027180523_profiles_and_roles.sql`, applied to **supabase-dev** only:
+  - a `private` schema;
+  - `public.profiles` (DATA_MODEL §3.9, plus `updated_at` and a consent-time check);
+  - `private.set_updated_at()` trigger;
+  - `private.is_admin()` (security definer, stable, `search_path = ''`);
+  - `private.handle_new_user()` trigger on `auth.users` (copies `display_name` from the sign-up metadata, max 80 characters);
+  - grants: anon none; authenticated `select` plus `update` on `display_name`, `share_prices_consent` and `consent_at` only;
+  - RLS policies `profiles_select_own_or_admin` and `profiles_update_own`.
+- `supabase/README.md` covers the rules, naming, how to regenerate types, and the migration list.
+- `packages/core/src/db/database.types.ts` is generated with the MCP. `@sarvis/core` re-exports the types.
+- Root `npm run db:types` prints the MCP steps (`scripts/db-types.mjs`).
+- `docs/DECISIONS.md`: **D-020** (`private` schema, privileges before RLS, one policy per action).
+- `CLAUDE.md` Commands: the Generate Supabase types row is filled.
+
+**Verification**
+- `list_migrations` → `[{"version":"20261027180523","name":"profiles_and_roles"}]`.
+- `get_advisors` security → `{"lints":[]}`. Performance → `{"lints":[]}`.
+- SQL checks: each ran in `begin … rollback` with throwaway `auth.users` rows A, B and admin, using `set local role` and `request.jwt.claims`.
+  - **Trigger:** 3 auth users → 3 profiles (`Alex:user, ∅:user, Admin:admin`).
+  - **anon:** `select count(*) from profiles` → `ERROR 42501: permission denied for table profiles`. That's stronger than 0 rows: `has_table_privilege('anon', …, 'select') = false`.
+  - **User A:** `visible_rows 1`, `only_own_row true`, `is_admin false`.
+  - **A's `update profiles set role='admin'`** → `ERROR 42501: permission denied for table profiles` (column privilege).
+  - **A's update of `display_name`:** own row 1 update, user B's row **0**.
+  - **Admin:** `visible_rows 3`, `is_admin true`.
+  - **Cleanup:** 0 leftover test users after the rollbacks.
+- `grep -ri service_role app packages` → nothing.
+- `npm run typecheck` (with the generated types), `lint`, `test` and `format:check` all exit 0.
+
+**Things you should know**
+- **Making an admin:** there's no client path to set `role` (by design). For now it's `update public.profiles set role = 'admin' where id = …` on the dev project through the MCP. An admin role-management UI belongs in Phase 5.
+
+**Next:** P1.6 Theme tokens from THEME.md.
+
+---
+
 ## 2026-10-27 — P1.4 Set up the GitHub repo and CI workflow
 
 **What changed**

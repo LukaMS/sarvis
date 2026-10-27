@@ -273,7 +273,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A push triggers a green Actions run. Put the run URL in PROGRESS.
   - A branch push with a lint error shows a red run. Revert it, and record both URLs.
 
-### [ ] P1.5 Supabase base schema: profiles, roles, `is_admin()`, RLS and type generation
+### [x] P1.5 Supabase base schema: profiles, roles, `is_admin()`, RLS and type generation
 - **Slice:** db-foundation.
 - **Goal:** the dev project has the base schema with RLS, and TypeScript types are generated into the shared package.
 - **Deps:** P1.1.

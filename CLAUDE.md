@@ -54,7 +54,7 @@ Fill these in during Phase 1 and keep them current.
 | Typecheck / lint | `npm run typecheck` / `npm run lint` (format: `npm run format`, check only: `npm run format:check`) |
 | Unit tests | `npm test` (Vitest, all workspaces) |
 | E2E (web) | `npm run e2e` (Playwright, Chromium, 390 × 844; starts Expo web on :8081 or reuses a running one). Report: `npx playwright show-report` |
-| Generate Supabase types | TBD |
+| Generate Supabase types | `supabase-dev` MCP `generate_typescript_types` → save verbatim to `packages/core/src/db/database.types.ts` (`npm run db:types` prints the steps; see `supabase/README.md`) |
 | Run a scraper on a sample | TBD |
 
 ## Verifying your work

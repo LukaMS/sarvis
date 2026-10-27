@@ -20,6 +20,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "e2e": "playwright test",
+    "db:types": "node scripts/db-types.mjs",
     "clean": "rimraf --glob \"**/node_modules\" \"**/dist\" \"**/coverage\" \"**/*.tsbuildinfo\""
   },
   "devDependencies": {
