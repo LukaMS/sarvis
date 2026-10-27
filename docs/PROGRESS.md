@@ -4,6 +4,35 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.9 App shell: tabs, stack routes and headers as placeholders
+
+**What changed**
+- `app/src/app/(tabs)/`: Impact (`index`), Scan, Search, History, with legacy icons (leaf, barcode-scan, magnify, history), labels and screen-reader labels.
+- Stack placeholders: `product/[id]`, `company/[id]`, `story/[id]`, `receipt/[id]`, `receipt-scan`, `receipt-results`, `stories`, `profile` (modal), `settings`, `privacy`, `help`, `about`. The four detail routes export `RouteErrorBoundary`.
+- `app/src/components/navigation/TabBar.tsx` (tab list and styling) and `PlaceholderScreen.tsx` (tab and stack placeholders). Root layout sets the headers per THEME.md (**D-024**).
+- Impact placeholder: wordmark, profile button (opens the modal), StatusBarScrim, and links to every stack route until Phase 8.
+- Removed `app/src/app/index.tsx` (P1.2 placeholder). `e2e/smoke.spec.ts` now checks the Impact wordmark. New `e2e/navigation.spec.ts`.
+- No new dependencies.
+
+**Verification**
+- **Web (Playwright MCP, 390 × 844):** `.screenshots/p1.9-impact-web.png`, `p1.9-product-web.png`, `p1.9-story-web.png`. 0 console errors or warnings.
+  - Tab bar vs `docs/baseline/web/03-home.png`: white bar, rounded top corners, hairline border, active leaf + label in primary, inactive grey. Same as legacy, including the labels clipped at the bottom edge on web.
+  - Header vs `13-product.png`: surface background, "Product Details" in primary, hairline under the header. Opened from the tab, so it also has the back arrow.
+  - Story: transparent header with a white back arrow over the cover band.
+- **Android (Pixel_10_Pro, Expo Go):** `.screenshots/p1.9-impact-android.png`, `p1.9-product-android.png`.
+  - Matches `android/03-home.png` (tab bar, wordmark row, profile icon) and `android/13-product.png` (back arrow, title, header shadow).
+  - Tapped History, Scan, Search and Impact: each shows `screen-<tab>` and Android reports the tab as `selected`. Product link → Product Details; back arrow → Impact. Profile button → modal with "Profile" header and Navigate up.
+- **`npm run e2e` equivalent:** 18 passed, 3 runs in a row (see the server note below). The navigation spec presses all 4 tabs, opens all 12 stack routes by URL (`screen-<name>`, header heading, `id: sample` on dynamic routes) and checks back from Product returns to Impact. No console errors.
+- typecheck, lint, `npm test` (16 passed) and format:check all exit 0.
+
+**Things you should know**
+- **An Expo web server from an earlier session was still running on :8081** (PID 37280, started 15:05). I wasn't allowed to stop it. Its route manifest predates the new files, so new routes 404 on a full page load there. I ran the e2e suite and the MCP checks against a fresh server on :8082 (temporary config, deleted). **Please restart the :8081 server** (Ctrl+C it, then `npm run web`); after that, plain `npm run e2e` will work. The :8082 server was stopped at the end of the session and `adb reverse` is back to 8081.
+- **Expo typed-routes bug on Windows:** while a dev server runs, adding a file *outside* `src/app` (here `components/navigation/*`) puts bogus `/../components/...` routes into `app/.expo/types/router.d.ts`, and `npm run typecheck` then fails on `href="/"`. Expo checks `startsWith('../')`, but Windows paths use `..\`. Restarting the dev server regenerates the file correctly. I deleted the stale copy (gitignored). CI is unaffected.
+
+**Next:** P1.10 Email sign-up, sign-in, sign-out and AuthGate.
+
+---
+
 ## 2026-10-27 — P1.8 Interaction and state primitives
 
 **What changed**

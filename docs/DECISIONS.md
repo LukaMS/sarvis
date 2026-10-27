@@ -180,3 +180,13 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
   - `tap(locator)` scrolls the element into view, waits two animation frames, then clicks. A plain `click()` on an element inside a ScrollView scrolls and presses in one step, and the late scroll event cancels the RN Web press, so nothing happens.
   - Tests that press things open the page with `waitUntil: 'networkidle'`, so presses aren't lost on the static HTML before it hydrates.
   - RN Web writes `aria-selected` only when it's true, so assert `not.toHaveAttribute('aria-selected', 'true')` for unselected chips.
+
+## D-024 App shell and navigation chrome — Accepted (P1.9)
+- **The tab bar is the stock bottom-tabs bar styled through `screenOptions`, as in legacy.** The plan named `TabBar.tsx`; it holds the `TABS` list, `useTabScreenOptions()` (bar, label and item styles from THEME.md) and `tabOptions(tab)` (title, icon, a11y label, `tabBarButtonTestID` = `tab-<id>`). No custom `tabBar` component, so nothing is redrawn by hand.
+- **Option types come from expo-router** (`ComponentProps<typeof Tabs.Screen>['options']`), so the app doesn't import `@react-navigation/*` directly and needs no new dependency.
+- **No React Navigation `ThemeProvider`.** Legacy used one only to set the navigator background to `surface` (and the stock `DarkTheme` in OS dark mode, which changed nothing visible because headers and the tab bar set their colours explicitly). The rebuild sets `contentStyle` (stack) and `sceneStyle` (tabs) to `surface` instead. Screens stay light in dark mode, as THEME.md says.
+- **Headers:** one shared option set (surface background, primary tint, back title "Back") with a route → title map in the root layout. Story detail: transparent header, white tint, empty title. Profile: modal.
+- **Placeholders** (`components/navigation/PlaceholderScreen.tsx`): `TabPlaceholder` draws the hero block (wordmark, 36 / 900 title, 15 / 500 subtitle); Impact also has legacy's profile button and StatusBarScrim. `StackPlaceholder` shows a title and the `id` param; story adds a dark cover band so the white back arrow is visible. testIDs are `screen-<name>` (plus `-title`, `-wordmark`, `-param`). Until Phase 8 builds real entry points, the Impact placeholder lists a link to every stack route (`impact-link-<name>`).
+- **`product`, `company`, `story` and `receipt` export `RouteErrorBoundary` as `ErrorBoundary` now,** per SPEC "Route error boundary".
+- **The root URL is now the Impact tab.** The P1.2 `placeholder-home` screen is gone; `e2e/smoke.spec.ts` checks `screen-impact-wordmark` reads "Sarvis".
+- **E2E:** on web the header back button is a link named "Go back", not a button.

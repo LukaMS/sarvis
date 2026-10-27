@@ -343,7 +343,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A thrown error inside a RouteErrorBoundary test screen renders ErrorState.
   - 0 console errors. typecheck, lint and tests pass.
 
-### [ ] P1.9 App shell: tabs, stack routes and headers as placeholders
+### [x] P1.9 App shell: tabs, stack routes and headers as placeholders
 - **Slice:** navigation.
 - **Goal:** the full legacy navigation map (SPEC "Navigation map") with placeholder screens, the floating tab bar and stack headers matching the baseline.
 - **Deps:** P1.8.
