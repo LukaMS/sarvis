@@ -70,9 +70,10 @@ type StackPlaceholderProps = {
   title: string;
   /** Story detail has a transparent header with a white back arrow, so it gets a dark cover band. */
   cover?: boolean;
+  children?: ReactNode;
 };
 
-export function StackPlaceholder({ id, title, cover }: StackPlaceholderProps) {
+export function StackPlaceholder({ id, title, cover, children }: StackPlaceholderProps) {
   const params = useLocalSearchParams<{ id?: string }>();
   const insets = useSafeAreaInsets();
 
@@ -93,6 +94,7 @@ export function StackPlaceholder({ id, title, cover }: StackPlaceholderProps) {
           </Text>
         ) : null}
         <Text style={styles.note}>{PLACEHOLDER_NOTE}</Text>
+        {children}
       </View>
     </ScrollView>
   );

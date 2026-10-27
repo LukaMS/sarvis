@@ -4,6 +4,43 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.10 Email sign-up, sign-in, sign-out and AuthGate
+
+**What changed**
+- `app/src/lib/supabase.ts` (one client, publishable key, AsyncStorage on native, `detectSessionInUrl` on web only), `lib/auth/AuthProvider.tsx` (`useAuth`), `lib/auth/service.ts` (sign up / in / out, resend, reset email), `lib/errors.ts` (legacy error mapping, plus 6 unit tests).
+- AuthGate: the root layout wraps everything in `AuthProvider`, shows a spinner until the session is read, then uses `Stack.Protected` guards (signed out → `/auth`; signed in → tabs). `/dev/*` routes are ungated.
+- `/auth`: port of legacy (sign-in/sign-up toggle, optional display name, show/hide password, ≥ 8 characters, mapped errors, "Check your inbox" + resend, Forgot password). Profile placeholder shows the email and a Sign Out button.
+- `scripts/dev-create-test-user.ts` + `npm run dev:test-user` (dev project only).
+- E2E: `e2e/global-setup.ts` + `e2e/users.ts` (test users, saved session), new `e2e/auth.spec.ts`. The other specs now run signed in.
+- App scripts load the repo-root `.env`. New dependencies: `@supabase/supabase-js`, `@react-native-async-storage/async-storage` (**D-025**).
+- Added **P1.15** (password-reset screen) to PLAN.md. "Forgot password?" sends the email, but nothing handles the link yet (legacy had the same gap).
+
+**Verification**
+- **`npm run e2e`:** 22 passed on each of 3 runs in a row. `auth.spec`:
+  - signed out, `/` and `/product/sample` show `/auth`;
+  - a wrong password shows "Incorrect email or password. …";
+  - a valid sign-in lands on Impact, survives a reload, and `/auth` sends you back to the tabs;
+  - Profile → Sign Out returns to `/auth` and stays there after a reload;
+  - sign-up validation: empty email, bad email, missing password, short password, and errors clear on edit and on mode switch.
+  - No console errors (except the expected 400 from the wrong-password request).
+- **SQL (dev):** both e2e users exist, are confirmed, and have a `profiles` row created by the trigger (`display_name` "E2E Shell" / "E2E Auth", `role` user).
+- **Web screenshots** (`.screenshots/p1.10-auth-sign-in-web.png`, `p1.10-auth-sign-up-web.png`) match `01-auth-sign-in.png` / `02-auth-sign-up.png` apart from the "Sarvis" name. 0 console errors or warnings.
+- **Android (Pixel_10_Pro):**
+  - `p1.10-auth-sign-in-android.png` and `p1.10-auth-sign-up-android.png` match the Android baselines.
+  - Signed in as `e2e-android@example.com` (created with `npm run dev:test-user`) → tabs (`p1.10-signed-in-tabs-android.png`). A force-stop and relaunch stayed signed in. Profile → Sign Out returned to `/auth`.
+  - The first attempt showed the mapped wrong-password error: the emulator's typing had swapped two characters (an adb race, not the app).
+- **Service-role key:** `grep` finds nothing in `app/`. The served web bundle doesn't contain the key; its only `sb_secret_` strings are supabase-js comments and a prefix check.
+- typecheck, lint, `npm test` (22 passed) and format:check all exit 0.
+
+**Things you should know**
+- I can't read or write `.env` or `.env.example` (deny rules). You created `.env`; the test user script and e2e read it. `.env.example` already lists the three variables (P1.1), but I couldn't open it to confirm the wording.
+- **E2E now needs `.env`** with the dev service-role key, because global setup creates the test users. It still isn't run in CI.
+- Three test users now exist on the dev project: `e2e-shell@`, `e2e-auth@` and `e2e-android@example.com`.
+
+**Next:** P1.11 Account deletion RPC and the Settings action.
+
+---
+
 ## 2026-10-27 — P1.9 App shell: tabs, stack routes and headers as placeholders
 
 **What changed**

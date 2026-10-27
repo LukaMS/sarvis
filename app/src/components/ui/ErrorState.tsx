@@ -2,21 +2,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
+import type { FriendlyError } from '../../lib/errors';
 import { FontWeight, M3Colors, Radius, Spacing } from '../../theme';
 import { Button } from './Button';
 
-export type ErrorKind = 'offline' | 'auth' | 'permission' | 'notFound' | 'unknown';
-
-/** User-facing error copy. Mapping raw errors to this belongs to the data layer (legacy `toUserMessage`). */
-export interface FriendlyError {
-  kind: ErrorKind;
-  /** Short headline for the title. */
-  title: string;
-  /** One or two sentences telling the user what to do next. */
-  message: string;
-  /** False when retrying can't help (e.g. a wrong password). */
-  retryable: boolean;
-}
+export type { ErrorKind, FriendlyError } from '../../lib/errors';
 
 interface ErrorStateProps {
   error: FriendlyError;

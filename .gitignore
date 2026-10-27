@@ -23,6 +23,7 @@ pipeline/raw/
 # Test output
 playwright-report/
 test-results/
+e2e/.auth/
 coverage/
 
 # OS / editor

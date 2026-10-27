@@ -1,6 +1,15 @@
 // Web e2e tests against Expo web. `npm run e2e` starts the dev server unless one is already running.
 import { defineConfig, devices } from '@playwright/test';
 
+import { STORAGE_STATE } from './e2e/users';
+
+// The repo-root .env holds the dev Supabase URL and the service-role key global setup needs.
+try {
+  process.loadEnvFile('.env');
+} catch {
+  // No .env: global setup fails with a message naming the missing variables.
+}
+
 const PORT = 8081;
 const BASE_URL = `http://localhost:${PORT}`;
 
@@ -10,8 +19,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
+  globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL: BASE_URL,
+    storageState: STORAGE_STATE,
     trace: 'retain-on-failure',
   },
   projects: [

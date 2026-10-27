@@ -190,3 +190,22 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **`product`, `company`, `story` and `receipt` export `RouteErrorBoundary` as `ErrorBoundary` now,** per SPEC "Route error boundary".
 - **The root URL is now the Impact tab.** The P1.2 `placeholder-home` screen is gone; `e2e/smoke.spec.ts` checks `screen-impact-wordmark` reads "Sarvis".
 - **E2E:** on web the header back button is a link named "Go back", not a button.
+
+## D-025 Email auth, AuthGate and e2e test users — Accepted (P1.10)
+- **New dependencies:**
+  - `@supabase/supabase-js` ^2.118.0 in `app/` (the client) and as a root devDependency (the Node test-user script).
+  - `@react-native-async-storage/async-storage` 2.2.0 in `app/` (`npx expo install`, the SDK 54 version). It stores the session on native, as in legacy. Web uses supabase-js's default `localStorage`.
+- **AuthGate = expo-router `Stack.Protected` guards,** not legacy's `useSegments` + `router.replace` effect. `auth` is guarded by `!session`, and every app route by `session`. Sign-in and sign-out just change the session, and the router moves to the first allowed screen, so screens never navigate after auth. The dev routes (`/dev/*`) are outside both guards so the gallery stays reachable. The root layout shows a spinner until the stored session has been read, as legacy did, so signed-in users never see `/auth` flash.
+- **Env loading:** one `.env` at the repo root. The app's `start` / `web` / `android` scripts run Expo through `node --env-file-if-exists=../.env`, because Expo only reads `.env` from `app/`. `supabase.ts` throws a clear error if the URL or key is missing, or if the URL has a path (`/rest/v1/` broke every call during setup).
+- **Error copy:** `app/src/lib/errors.ts` ports legacy `toFriendlyError` / `toUserMessage` (without the guest and anonymous strings, D-015). `FriendlyError` moved there from `ErrorState.tsx`, as D-023 anticipated. `ErrorState` re-exports it.
+- **Auth screen:** a port of legacy `auth.tsx` limited to email (no provider buttons or divider, D-015). The primary and resend buttons use the shared `Button` (`shape="block"`). "Forgot password?" sends Supabase's reset email, as legacy did, and the reset link is handled in **P1.15**. Email links redirect to `Linking.createURL('/')` (`sarvis://` in builds), so there's no `expo-auth-session` dependency.
+- **Sign-out** uses supabase-js's default (global) scope, as in legacy.
+- **Test users (D-015 option a):**
+  - `scripts/dev-create-test-user.ts` runs on Node's built-in TypeScript stripping and `--env-file`, so it needs no tsx or dotenv.
+  - It refuses any URL but `https://smqovgawfjmxernqlxjd.supabase.co`.
+  - It creates the user, or resets the password of an existing one, with `email_confirm: true` and `display_name` metadata.
+  - It never prints the key or password.
+- **E2E:**
+  - `e2e/global-setup.ts` creates `e2e-shell@example.com` and `e2e-auth@example.com` with new random passwords on every run. Passwords are passed to workers through env and never written to disk.
+  - Global setup then signs the shell user in through the UI and saves its storage state (`e2e/.auth/`, gitignored), which is the default for every spec. `auth.spec` starts signed out and uses its own user, because a global sign-out would revoke the shared session.
+  - E2E needs the dev service-role key, so it still runs locally only, not in CI.

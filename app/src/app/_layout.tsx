@@ -1,8 +1,12 @@
 // Root stack (SPEC › Navigation map). Tab screens draw their own hero; detail and secondary screens get
 // the native header (THEME.md › Navigation chrome › Stack headers).
+// AuthGate (SPEC F1): Stack.Protected guards. Signed out, every app route sends you to /auth; signed
+// in, /auth sends you to the tabs. The dev-only routes stay outside both guards.
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { AuthProvider, useAuth } from '../lib/auth/AuthProvider';
 import { M3Colors } from '../theme';
 
 const header = {
@@ -28,13 +32,38 @@ const HEADER_TITLES: Record<string, string> = {
 
 export default function RootLayout() {
   return (
-    <>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: M3Colors.surface },
-        }}
-      >
+    <AuthProvider>
+      <RootNavigator />
+      <StatusBar style="dark" />
+    </AuthProvider>
+  );
+}
+
+function RootNavigator() {
+  const { session, isLoading } = useAuth();
+
+  // Guarding before the stored session is read would flash the sign-in screen at signed-in users.
+  if (isLoading) {
+    return (
+      <View style={styles.loading} testID="auth-loading">
+        <ActivityIndicator size="large" color={M3Colors.primary} />
+      </View>
+    );
+  }
+
+  const signedIn = !!session;
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: M3Colors.surface },
+      }}
+    >
+      <Stack.Protected guard={!signedIn}>
+        <Stack.Screen name="auth" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
         {Object.entries(HEADER_TITLES).map(([name, title]) => (
           <Stack.Screen key={name} name={name} options={{ ...header, headerTitle: title }} />
@@ -60,8 +89,16 @@ export default function RootLayout() {
             headerTintColor: M3Colors.primary,
           }}
         />
-      </Stack>
-      <StatusBar style="dark" />
-    </>
+      </Stack.Protected>
+    </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: M3Colors.surface,
+  },
+});

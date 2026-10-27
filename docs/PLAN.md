@@ -361,7 +361,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `e2e/navigation.spec.ts` taps all 4 tabs and opens every stack route by URL, asserting `screen-<name>`.
   - 0 console errors.
 
-### [ ] P1.10 Email sign-up, sign-in, sign-out and AuthGate
+### [x] P1.10 Email sign-up, sign-in, sign-out and AuthGate
 - **Slice:** auth.
 - **Goal:** email/password auth against the dev project, with the legacy auth screen look and route gating.
 - **Deps:** P1.5, P1.9.
@@ -444,6 +444,15 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** Apple; account linking UI.
 - **Files:** `app/src/lib/auth/**`, `app/src/app/auth.tsx`, `e2e/auth.spec.ts`.
 - **Verification:** sign in with each chosen provider on web (Playwright, a manual login by the owner where needed) and Android (mobile MCP). The `profiles` row is created.
+
+### [ ] P1.15 Password reset: handle the recovery link (added in P1.10)
+- **Slice:** auth.
+- **Goal:** "Forgot password?" on `/auth` sends Supabase's reset email (P1.10, matching legacy), but nothing handles the link yet. Legacy had the same gap: the link just signed the user in. Add a screen that lets them set a new password.
+- **Deps:** P1.10.
+- **In:** listen for the `PASSWORD_RECOVERY` auth event (web: `detectSessionInUrl`; Android: parse the deep link and `setSession`/`exchangeCodeForSession`), a "Set a new password" screen (≥ 8 characters, mapped errors), and the dev project's redirect URLs (`sarvis://`, Expo Go, web localhost) allowed in Auth settings.
+- **Out:** email change, password change from Settings (Phase 8).
+- **Files:** `app/src/lib/auth/**`, `app/src/app/reset-password.tsx`, `app/src/app/_layout.tsx`, `e2e/auth.spec.ts`.
+- **Verification:** with a dev test user, generate a recovery link (admin `generateLink` in a dev script, so no real email is needed), open it on web and Android, set a new password, and sign in with it.
 
 ### Phase 1 milestone coverage
 
