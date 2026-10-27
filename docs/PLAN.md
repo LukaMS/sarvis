@@ -244,7 +244,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The screen imports a constant from `packages/core` and renders it, which proves workspace resolution.
   - `npm run typecheck` and `npm run lint` pass. Commands rows Start web and Start Android are filled.
 
-### [ ] P1.3 Add the Playwright web e2e harness
+### [x] P1.3 Add the Playwright web e2e harness
 - **Slice:** tooling.
 - **Goal:** `npm run e2e` starts Expo web and runs browser tests, for use by every later UI task.
 - **Deps:** P1.2.
@@ -253,7 +253,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A 390 × 844 viewport project (baseline size) and one smoke test that finds `placeholder-home`.
   - Test output folders gitignored.
 - **Out:** CI e2e (later; CI runs unit tests only in Phase 1), auth tests (P1.10).
-- **Files:** `playwright.config.ts`, `e2e/smoke.spec.ts`, root `package.json`, `.gitignore`, `CLAUDE.md` (Commands).
+- **Files:** `playwright.config.ts`, `e2e/smoke.spec.ts`, `e2e/tsconfig.json`, root `package.json`, `.gitignore` (already covered), `.prettierignore`, `CLAUDE.md` (Commands).
 - **Verification:**
   - `npm run e2e` passes (paste the summary).
   - Changing the expected testID makes it fail. Revert it, and record the check.

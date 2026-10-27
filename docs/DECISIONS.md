@@ -129,3 +129,9 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Dev dependency:** `eslint-config-expo` ~10.0.0 (the SDK 54 version; a bare `expo install -- -D` picked 58.x, so it's pinned by hand). It adds React, hooks, import and Expo rules. The root `eslint.config.mjs` scopes every block to `app/**`, so they don't apply to Node packages.
 - **tsconfig:** `app/tsconfig.json` extends `["../tsconfig.base.json", "expo/tsconfig.base"]`, and Expo's settings (lib, module, jsx) win. `strict` and `noUncheckedIndexedAccess` are set again explicitly.
 - **Metro:** no `metro.config.js` is needed. SDK 54 resolves npm workspaces out of the box, as the `@sarvis/core` import proves.
+
+## D-018 Web e2e harness — Accepted (P1.3)
+- **Dependency:** `@playwright/test` ^1.64.1 (dev, root). It runs web e2e against Expo web and uses the same engine as the Playwright MCP used for manual checks. Only Chromium is installed and used.
+- **Config:** `playwright.config.ts` at the root, tests in `e2e/`. There's one project, `mobile-web`, at 390 × 844 (the baseline size). `webServer` runs `npm run web` on :8081 and reuses a running server locally (never in CI). Traces are kept on failure.
+- **Smoke test conventions:** tests find elements by `testID` (`getByTestId`) and fail on any console error.
+- **Typecheck:** `e2e/tsconfig.json` covers `e2e/` and `playwright.config.ts`, and the root `typecheck` script runs it after the workspaces. Vitest doesn't pick up `e2e/` (its projects are `packages/core` and `pipeline`).

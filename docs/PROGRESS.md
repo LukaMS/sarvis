@@ -4,6 +4,44 @@ Newest entry first.
 
 ---
 
+## 2026-10-27 — P1.3 Add the Playwright web e2e harness
+
+**What changed**
+- `@playwright/test` 1.64.1 (Chromium only; its build was already installed locally).
+- `playwright.config.ts`:
+  - `mobile-web` project at 390 × 844;
+  - `webServer` runs `npm run web` on :8081 and reuses a running server locally;
+  - `list` reporter locally, `github` in CI;
+  - traces kept on failure.
+- `e2e/smoke.spec.ts` checks that `placeholder-home` is visible, that `placeholder-home-title` reads "Sarvis", and that there are no console errors.
+- `e2e/tsconfig.json`. The root `typecheck` now also runs `tsc -p e2e/tsconfig.json`.
+- Root script `npm run e2e`.
+- `.gitignore` already had `playwright-report/` and `test-results/`. `.prettierignore` now also skips those and the generated `app/expo-env.d.ts`.
+- `docs/DECISIONS.md`: **D-018**.
+- `CLAUDE.md` Commands: the E2E (web) row is filled.
+
+**Verification**
+- `npm run e2e`, with Playwright starting the dev server:
+  ```
+  Running 1 test using 1 worker
+    ok 1 [mobile-web] › e2e\smoke.spec.ts:3:1 › home placeholder renders the shared app name (2.5s)
+    1 passed (21.4s)
+  ```
+- **Negative check:** with the expected testID changed to `placeholder-home-WRONG`:
+  ```
+    x  1 [mobile-web] › e2e\smoke.spec.ts:3:1 › home placeholder renders the shared app name (6.3s)
+      Error: expect(locator).toBeVisible() failed
+      Locator: getByTestId('placeholder-home-WRONG')
+      Error: element(s) not found
+    1 failed
+  ```
+  Exit code 1. After the revert: `1 passed (16.5s)`.
+- `npm run typecheck` (including e2e), `npm run lint`, `npm test` (2/2) and `npm run format:check` all pass.
+
+**Next:** P1.4 Set up the GitHub repo and CI workflow. The first push needs your OK.
+
+---
+
 ## 2026-10-27 — P1.2 Create the Expo app (SDK 54, Expo Router, strict TS)
 
 **What changed**

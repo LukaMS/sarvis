@@ -10,3 +10,6 @@ docs/
 *.md
 .claude/
 .mcp.json
+app/expo-env.d.ts
+playwright-report/
+test-results/

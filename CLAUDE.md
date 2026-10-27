@@ -53,7 +53,7 @@ Fill these in during Phase 1 and keep them current.
 | Start Android | `npm run android` (emulator must be running; check with `adb devices`; opens in Expo Go). With Metro already running: `adb shell am start -a android.intent.action.VIEW -d exp://10.0.2.2:8081 host.exp.exponent` |
 | Typecheck / lint | `npm run typecheck` / `npm run lint` (format: `npm run format`, check only: `npm run format:check`) |
 | Unit tests | `npm test` (Vitest, all workspaces) |
-| E2E (web) | TBD |
+| E2E (web) | `npm run e2e` (Playwright, Chromium, 390 × 844; starts Expo web on :8081 or reuses a running one). Report: `npx playwright show-report` |
 | Generate Supabase types | TBD |
 | Run a scraper on a sample | TBD |
 
