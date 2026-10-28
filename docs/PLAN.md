@@ -455,7 +455,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `app/src/lib/auth/**`, `app/src/app/reset-password.tsx`, `app/src/app/_layout.tsx`, `e2e/auth.spec.ts`.
 - **Verification:** with a dev test user, generate a recovery link (admin `generateLink` in a dev script, so no real email is needed), open it on web and Android, set a new password, and sign in with it.
 
-### [ ] P1.16 Signed-out deep link to a guarded route shows a dev warning (added in P1.12)
+### [x] P1.16 Signed-out deep link to a guarded route shows a dev warning (added in P1.12)
 - **Slice:** navigation.
 - **Goal:** on Android, signed out, opening a deep link to any guarded route (e.g. `/settings`, `/admin`) lands correctly on `/auth` but shows a LogBox warning: "The 'state' or 'screen' passed in the params couldn't be applied to the navigator with the screens: 'auth', 'dev/gallery', 'dev/error-boundary'…". It's dev-only and has been there since P1.10, not caused by P1.12. Find out whether it's expected `Stack.Protected` behaviour or a fixable misuse, then fix it or record why it's harmless.
 - **Deps:** P1.10.

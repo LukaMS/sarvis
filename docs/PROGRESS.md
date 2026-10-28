@@ -4,6 +4,31 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P1.16 Signed-out deep link to a guarded route shows a dev warning
+
+**What changed**
+- No code change. The warning is React Navigation's expected dev-only `console.error` for a deep link into a `Stack.Protected` route that is shut at that moment. The landing is still correct. **D-029** has the source, why it's harmless, and the Phase 8 option (`UNSTABLE_routeNamesChangeBehavior: 'lastUnhandled'`, which would also open the target after sign-in).
+- `app/src/app/_layout.tsx`: added a header comment pointing to D-029.
+
+**Verification (Android, Pixel_10_Pro, Expo Go)**
+- **Signed out:**
+  - `/settings` (cold start) → `/auth` (`.screenshots/p1.16-android-signed-out-settings.png`).
+  - `/admin` sent to the open app → `/auth` with the LogBox warning (`p1.16-android-signed-out-admin-warning.png`).
+  - Metro logged the error twice for these signed-out links: once after a link that made Expo Go reload (no toast), and once for `/admin` (with a toast). It also logged it once in P1.15, for the recovery link to `/`.
+- **Signed in** (temporary dev user, deleted afterwards):
+  - `/settings` → Settings (`p1.16-android-signed-in-settings.png`).
+  - `/admin` → Impact, because admin is web-only (`p1.16-android-signed-in-admin-to-tabs.png`).
+  - Neither link logged the error.
+- The source was read in `node_modules/@react-navigation/core/src/useNavigationBuilder.tsx` (the `NODE_ENV !== 'production'` guard) and in `types.tsx` (the documented `'firstMatch'` / `'lastUnhandled'` behaviours).
+- typecheck, lint and format:check exit 0. The emulator is signed out.
+
+**Things you should know**
+- If you ever see this warning for a **signed-in** deep link, that is a real bug: the route is probably missing from the signed-in guard.
+
+**Next:** P1.17 is your dashboard step (add `sarvis://**` to the dev project's redirect URLs). P2.0 (refine Phase 2) can start now.
+
+---
+
 ## 2026-10-28 — P1.15 Password reset: handle the recovery link
 
 **What changed**

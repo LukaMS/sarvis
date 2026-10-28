@@ -2,7 +2,9 @@
 // the native header (THEME.md › Navigation chrome › Stack headers).
 // AuthGate (SPEC F1): Stack.Protected guards. Signed out, every app route sends you to /auth; signed
 // in, /auth sends you to the tabs. Signed in from a password-reset link, only /reset-password is open
-// (D-028). The dev-only routes stay outside every guard.
+// (D-028). The dev-only routes stay outside every guard. A deep link to a guarded route still lands on
+// the first open screen, but in development React Navigation logs "The 'state' or 'screen' passed in the
+// params couldn't be applied…" for it. That is expected and harmless (D-029).
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
