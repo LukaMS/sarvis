@@ -21,6 +21,39 @@ Database migrations for the **dev** Supabase project (`smqovgawfjmxernqlxjd`).
 
 `tests/<domain>.sql` holds the RLS and constraint checks for each catalog domain. Paste the whole file into `execute_sql` on the `supabase-dev` MCP. It runs in one transaction that ends in `rollback`, so it leaves nothing behind. The last `select` lists every check, and each row must have `ok = true`. The scripts create two throwaway `auth.users` rows (an admin and a plain user) inside the transaction, and switch role with `set local role` and `request.jwt.claims`.
 
+## The `+review` columns
+
+Every reviewable fact table (DATA_MODEL §1.5) copies this block exactly. Replace `<table>` with the table name. It's decided if and only if it isn't `pending`. `decision_method` is `admin`, `auto` (passed a rule written in PLAN or DECISIONS) or `legacy` (a bulk decision on legacy-imported facts). Legacy imports arrive `pending` with no decision.
+
+```sql
+  review_status text not null default 'pending'
+    check (review_status in ('pending', 'approved', 'rejected', 'superseded')),
+  reviewed_by uuid references public.profiles (id) on delete set null,
+  reviewed_at timestamptz,
+  decision_method text check (decision_method in ('admin', 'auto', 'legacy')),
+  constraint <table>_review_decided check (
+    (review_status = 'pending') = (reviewed_at is null)
+    and (review_status = 'pending') = (decision_method is null)
+    and (review_status <> 'pending' or reviewed_by is null)
+    and (decision_method is distinct from 'auto' or reviewed_by is null)
+  ),
+```
+
+Alongside it:
+
+```sql
+create index <table>_reviewed_by_idx on public.<table> (reviewed_by);
+
+-- Public tables: everyone reads approved rows, admins read everything.
+-- Two policies, because anon can't execute private.is_admin().
+create policy <table>_select_anon on public.<table> for select to anon
+  using (review_status = 'approved');
+create policy <table>_select_authenticated on public.<table> for select to authenticated
+  using (review_status = 'approved' or (select private.is_admin()));
+```
+
+When the decision comes from the review queue, also set the `review_queue` row to `done` (or `dismissed`) with `resolved_at`.
+
 ## Types
 
 Run `generate_typescript_types` on the `supabase-dev` MCP and save the output verbatim to `packages/core/src/db/database.types.ts`. `npm run db:types` prints this reminder. A CLI-based generator would need a personal access token, which isn't set up.
@@ -34,3 +67,4 @@ Run `generate_typescript_types` on the `supabase-dev` MCP and save the output ve
 | 20261028174807 | admin_ping | `public.admin_ping()`: `true` for admins, raises `42501` otherwise. The web `/admin` gate (P1.12) |
 | 20261028200133 | catalog_pipeline_bookkeeping | `pg_trgm`, `unaccent`, `normalize_match_text()`, the `slug` domain; `sources` (public read), `ingestion_runs`, `ingestion_run_events`, `raw_objects`, `validation_failures` (admin); `source_attributions` view; private `raw` bucket with admin read (P2.1) |
 | 20261028221731 | seed_sources | Data: `sources` rows for S1–S30 (avoided ones disabled; S24 as one disabled umbrella row) plus internal `manual`, `legacy-import`, `receipts`, `derived`, `fixture`. Re-runnable upsert on `key` that changes 0 rows on a second run (P2.2, D-032) |
+| 20261028223450 | catalog_matching_review | `match_candidates` (unique on kind, subject, candidate, method version; kind pins the subject and candidate tables) and `review_queue` (one open row per item), both admin only (P2.3, D-033) |

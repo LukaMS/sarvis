@@ -123,6 +123,81 @@ export type Database = {
           },
         ]
       }
+      match_candidates: {
+        Row: {
+          candidate_id: string
+          candidate_type: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_method: string | null
+          features: Json | null
+          id: number
+          kind: string
+          match_method: string
+          match_method_version: string
+          reason: string | null
+          run_id: string | null
+          score: number
+          status: string
+          subject_id: string
+          subject_type: string
+        }
+        Insert: {
+          candidate_id: string
+          candidate_type: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_method?: string | null
+          features?: Json | null
+          id?: never
+          kind: string
+          match_method: string
+          match_method_version: string
+          reason?: string | null
+          run_id?: string | null
+          score: number
+          status?: string
+          subject_id: string
+          subject_type: string
+        }
+        Update: {
+          candidate_id?: string
+          candidate_type?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_method?: string | null
+          features?: Json | null
+          id?: never
+          kind?: string
+          match_method?: string
+          match_method_version?: string
+          reason?: string | null
+          run_id?: string | null
+          score?: number
+          status?: string
+          subject_id?: string
+          subject_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_candidates_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_candidates_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           consent_at: string | null
@@ -212,6 +287,63 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_queue: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          id: number
+          item_id: string
+          item_table: string
+          item_type: string
+          priority: number
+          reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: never
+          item_id: string
+          item_table: string
+          item_type: string
+          priority?: number
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: never
+          item_id?: string
+          item_table?: string
+          item_type?: string
+          priority?: number
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_queue_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_queue_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

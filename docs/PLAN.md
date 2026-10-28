@@ -557,7 +557,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Applying the migration's SQL a second time through `execute_sql` changes 0 rows.
   - `anon` reads the attribution fields through `source_attributions`, which hides avoided sources (D-031: the base table is public-read).
 
-### [ ] P2.3 Schema: matching and review
+### [x] P2.3 Schema: matching and review
 - **Slice:** schema.
 - **Goal:** `match_candidates` and `review_queue` (§3.5). They come before ownership because `brand_ownership.match_candidate_id` references them.
 - **Deps:** P2.1.

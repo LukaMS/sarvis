@@ -4,6 +4,42 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P2.3 Schema: matching and review
+
+**What changed**
+- The migration `20261028223450_catalog_matching_review` is applied to dev. It adds:
+  - `match_candidates`: unique on `(kind, subject_id, candidate_id, match_method_version)`. Checks cover the kind's subject and candidate tables, the score range, the `match_method` list plus `rule:<name>`, `features` ≤ 1 KB, and decision consistency.
+  - `review_queue`: one open row per item, `item_id` shaped like a uuid or bigint, priority 0–100, resolution consistency.
+  - Both are admin-only RLS with explicit grants, and every foreign key is indexed.
+- `supabase/tests/matching_review.sql` holds the RLS and constraint checks (rolled back).
+- `supabase/README.md` has the reusable `+review` block (columns, check, index, and the two select policies) and the migration row.
+- The types are updated with the generated `match_candidates` and `review_queue` blocks. The rest of the generated output is unchanged.
+- D-033 records the design choices.
+
+**Verification**
+- RLS script: **24/24 ok**.
+  - Duplicate `(kind, subject, candidate, version)` → `23505`. The same pair with a new method version is allowed.
+  - Rejected with `23514`: a kind/type mismatch, a score of 1.2, `match_method = 'guess'`, `accepted` without `decided_at`, `auto` with a `decided_by`, `features` over 1 KB, a malformed `item_id`, and `done` without `resolved_at`.
+  - Accepted: `rule:strip-suffix`.
+  - A second open queue row for the same item → `23505`.
+  - anon: `42501` on both tables and on insert.
+  - Non-admin user: sees 0 rows, gets `42501` on both inserts, and updates 0 rows.
+  - Admin: reads both tables, accepts a candidate, resolves a queue row, re-queues the resolved item, and deletes a row.
+- Afterwards: 0 candidates, 0 queue rows and 0 test users.
+- The `+review` snippet, checked on a throwaway table in a rolled-back transaction:
+  - `approved` without a decision is rejected;
+  - `pending` with a `decision_method` is rejected;
+  - anon and a plain user each see only the 2 approved rows.
+- `relrowsecurity` is true on all 8 public tables.
+- Advisors:
+  - Security: only the existing leaked-password warning.
+  - Performance: only INFO "unused index" notices (7 new, on the empty tables).
+- `npm run typecheck`, `lint` and `test` (27 tests) pass, and Prettier is clean.
+
+**Next:** P2.4 Schema: ownership (companies, brands, ownership edges, banners).
+
+---
+
 ## 2026-10-28 — P2.2 Seed `sources` from SOURCES.md
 
 **What changed**
