@@ -4,6 +4,38 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P2.7 Schema: AI and audit
+
+**What changed**
+- The migration `20261028234727_catalog_ai_audit` is applied to dev. It adds:
+  - `ai_calls` (checks on `purpose` and `status`, non-negative tokens and cost, `user_id` only for `parse_receipt`, mock and budget-blocked calls cost 0), admin only;
+  - `audit_log` (checks on `action`, a uuid or bigint `row_id`, `changes` as a JSON object ≤ 16 KB), append-only: admins can select and insert, and must insert as themselves;
+  - `ai_call_id` (indexed, `on delete set null`) on `company_ownership`, `brand_ownership` and `category_mappings`.
+- `supabase/tests/ai_audit.sql` holds the checks (rolled back).
+- The README has the migration row. The types are regenerated, and the diff adds lines only (+147). D-037 records the design choices.
+
+**Verification**
+- RLS script: **30/30 ok**.
+  - Rejected with `23514`: an unknown purpose, an unknown status, negative tokens, `user_id` on a non-receipt call, a mock call with a cost, a budget-blocked call with tokens, an unknown audit action, a malformed `row_id`, non-object `changes`, and `changes` over 16 KB. A budget-blocked call with no tokens is accepted.
+  - `ai_call_id` is accepted on all three fact tables. Deleting the call keeps the 3 facts and nulls the link.
+  - anon: `42501` on reading either table and on insert. Still sees no pending AI edge.
+  - Non-admin user: 0 rows in either table (not even their own receipt call). Gets `42501` on insert into either table, and updates 0 `ai_calls` rows.
+  - Admin: reads both tables, inserts and updates an `ai_call`, and inserts an audit row as themselves. Gets `42501` when inserting an audit row as another user or with no actor, and on audit update or delete. Deletes an `ai_call`.
+- Afterwards: 0 rows in the new tables and 0 test users.
+- `relrowsecurity` is true on all 28 public tables.
+- Advisors:
+  - Security: only the existing leaked-password warning.
+  - Performance: only INFO "unused index" notices.
+- `npm run typecheck`, `lint` and `test` (27 tests) pass, and Prettier is clean.
+
+**Notes for you**
+- **`audit_log` can't be edited or deleted from the admin UI.** Any cleanup runs with the service role.
+- **AI facts don't require `ai_call_id`,** because the 13-month `ai_calls` purge nulls it. The model and prompt stay in `method_version` (D-037).
+
+**Next:** P2.8 Schema: scoring and evidence.
+
+---
+
 ## 2026-10-28 — P2.6 Schema: stores and prices
 
 **What changed**

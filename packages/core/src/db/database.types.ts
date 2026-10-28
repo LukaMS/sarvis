@@ -14,6 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_calls: {
+        Row: {
+          at: string
+          cost_usd: number
+          id: number
+          input_tokens: number
+          latency_ms: number | null
+          mock: boolean
+          model: string
+          output_tokens: number
+          prompt_version: string
+          purpose: string
+          response_raw_object_id: string | null
+          rubric_version: string | null
+          run_id: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          at?: string
+          cost_usd?: number
+          id?: never
+          input_tokens?: number
+          latency_ms?: number | null
+          mock?: boolean
+          model: string
+          output_tokens?: number
+          prompt_version: string
+          purpose: string
+          response_raw_object_id?: string | null
+          rubric_version?: string | null
+          run_id?: string | null
+          status: string
+          user_id?: string | null
+        }
+        Update: {
+          at?: string
+          cost_usd?: number
+          id?: never
+          input_tokens?: number
+          latency_ms?: number | null
+          mock?: boolean
+          model?: string
+          output_tokens?: number
+          prompt_version?: string
+          purpose?: string
+          response_raw_object_id?: string | null
+          rubric_version?: string | null
+          run_id?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_calls_response_raw_object_id_fkey"
+            columns: ["response_raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_calls_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_calls_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          at: string
+          changes: Json
+          id: number
+          note: string | null
+          row_id: string
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          at?: string
+          changes?: Json
+          id?: never
+          note?: string | null
+          row_id: string
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          at?: string
+          changes?: Json
+          id?: never
+          note?: string | null
+          row_id?: string
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banners: {
         Row: {
           country: string | null
@@ -113,6 +230,7 @@ export type Database = {
       }
       brand_ownership: {
         Row: {
+          ai_call_id: number | null
           brand_id: string
           company_id: string
           confidence: number | null
@@ -136,6 +254,7 @@ export type Database = {
           valid_to: string | null
         }
         Insert: {
+          ai_call_id?: number | null
           brand_id: string
           company_id: string
           confidence?: number | null
@@ -159,6 +278,7 @@ export type Database = {
           valid_to?: string | null
         }
         Update: {
+          ai_call_id?: number | null
           brand_id?: string
           company_id?: string
           confidence?: number | null
@@ -182,6 +302,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "brand_ownership_ai_call_id_fkey"
+            columns: ["ai_call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_calls"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "brand_ownership_brand_id_fkey"
             columns: ["brand_id"]
@@ -419,6 +546,7 @@ export type Database = {
       }
       category_mappings: {
         Row: {
+          ai_call_id: number | null
           category_id: string
           confidence: number | null
           created_at: string
@@ -438,6 +566,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_call_id?: number | null
           category_id: string
           confidence?: number | null
           created_at?: string
@@ -457,6 +586,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_call_id?: number | null
           category_id?: string
           confidence?: number | null
           created_at?: string
@@ -476,6 +606,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "category_mappings_ai_call_id_fkey"
+            columns: ["ai_call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_calls"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "category_mappings_category_id_fkey"
             columns: ["category_id"]
@@ -669,6 +806,7 @@ export type Database = {
       }
       company_ownership: {
         Row: {
+          ai_call_id: number | null
           child_company_id: string
           confidence: number | null
           created_at: string
@@ -692,6 +830,7 @@ export type Database = {
           valid_to: string | null
         }
         Insert: {
+          ai_call_id?: number | null
           child_company_id: string
           confidence?: number | null
           created_at?: string
@@ -715,6 +854,7 @@ export type Database = {
           valid_to?: string | null
         }
         Update: {
+          ai_call_id?: number | null
           child_company_id?: string
           confidence?: number | null
           created_at?: string
@@ -738,6 +878,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "company_ownership_ai_call_id_fkey"
+            columns: ["ai_call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_calls"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "company_ownership_child_company_id_fkey"
             columns: ["child_company_id"]

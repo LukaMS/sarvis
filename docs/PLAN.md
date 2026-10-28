@@ -614,7 +614,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `current_prices` picks `sale` over `regular` and never `member`;
   - `anon` can't see an unmatched listing or a weekly point with `n_receipts = 1`.
 
-### [ ] P2.7 Schema: AI and audit
+### [x] P2.7 Schema: AI and audit
 - **Slice:** schema.
 - **Goal:** `ai_calls` and `audit_log` (§3.8). They come before scoring because `company_scores.ai_call_id` references `ai_calls`.
 - **Deps:** P2.1.
