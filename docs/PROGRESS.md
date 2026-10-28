@@ -4,6 +4,42 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P1.13 Phase 1 exit check
+
+**What changed**
+- `e2e/account-deletion.spec.ts`: added `test.slow()`. The test does six `networkidle` page loads, about 19 s on its own. With 4 workers the dev server queued them past the 30 s limit, and it failed 2 of 5 full runs. This is a Phase 1 test-stability gap, not a product bug.
+- CLAUDE.md Commands: the Install row now gives `npm ci` for a clean checkout and says to copy `.env.example` to `.env`. "Run a scraper on a sample" now reads "TBD (Phase 2)".
+
+**Exit checklist (commit `6301685` plus this fix)**
+- [x] **Clean checkout:** a fresh `git clone` from GitHub into the scratchpad, then `npm ci` (1 min). In the clone, `typecheck`, `lint` and `format:check` exit 0, and `npm test` passes 22. `npm run db:types` prints its steps. The `supabase-dev` `generate_typescript_types` output matches the committed `database.types.ts` (`profiles`, `admin_ping`, `delete_own_account`, PostgREST 14.18).
+- [x] **Commands needing `.env`:** web, e2e, test user and Android ran from the main checkout at the same commit. Reading or copying `.env` is blocked for the agent by a deny rule, so the clone had no `.env`.
+  - `npm run web`: started fresh on :8081, returns 200.
+  - `npm run e2e`: **26/26 passed on 3 runs in a row** (about 57 s each) after the fix.
+  - `npm run dev:test-user`: created `p113-exit@example.com`.
+  - Android: the "Metro already running" route from the table (`adb reverse` + `am start exp://127.0.0.1:8081/--/…`).
+- [x] **The app runs on web and Android; email sign-in works:**
+  - Web (Playwright MCP, 390 × 844): sign-in → Impact, no console errors or warnings (`.screenshots/p1.13-web-signed-in.png`).
+  - Android (Pixel_10_Pro): sign-in → Impact (`p1.13-android-signed-in.png`).
+- [x] **Android account deletion:**
+  - Settings → Delete my account shows "Delete your account?" with **Cancel / Continue** (`p1.13-android-delete-confirm1.png`). Cancel stays on Settings.
+  - Continue shows "This is permanent" with **Keep my account / Delete permanently** (`p1.13-android-delete-confirm2.png`). Keep stays on Settings.
+  - Confirming both shows "Deleting…" and lands on `/auth` (`p1.13-android-after-delete.png`).
+  - SQL on dev: 0 rows for that user id in both `auth.users` and `public.profiles`.
+- [x] **Non-admins can't open `/admin`:**
+  - Web, signed in as the non-admin: "Not authorised" (`p1.13-web-admin-denied.png`). The only console error is the expected 403 from `admin_ping`.
+  - `e2e/admin-gate.spec` (in the 26) covers signed-out, user and admin.
+- [x] **CI is green:** the latest run on `main` succeeded (P1.12: https://github.com/LukaMS/sarvis/actions/runs/40743405031). This commit's run is checked after the push.
+- [x] **Commands table:** filled in. The diff is the two rows above.
+
+**Things you should know**
+- The Metro server that was already running at the start stopped on its own partway through. I started a new one with `npm run web`, and it is still running.
+- On Android, one tap on Sign In while the keyboard was opening only closed the keyboard; the next tap signed in. `auth.tsx` already has `keyboardShouldPersistTaps="handled"`, the same as legacy, so this looks like a tap during the keyboard animation, not a bug. No task added.
+- The emulator is signed out (the throwaway user was deleted).
+
+**Next:** P1.15 Password reset (P1.14 stays skipped per D-015), then P1.16, then P2.0.
+
+---
+
 ## 2026-10-28 — P1.12 Web-only `/admin` route group gated by role
 
 **What changed**

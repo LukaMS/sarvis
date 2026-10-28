@@ -420,7 +420,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - **Android:** opening the `/admin` deep link lands on the tabs (mobile MCP screenshot).
   - The production web bundle check shows the admin code in a separate lazy chunk (`npx expo export -p web`, then list the chunks).
 
-### [ ] P1.13 Phase 1 exit check
+### [x] P1.13 Phase 1 exit check
 - **Slice:** release-check.
 - **Goal:** prove the Phase 1 exit criteria together on a clean checkout, and fix only gaps that come from Phase 1 tasks.
 - **Deps:** P1.4, P1.11, P1.12.

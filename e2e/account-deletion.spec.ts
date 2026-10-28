@@ -11,6 +11,8 @@ test.use({ storageState: { cookies: [], origins: [] } });
 test('Settings → Delete my account asks twice, deletes the user, and the login stops working', async ({
   page,
 }) => {
+  // Six networkidle page loads take ~20 s alone; under 4 workers the dev server queues them past 30 s.
+  test.slow();
   const consoleErrors = collectConsoleErrors(page);
   const failedRequests: string[] = [];
   page.on('response', (res) => {
