@@ -463,12 +463,12 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `app/src/app/_layout.tsx`, `docs/DECISIONS.md`.
 - **Verification:** Android, signed out, `/settings` and `/admin` deep links land on `/auth` with no LogBox warning, or a DECISIONS note explains why the warning is harmless. Signed-in deep links still work (mobile MCP screenshots).
 
-### [ ] P1.17 Owner: allow the `sarvis://` auth redirect in the dev project (added in P1.15)
+### [x] P1.17 Owner: allow the `sarvis://` auth redirect in the dev project (added in P1.15)
 - **Slice:** auth.
 - **Goal:** email links (reset, sign-up confirmation) opened from a dev or release build return to the app. Today `sarvis://` isn't in the dev project's allowed redirect URLs, so Supabase sends those links to the Site URL (`http://localhost:3000`). Expo Go (`exp://127.0.0.1:8081/--/`) and web (`http://localhost:8081/`) already work (D-028).
 - **Deps:** P1.15.
 - **Owner action (dashboard, no MCP tool for it):** Authentication → URL Configuration → Redirect URLs → add `sarvis://**`. Optionally set the Site URL to `http://localhost:8081`.
-- **Verification:** `npm run dev:recovery-link -- --email <dev user> --redirect sarvis://`, then follow the link with redirects off (`curl -sI`). The `Location` header starts with `sarvis://#access_token=`.
+- **Verification:** `npm run dev:recovery-link -- --email <dev user> --redirect sarvis://`, then GET the link with redirects off (`curl -s -o /dev/null -D -`). The `Location` header starts with `sarvis://#access_token=`.
 
 ### Phase 1 milestone coverage
 

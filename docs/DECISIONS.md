@@ -239,7 +239,7 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Tokens leave the address bar:** on web, `history.replaceState` drops the fragment once it's read.
 - **Shared field:** `components/ui/PasswordField.tsx` (input + show/hide toggle, `${testID}-toggle`) and `authInputStyle.ts` are used by `/auth` and `/reset-password`. testIDs are unchanged.
 - **Testing without email:** `npm run dev:recovery-link -- --email <e> [--redirect <url>]` (`scripts/dev-recovery-link.ts`, dev project only) prints the `generateLink` action link, which is the same URL the reset email contains. E2E uses `generateRecoveryLink` with `e2e-reset@example.com`.
-- **Redirect allow-list (dev project):** `http://localhost:8081/` and `exp://127.0.0.1:8081/--/` already pass. `sarvis://` does **not**: Supabase falls back to the Site URL, `http://localhost:3000`. The owner needs to add it in the dashboard (**P1.17**) before dev or release builds can use email links.
+- **Redirect allow-list (dev project):** `http://localhost:8081/` and `exp://127.0.0.1:8081/--/` already pass. `sarvis://` was added by the owner in **P1.17** (`sarvis://**`). Before that, Supabase fell back to the Site URL, `http://localhost:3000`.
 
 ## D-029 The guarded deep-link dev warning is expected — Accepted (P1.16)
 

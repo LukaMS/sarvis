@@ -4,6 +4,20 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P1.17 Allow the `sarvis://` auth redirect (owner)
+
+**What changed**
+- In the dev project's dashboard (Authentication → URL Configuration → Redirect URLs), the owner added `sarvis://**`.
+- PLAN ticked. D-028's allow-list note is updated.
+
+**Verification**
+- A temp dev user, then `npm run dev:recovery-link -- --redirect sarvis://`, then a GET on the link with redirects off: `303 See Other`, `Location: sarvis://#access_token=…&refresh_token=…&type=recovery`. In P1.15 the same check went to `http://localhost:3000#…`. The temp user was deleted.
+- `curl -sI` (a HEAD request) printed no `Location` header, so the check uses a GET (`curl -s -o /dev/null -D -`). The PLAN verification line is updated to match.
+
+**Next:** P2.0 Refine Phase 2 into session-sized tasks.
+
+---
+
 ## 2026-10-28 — P1.16 Signed-out deep link to a guarded route shows a dev warning
 
 **What changed**
