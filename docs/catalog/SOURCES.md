@@ -64,6 +64,8 @@ In **Key fields**, the fields marked **(key)** are the ones the P0.11 data model
 | S29 | KnowTheChain benchmarks | Ratings evidence | **manual only** (cite per company, D6) |
 | S30 | Ethical Consumer | Ratings evidence | **avoid** (paid; note only) |
 
+This table is mirrored in the `public.sources` table (one row per S-id, joined on `sources_md_id`; seed migration `20261028221731_seed_sources`, D-032). When a verdict or terms check changes here, change the table too, in a new migration.
+
 **What this means for the catalog:**
 - **Products and ownership are well covered** by open sources: S1, S5, S17, S19 and S20.
 - **Store prices are the gap.**

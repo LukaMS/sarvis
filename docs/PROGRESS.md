@@ -4,6 +4,33 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P2.2 Seed `sources` from SOURCES.md
+
+**What changed**
+- The data migration `20261028221731_seed_sources` is applied to dev. It upserts 35 rows on `key`:
+  - S1–S30, one row each. The 17 avoided sources are `enabled = false`. S24 is one umbrella row (`rss-publishers`), also disabled; each feed gets its own row later.
+  - the internal sources `manual`, `legacy-import`, `receipts`, `derived` and `fixture` (`access_method = internal`, verdict `use`).
+- Rows are only touched when a mirrored column differs, so re-running changes nothing.
+- `url_template` is set for S1, S2 (OFF product pages) and S17 (Wikidata entities). Rate limits use published limits where they're stricter than 1 req/s.
+- D-032 records the keys, the S24 umbrella row, the rate limits, and the internal-source and attribution notes. The `supabase/README.md` migration table and the SOURCES.md §1 mirror line are updated.
+- No schema change, so the types are unchanged.
+
+**Verification**
+- Count by verdict, S-id rows only: **use 10** (S1, S2, S5, S6, S17, S19, S20, S21, S23, S24), **manual_only 3** (S27–S29), **avoid 17**. Total 30, matching SOURCES.md §1. All of S1–S30 are present exactly once. Internal rows: 5. Enabled: 17 (0 avoided).
+- Re-ran the migration's SQL through `execute_sql`, with a before/after snapshot of `xmin` and `updated_at`: **35 rows before, 35 after, 0 changed**.
+- As `anon`:
+  - `source_attributions` returns 18 rows (10 use + 3 manual_only + 5 internal), 0 of them avoided;
+  - the base table returns 35 rows (public-read, D-031).
+  - Sample: `off` → ODbL 1.0, `https://opendatacommons.org/licenses/odbl/1-0/`, "Product data from Open Food Facts …"; `statcan-18100245` → "Source: Statistics Canada, Table 18-10-0245-01 …".
+- Advisors: no new findings (only the existing leaked-password-protection warning and the 4 INFO unused-index notices).
+- The P2.1 RLS script only counts `rls-test-%` keys, so the seeded rows don't affect it.
+
+**For you:** internal sources pass the `source_attributions` filter, so the About screen should list only rows with `attribution_text` (noted in D-032).
+
+**Next:** P2.3 Schema: matching and review.
+
+---
+
 ## 2026-10-28 — P2.1 Schema: pipeline bookkeeping, shared SQL helpers, `raw` bucket
 
 **What changed**

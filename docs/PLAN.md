@@ -540,7 +540,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - the slug check rejects `Bad Slug` and accepts `bens-original`;
   - `anon` can't list the `raw` bucket.
 
-### [ ] P2.2 Seed `sources` from SOURCES.md
+### [x] P2.2 Seed `sources` from SOURCES.md
 - **Slice:** sources-seed.
 - **Goal:** one `sources` row for each S-id in SOURCES.md, plus the internal sources, so every fact can point at a source and jobs can check the verdict.
 - **Deps:** P2.1.

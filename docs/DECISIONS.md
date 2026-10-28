@@ -270,3 +270,13 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
   - `access_method` adds `scrape` (avoided retailers) and `internal` (`manual`, `legacy-import`, `receipts`, `derived`, `fixture`).
 - **`raw_objects.run_id` is nullable.** Edge-function lookups and AI responses (D-009) store raw files outside a run. Deleting a run cascades to its events, failures and raw-object rows. Facts use `on delete set null` for `raw_object_id` (later domains).
 - **The `raw` bucket** is private, holds `application/gzip` only, and caps files at 50 MB (the free-tier per-file limit). It has one policy: admins can read. No client can write; the pipeline uses the service role.
+
+## D-032 Sources seed details — Accepted (P2.2)
+- **Keys:** `off` (S1), `off-api` (S2), `open-prices`, `statcan-18100245`, `wikidata`, `wikipedia`, `sec-edgar`, `corp-canada`, `gdelt`, and so on. Avoided sources get keys too (`loblaw-pc-express`, `costco-ca`, …). The full list is in the migration `20261028221731_seed_sources`.
+- **The upsert only touches rows that differ.** `on conflict (key) do update … where (columns) is distinct from (excluded columns)`, so a re-run changes 0 rows and leaves `updated_at` alone. The seed mirrors SOURCES.md, verdict and `enabled` included: change a verdict in SOURCES.md first, then in a new migration.
+- **S24 is one umbrella row** (`rss-publishers`, verdict `use`, `enabled = false`), so every S-id is present and the verdict counts match SOURCES.md §1. No job may run it. Each feed gets its own row with `sources_md_id = 'S24'` when its terms are checked (D-013 D4).
+- **`rate_limit_per_sec` takes the stricter of 1 req/s and the published limit:** S2 0.25 (15/min), S6 0.5 (`Crawl-delay: 2`), S21 0.05 (`Crawl-delay: 20`), S3 and S13 0.1. Daily caps (S22) aren't modelled; the source is avoided.
+- **`url_template`** is set for OFF product pages (S1, S2) and Wikidata entities (S17, `https://www.wikidata.org/wiki/{external_id}`). Others have no exact URL rule yet.
+- **`refresh_interval` is left null** until the Phase 6 freshness policy.
+- **Internal sources** (`manual`, `legacy-import`, `receipts`, `derived`, `fixture`) have `access_method = internal`, verdict `use` and no licence or attribution. They pass the `source_attributions` filter (verdict ≠ `avoid`), so the About screen should list only rows with `attribution_text`. `fixture` is enabled on dev; whether it exists on production is a release question.
+- **Manual-only sources (S27–S29) stay enabled.** The verdict alone blocks jobs, and admins cite them by hand.

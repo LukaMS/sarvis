@@ -33,3 +33,4 @@ Run `generate_typescript_types` on the `supabase-dev` MCP and save the output ve
 | 20261027205021 | delete_own_account | `private.delete_own_account()` (security definer) + `public.delete_own_account()` invoker wrapper for `rpc()` (P1.11) |
 | 20261028174807 | admin_ping | `public.admin_ping()`: `true` for admins, raises `42501` otherwise. The web `/admin` gate (P1.12) |
 | 20261028200133 | catalog_pipeline_bookkeeping | `pg_trgm`, `unaccent`, `normalize_match_text()`, the `slug` domain; `sources` (public read), `ingestion_runs`, `ingestion_run_events`, `raw_objects`, `validation_failures` (admin); `source_attributions` view; private `raw` bucket with admin read (P2.1) |
+| 20261028221731 | seed_sources | Data: `sources` rows for S1–S30 (avoided ones disabled; S24 as one disabled umbrella row) plus internal `manual`, `legacy-import`, `receipts`, `derived`, `fixture`. Re-runnable upsert on `key` that changes 0 rows on a second run (P2.2, D-032) |
