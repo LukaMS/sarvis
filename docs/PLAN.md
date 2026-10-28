@@ -582,7 +582,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `company_ultimate_parent` walks a three-level test chain;
   - `anon` doesn't see a `pending` ownership edge.
 
-### [ ] P2.5 Schema: products
+### [x] P2.5 Schema: products
 - **Slice:** schema.
 - **Goal:** the product tables (§3.3).
 - **Deps:** P2.4.
@@ -618,7 +618,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Slice:** schema.
 - **Goal:** `ai_calls` and `audit_log` (§3.8). They come before scoring because `company_scores.ai_call_id` references `ai_calls`.
 - **Deps:** P2.1.
-- **In:** both tables, admin RLS, and checks on `purpose` and `status`. Also add `ai_call_id bigint references ai_calls on delete set null` (indexed) to `company_ownership` and `brand_ownership`, which P2.4 shipped without it (D-034).
+- **In:** both tables, admin RLS, and checks on `purpose` and `status`. Also add `ai_call_id bigint references ai_calls on delete set null` (indexed) to `company_ownership` and `brand_ownership`, which P2.4 shipped without it (D-034), and to `category_mappings`, which P2.5 shipped without it (D-035).
 - **Out:** as in the schema-task rules.
 - **Files:** `supabase/migrations/*_catalog_ai_audit.sql`, `supabase/tests/ai_audit.sql`, `supabase/README.md`, types.
 - **Verification:** the schema-task rules.
@@ -666,6 +666,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `packages/core/src/records/**`, `packages/core/src/slug.ts`, `packages/core/src/gtin.ts`, `packages/core/src/runs.ts`, `packages/core/src/index.ts`, tests beside them, `packages/core/package.json`, `docs/DECISIONS.md`.
 - **Verification:**
   - Unit tests: slug examples from §1.3 ("Ben's Original" → `bens-original`, accents, `&`, 64-char cap); GTIN cases (UPC-A, EAN-13, EAN-8, a bad check digit, a 02 prefix, a PLU, and the 13 legacy barcodes from `docs/legacy/data/products.json`); one valid and one invalid sample per record schema.
+  - `normalizeGtin()` gives the same answers as the SQL `gtin_is_valid` / `gtin_normalize` / `gtin_is_restricted` vectors in `supabase/tests/products.sql` (added in P2.5).
   - `npm run typecheck`, `lint` and `test` pass.
   - Metro still bundles the app with zod in core: `npm run web` loads `/` with no console errors.
 

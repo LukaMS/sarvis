@@ -4,6 +4,45 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P2.5 Schema: products
+
+**What changed**
+- The migration `20261028230610_catalog_products` is applied to dev. It adds:
+  - the GTIN functions `gtin_is_valid()`, `gtin_normalize()` and `gtin_is_restricted()` (immutable, the SQL twin of P2.10);
+  - `categories` (path slugs and a parent-path trigger), `category_mappings` (`+review`, one row per source key), and `labels` (10 fixed rows, with the OFF tags checked against the OFF taxonomy);
+  - `products` (a GTIN-14 check, the `(source_id, external_id)` import key, and a trigram name index), `product_identifiers` (banner-scoped SKUs, unique nulls not distinct), and `product_sources` (admin only);
+  - the views `products_with_source_url` and `product_ownership_chain`, both `security_invoker`.
+- `supabase/tests/products.sql` holds the checks (rolled back), including the shared GTIN test vectors.
+- The README has the migration row. The types are regenerated, and the diff adds lines only.
+- D-035 records the design choices.
+
+**Verification**
+- RLS script: **49/49 ok**.
+  - GTIN vectors: 14 for `gtin_is_valid`, 6 for `gtin_normalize` and 7 for `gtin_is_restricted`, with 0 failures.
+  - Rejected with `23514`: a bad check digit, a restricted `020…` code, a 12-digit GTIN, a quantity without a unit, `ok` parse status without a quantity, `merged` without a target, a `store_sku` without a banner, a malformed PLU, a child category slug that doesn't extend its parent (and one that skips a level), a non-root category without a parent, an AI mapping without confidence, and `last_seen_at` before `fetched_at`.
+  - Rejected with `23505`: a duplicate `(source_id, external_id)`, a duplicate GTIN, a duplicate identifier with no banner, and a duplicate mapping key. `on conflict (source_id, external_id) do nothing` inserts 0 rows. The same SKU at a second banner is allowed.
+  - Labels: 10 rows, and no OFF tag is shared between labels.
+  - `products_with_source_url` rebuilds `https://world.openfoodfacts.org/product/0036000291452`, and a stored URL wins.
+  - `product_ownership_chain`: P → X → C, with ultimate parent A at depth 2 and path `{C,B,A}`. A product with no brand gets a row with null links.
+  - anon: sees 2 of 4 products (the active ones), the full chain, labels, categories and identifiers, and the approved mapping but not the pending one. Gets `42501` reading `product_sources` and inserting products.
+  - Non-admin user: sees 2 products, 0 `product_sources` rows and no pending mapping. Gets `42501` inserting a product or a label, and updates or deletes 0 rows.
+  - Admin: sees all 4 products and the `product_sources` rows, inserts a category and a `product_sources` row, approves a mapping, updates a product, and deletes an identifier.
+- Afterwards: 0 rows in the new tables (except the 10 labels) and 0 test users.
+- `relrowsecurity` is true on all 19 public tables.
+- Advisors:
+  - Security: only the existing leaked-password warning.
+  - Performance: only INFO "unused index" notices on the empty tables.
+- `npm run typecheck`, `lint` and `test` (27 tests) pass, and Prettier is clean.
+
+**Notes for you**
+- I added two plan lines. **P2.7** also adds `ai_call_id` to `category_mappings`. **P2.10** must pass the same GTIN vectors as `supabase/tests/products.sql`.
+- Anon sees only `active` products, as DATA_MODEL says, so a discontinued product disappears from the app. If you'd rather keep showing discontinued products, for example for old scans, that's a one-line policy change. Tell me.
+- The `labels` seed goes slightly beyond the three codes DATA_MODEL names: I added 7 more ethics labels (D-035).
+
+**Next:** P2.6 Schema: stores and prices.
+
+---
+
 ## 2026-10-28 — P2.4 Schema: ownership
 
 **What changed**
