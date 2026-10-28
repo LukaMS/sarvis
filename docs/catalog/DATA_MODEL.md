@@ -164,7 +164,7 @@ Each table lists its columns, its keys, and its **RLS** level. "+prov" means the
 
 ### 3.1 Pipeline bookkeeping
 
-**`sources`**: one row per source in SOURCES.md that we use, plus the internal sources `manual`, `legacy-import`, `receipts` and `derived`. RLS: **public** for `key`, `name`, `licence`, `attribution_text`, `homepage_url` (needed for the attribution UI); other columns **admin**, through a column-limited view.
+**`sources`**: one row per source in SOURCES.md that we use, plus the internal sources `manual`, `legacy-import`, `receipts` and `derived`. RLS: **public** read for every column, admin write (D-031: every column mirrors the public SOURCES.md, so no secrets go here). The `source_attributions` view gives the attribution UI its fields.
 
 | Column | Type | Notes |
 |---|---|---|

@@ -257,3 +257,16 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Tests that hit the dev DB run locally and are skipped in CI.** CI holds no secrets (D-019). The run-twice e2e test (P2.17) skips when `SUPABASE_DEV_SERVICE_ROLE_KEY` is unset. Each schema task saves its RLS checks as `supabase/tests/<domain>.sql`, run inside `begin … rollback`.
 - **No new tools for running TS:** the pipeline uses Node 22 `--experimental-strip-types`, as `scripts/` already does. New runtime dependencies so far are `zod` (core, P2.10) and `@supabase/supabase-js` (pipeline, P2.12). Each is recorded with its reason in its task.
 **Why:** each task stays one session, and every migration applies cleanly on top of the previous one.
+
+## D-031 Pipeline bookkeeping schema details — Accepted (P2.1)
+- **`sources` is public-read, every column.** DATA_MODEL §3.1 planned to show the public only the attribution columns, through a column-limited view, and keep the rest admin-only. Postgres column grants are per role, though, and admins share the `authenticated` role. A column-limited view that hides columns from non-admins would have to be a security-definer view, which the advisor flags as an error. Every column in `sources` mirrors the public SOURCES.md in a public repo, so nothing is lost by making it readable. The table comment forbids secrets and private notes. Writes stay admin-only. The `source_attributions` view (`security_invoker`) still gives the About screen the attribution fields, including `licence_url`, which ODbL attribution needs, and hides avoided sources.
+- **`normalize_match_text()`** is `immutable` and names the dictionary (`extensions.unaccent('extensions.unaccent'::regdictionary, …)`) so expression indexes can use it. `unaccent` also maps ’ to ', so "Ben’s" and "Ben's" match.
+- **`slug` is a domain** (`^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 64 characters), so every slug column shares one check. Source keys use it too.
+- **Checks beyond DATA_MODEL:**
+  - an `avoid` source can't be `enabled`;
+  - `rate_limit_per_sec` must be > 0 and ≤ 1 (the CLAUDE.md limit);
+  - a run has `finished_at` if and only if it isn't `running`;
+  - `sample_size` is set exactly for `sample` runs, and optionally for `dry_run`;
+  - `access_method` adds `scrape` (avoided retailers) and `internal` (`manual`, `legacy-import`, `receipts`, `derived`, `fixture`).
+- **`raw_objects.run_id` is nullable.** Edge-function lookups and AI responses (D-009) store raw files outside a run. Deleting a run cascades to its events, failures and raw-object rows. Facts use `on delete set null` for `raw_object_id` (later domains).
+- **The `raw` bucket** is private, holds `application/gzip` only, and caps files at 50 MB (the free-tier per-file limit). It has one policy: admins can read. No client can write; the pipeline uses the service role.

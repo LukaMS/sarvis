@@ -522,7 +522,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `npm run typecheck`, `lint` and `test` all pass.
 - **Out (all schema tasks):** data, except P2.2 and fixed lookup rows the domain itself needs; pipeline code.
 
-### [ ] P2.1 Schema: pipeline bookkeeping, shared SQL helpers, `raw` bucket
+### [x] P2.1 Schema: pipeline bookkeeping, shared SQL helpers, `raw` bucket
 - **Slice:** schema.
 - **Goal:** the tables every run writes to, plus the SQL helpers later domains need.
 - **Deps:** P1.13.
@@ -555,7 +555,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - A SQL count by verdict matches the SOURCES.md §1 summary table, with every S-id present.
   - Applying the migration's SQL a second time through `execute_sql` changes 0 rows.
-  - `anon` reads only `key`, `name`, `licence`, `attribution_text` and `homepage_url` through the public view.
+  - `anon` reads the attribution fields through `source_attributions`, which hides avoided sources (D-031: the base table is public-read).
 
 ### [ ] P2.3 Schema: matching and review
 - **Slice:** schema.

@@ -4,6 +4,50 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P2.1 Schema: pipeline bookkeeping, shared SQL helpers, `raw` bucket
+
+**What changed**
+- The migration `20261028200133_catalog_pipeline_bookkeeping` is applied to dev. It adds:
+  - the extensions `pg_trgm` and `unaccent`;
+  - `public.normalize_match_text()` and the `public.slug` domain;
+  - the tables `sources` (public read, admin write), plus `ingestion_runs`, `ingestion_run_events`, `raw_objects` and `validation_failures` (admin only);
+  - the view `source_attributions`;
+  - the private `raw` bucket (gzip only, 50 MB per file, admin read).
+- `supabase/tests/pipeline_bookkeeping.sql` holds the RLS and constraint checks (rolled back). `supabase/README.md` has a new Tests section and migration row.
+- The types are regenerated.
+- D-031: `sources` is public-read on every column, a change from DATA_MODEL §3.1, and the extra checks are listed. DATA_MODEL §3.1 and the P2.2 verification line are updated to match.
+
+**Verification**
+- RLS script: **27/27 ok**.
+  - Helpers:
+    - `normalize_match_text('  Ben’s  ÉPICERIE ')` returns `ben's epicerie` (`unaccent` maps ’ to ').
+    - The slug check rejects `Bad Slug` and 65 characters, and accepts `bens-original`.
+  - Constraints: an enabled `avoid` source, a rate above 1 req/s, and a `running` run with `finished_at` are all rejected (`23514`).
+  - anon:
+    - reads `sources` (2 rows); the attribution view hides the avoided one (1 row);
+    - can't insert into `sources`;
+    - is denied (`42501`) on all 4 bookkeeping tables;
+    - sees 0 objects in the `raw` bucket.
+  - Non-admin user:
+    - reads `sources`, but can't insert (`42501`) or update (0 rows);
+    - sees 0 bookkeeping rows and can't insert a run;
+    - sees 0 objects in `raw`.
+  - Admin:
+    - reads all 4 tables;
+    - updates a run and inserts an event;
+    - inserts, updates and deletes a source;
+    - sees the 1 test object in `raw`.
+- Afterwards: 0 sources, 0 runs, 0 test users and 0 objects in `raw`, so the rollback left nothing.
+- `relrowsecurity` is true on all 6 public tables.
+- Advisors:
+  - Security: no new findings. Only the existing Auth "leaked password protection" warning remains, which is a dashboard setting.
+  - Performance: 4 INFO "unused index" notices on the new empty tables, which is expected.
+- `npm run typecheck`, `lint` and `test` (27 tests) pass, and Prettier is clean.
+
+**Next:** P2.2 Seed `sources` from SOURCES.md.
+
+---
+
 ## 2026-10-28 — P2.0 Refine Phase 2 into session-sized tasks
 
 **What changed**
