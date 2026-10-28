@@ -31,6 +31,12 @@ export function passwordFor(user: { passwordEnv: string }): string {
   return password;
 }
 
+/** Reset by auth.spec's password-reset tests, which change its password through a recovery link. */
+export const RESET_USER = {
+  email: 'e2e-reset@example.com',
+  displayName: 'E2E Reset',
+} as const;
+
 /** Created fresh by account-deletion.spec, then deleted through the UI. */
 export const DELETE_USER = {
   email: 'e2e-delete@example.com',

@@ -1,7 +1,8 @@
 // Root stack (SPEC › Navigation map). Tab screens draw their own hero; detail and secondary screens get
 // the native header (THEME.md › Navigation chrome › Stack headers).
 // AuthGate (SPEC F1): Stack.Protected guards. Signed out, every app route sends you to /auth; signed
-// in, /auth sends you to the tabs. The dev-only routes stay outside both guards.
+// in, /auth sends you to the tabs. Signed in from a password-reset link, only /reset-password is open
+// (D-028). The dev-only routes stay outside every guard.
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -40,7 +41,7 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, recovering } = useAuth();
 
   // Guarding before the stored session is read would flash the sign-in screen at signed-in users.
   if (isLoading) {
@@ -63,7 +64,11 @@ function RootNavigator() {
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="auth" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn}>
+      {/* A password-reset link signs the user in; nothing else opens until the new password is saved. */}
+      <Stack.Protected guard={signedIn && recovering}>
+        <Stack.Screen name="reset-password" />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && !recovering}>
         <Stack.Screen name="(tabs)" />
         {/* Web-only admin portal; its own layout checks the role with the server (D-005). */}
         <Stack.Screen name="(admin)" />

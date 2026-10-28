@@ -30,8 +30,9 @@ export const supabase = createClient<Database>(url, anonKey, {
     storage: isWeb ? undefined : AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    // Only the web build receives auth redirects as URLs.
-    detectSessionInUrl: isWeb,
+    // AuthProvider reads auth email links itself on every platform, so it knows a link's type before
+    // the first route guard runs (D-028).
+    detectSessionInUrl: false,
   },
 });
 

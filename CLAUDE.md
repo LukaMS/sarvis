@@ -55,6 +55,7 @@ Fill these in during Phase 1 and keep them current.
 | Unit tests | `npm test` (Vitest, all workspaces) |
 | E2E (web) | `npm run e2e` (Playwright, Chromium, 390 × 844; starts Expo web on :8081 or reuses a running one). Needs `.env` with the dev service-role key: global setup creates the e2e test users (one admin) and signs one in. Runs 4 workers. After adding or removing a route file, restart Metro: a running server can 404 or show "Unmatched Route" for it. Report: `npx playwright show-report` |
 | Create a dev test user | `npm run dev:test-user -- --email <email> --password <8+ chars> [--name <name>] [--role user\|admin]` (confirmed user on the **dev** project only; idempotent; `--role admin` opens `/admin` on web) |
+| Password-reset link for a dev user | `npm run dev:recovery-link -- --email <email> [--redirect <url>]` (dev project only; prints the link the reset email would contain, no email sent; default redirect `http://localhost:8081/`, Expo Go: `exp://127.0.0.1:8081/--/`) |
 | Generate Supabase types | `supabase-dev` MCP `generate_typescript_types` → save verbatim to `packages/core/src/db/database.types.ts` (`npm run db:types` prints the steps; see `supabase/README.md`) |
 | Run a scraper on a sample | TBD (Phase 2) |
 

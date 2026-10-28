@@ -24,6 +24,18 @@ describe('toFriendlyError', () => {
     expect(e).toMatchObject({ kind: 'auth', title: 'Too many attempts', retryable: true });
   });
 
+  it('maps used or expired email links and a missing session', () => {
+    expect(toFriendlyError(new Error('Email link is invalid or has expired'))).toMatchObject({
+      kind: 'auth',
+      title: 'That link has expired',
+      retryable: false,
+    });
+    expect(toFriendlyError(new Error('Auth session missing!'))).toMatchObject({
+      kind: 'auth',
+      title: "You're signed out",
+    });
+  });
+
   it('maps RLS and not-found errors', () => {
     expect(toFriendlyError('new row violates row-level security policy').kind).toBe('permission');
     expect(toFriendlyError('no rows returned').kind).toBe('notFound');

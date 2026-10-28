@@ -446,7 +446,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `app/src/lib/auth/**`, `app/src/app/auth.tsx`, `e2e/auth.spec.ts`.
 - **Verification:** sign in with each chosen provider on web (Playwright, a manual login by the owner where needed) and Android (mobile MCP). The `profiles` row is created.
 
-### [ ] P1.15 Password reset: handle the recovery link (added in P1.10)
+### [x] P1.15 Password reset: handle the recovery link (added in P1.10)
 - **Slice:** auth.
 - **Goal:** "Forgot password?" on `/auth` sends Supabase's reset email (P1.10, matching legacy), but nothing handles the link yet. Legacy had the same gap: the link just signed the user in. Add a screen that lets them set a new password.
 - **Deps:** P1.10.
@@ -463,6 +463,13 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `app/src/app/_layout.tsx`, `docs/DECISIONS.md`.
 - **Verification:** Android, signed out, `/settings` and `/admin` deep links land on `/auth` with no LogBox warning, or a DECISIONS note explains why the warning is harmless. Signed-in deep links still work (mobile MCP screenshots).
 
+### [ ] P1.17 Owner: allow the `sarvis://` auth redirect in the dev project (added in P1.15)
+- **Slice:** auth.
+- **Goal:** email links (reset, sign-up confirmation) opened from a dev or release build return to the app. Today `sarvis://` isn't in the dev project's allowed redirect URLs, so Supabase sends those links to the Site URL (`http://localhost:3000`). Expo Go (`exp://127.0.0.1:8081/--/`) and web (`http://localhost:8081/`) already work (D-028).
+- **Deps:** P1.15.
+- **Owner action (dashboard, no MCP tool for it):** Authentication → URL Configuration → Redirect URLs → add `sarvis://**`. Optionally set the Site URL to `http://localhost:8081`.
+- **Verification:** `npm run dev:recovery-link -- --email <dev user> --redirect sarvis://`, then follow the link with redirects off (`curl -sI`). The `Location` header starts with `sarvis://#access_token=`.
+
 ### Phase 1 milestone coverage
 
 | Milestone | Tasks |
@@ -470,7 +477,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M1 Repo scaffold | P1.1 (workspaces, strict TS, ESLint, Prettier, Vitest, `.env.example`), P1.2 (Expo SDK 54 + Router), P1.3 (Playwright e2e) |
 | M2 CI workflow | P1.4 |
 | M3 Supabase wiring | P1.5 (migrations, type-gen, `profiles.role`, `is_admin()`, RLS, no service key in clients); client side in P1.10 |
-| M4 Auth | P1.10 (email), P1.11 (account deletion RPC), P1.14 (other providers, skipped per D-015) |
+| M4 Auth | P1.10 (email), P1.11 (account deletion RPC), P1.14 (other providers, skipped per D-015), P1.15 (password reset), P1.17 (`sarvis://` redirect, owner) |
 | M5 Theme and UI primitives | P1.6 (tokens, font default), P1.7 (rating primitives + gallery), P1.8 (buttons, chips, cards, states) |
 | M6 App shell | P1.9 (tabs and stack placeholders), P1.12 (web-only `/admin` gate) |
 | Exit criteria | P1.13 |

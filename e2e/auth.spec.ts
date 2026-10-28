@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { randomBytes } from 'node:crypto';
 
+import { ensureTestUser } from '../scripts/dev-create-test-user';
+import { generateRecoveryLink } from '../scripts/dev-recovery-link';
 import { collectConsoleErrors, signIn, tap } from './helpers';
-import { AUTH_USER, passwordFor } from './users';
+import { AUTH_USER, RESET_USER, passwordFor } from './users';
 
 // Start signed out, unlike the other specs.
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -104,4 +107,98 @@ test('the sign-up form validates its fields', async ({ page }) => {
   await expect(page.getByTestId('auth-subtitle')).toHaveText('Welcome back');
 
   expect(consoleErrors).toEqual([]);
+});
+
+test.describe('password reset', () => {
+  // Both tests change RESET_USER's password, so they run one after the other.
+  test.describe.configure({ mode: 'serial' });
+
+  test('a reset link opens Set a new password; the new password works and the old one does not', async ({
+    page,
+  }) => {
+    test.slow(); // Several full page loads through the single-threaded dev server.
+    const consoleErrors = collectConsoleErrors(page);
+    const oldPassword = randomBytes(18).toString('base64url');
+    const newPassword = randomBytes(18).toString('base64url');
+    await ensureTestUser({
+      email: RESET_USER.email,
+      password: oldPassword,
+      displayName: RESET_USER.displayName,
+    });
+
+    // The link Supabase emails: verify on the auth server, then back to the app with the session.
+    await page.goto(await generateRecoveryLink(RESET_USER.email), { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('screen-reset-password')).toBeVisible();
+    await expect(page.getByTestId('reset-password-title')).toHaveText('Set a new password');
+    await expect(page.getByTestId('screen-reset-password')).toContainText(RESET_USER.email);
+    // The tokens don't stay in the address bar.
+    expect(page.url()).not.toContain('access_token');
+
+    // While recovering, the rest of the app stays shut.
+    await page.goto('/settings', { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('screen-reset-password')).toBeVisible();
+    await expect(page.getByTestId('screen-settings')).toHaveCount(0);
+
+    await page.getByTestId('reset-password-input').fill('short');
+    await tap(page.getByTestId('reset-password-submit'));
+    await expect(page.getByTestId('reset-password-error')).toHaveText(
+      'Your password needs at least 8 characters.',
+    );
+
+    const alerts: string[] = [];
+    page.on('dialog', async (dialog) => {
+      alerts.push(dialog.message());
+      await dialog.accept();
+    });
+    await page.getByTestId('reset-password-input').fill(newPassword);
+    await tap(page.getByTestId('reset-password-submit'));
+    await expect(page.getByTestId('screen-impact')).toBeVisible();
+    expect(alerts).toEqual(['Password updated\n\nUse your new password next time you sign in.']);
+
+    // Sign out, then only the new password signs in.
+    await tap(page.getByTestId('screen-impact-profile'));
+    await tap(page.getByTestId('profile-sign-out'));
+    await expect(page.getByTestId('screen-auth')).toBeVisible();
+    await signIn(page, RESET_USER.email, oldPassword);
+    await expect(page.getByTestId('auth-error')).toContainText('Incorrect email or password.');
+    await signIn(page, RESET_USER.email, newPassword);
+    await expect(page.getByTestId('screen-impact')).toBeVisible();
+
+    // The only failure is the old password's 400 from the token endpoint.
+    expect(consoleErrors.filter((e) => !e.includes('status of 400'))).toEqual([]);
+  });
+
+  test('a used reset link shows the expired-link error on /auth, and Cancel signs out', async ({
+    page,
+  }) => {
+    test.slow();
+    const consoleErrors = collectConsoleErrors(page);
+    await ensureTestUser({
+      email: RESET_USER.email,
+      password: randomBytes(18).toString('base64url'),
+      displayName: RESET_USER.displayName,
+    });
+
+    const link = await generateRecoveryLink(RESET_USER.email);
+    await page.goto(link, { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('screen-reset-password')).toBeVisible();
+
+    // Cancel ends the recovery session without changing the password.
+    await tap(page.getByTestId('reset-password-cancel'));
+    await expect(page.getByTestId('screen-auth')).toBeVisible();
+
+    // Links work once.
+    await page.goto(link, { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('screen-auth')).toBeVisible();
+    await expect(page.getByTestId('auth-error')).toHaveText(
+      'That link has expired. Email links work once and expire after an hour. Request a new one below.',
+    );
+    expect(page.url()).not.toContain('error_description');
+
+    // Typing clears it, like any other error.
+    await page.getByTestId('auth-email').fill(RESET_USER.email);
+    await expect(page.getByTestId('auth-error')).toHaveCount(0);
+
+    expect(consoleErrors).toEqual([]);
+  });
 });

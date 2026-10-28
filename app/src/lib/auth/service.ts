@@ -2,6 +2,7 @@
 import * as Linking from 'expo-linking';
 
 import { supabase } from '../supabase';
+import { parseAuthRedirect } from './redirect';
 
 export const PASSWORD_MIN_LENGTH = 8;
 
@@ -56,6 +57,28 @@ export async function resetPassword(email: string): Promise<void> {
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: redirectUrl(),
   });
+  if (error) throw error;
+}
+
+/**
+ * Signs in from an auth email link (D-028). Returns the link's type ('recovery', 'signup', …), or null
+ * when `url` isn't an auth link. Throws when Supabase refused the link (used or expired).
+ */
+export async function completeAuthRedirect(url: string | null | undefined): Promise<string | null> {
+  const redirect = parseAuthRedirect(url);
+  if (!redirect) return null;
+  if (redirect.errorDescription) throw new Error(redirect.errorDescription);
+  const { error } = await supabase.auth.setSession({
+    access_token: redirect.accessToken ?? '',
+    refresh_token: redirect.refreshToken ?? '',
+  });
+  if (error) throw error;
+  return redirect.type ?? 'unknown';
+}
+
+/** Sets the signed-in user's password. The recovery link's session is enough; no old password. */
+export async function updatePassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password });
   if (error) throw error;
 }
 

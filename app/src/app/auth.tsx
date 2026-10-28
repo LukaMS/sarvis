@@ -16,6 +16,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../components/ui/Button';
+import { PasswordField } from '../components/ui/PasswordField';
+import { authInputStyle } from '../components/ui/authInputStyle';
+import { useAuth } from '../lib/auth/AuthProvider';
 import {
   PASSWORD_MIN_LENGTH,
   isValidEmail,
@@ -25,7 +28,7 @@ import {
   signUpWithEmail,
 } from '../lib/auth/service';
 import { toUserMessage } from '../lib/errors';
-import { FontWeight, M3Colors, Radius, Spacing, Typography } from '../theme';
+import { FontWeight, M3Colors, Spacing, Typography } from '../theme';
 
 type Mode = 'sign-in' | 'sign-up';
 
@@ -37,9 +40,11 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // A used or expired email link lands here with its error (D-028) until something else replaces it.
+  const { linkError, clearLinkError } = useAuth();
+  const [ownError, setError] = useState<string | null>(null);
+  const error = ownError ?? linkError;
   const [info, setInfo] = useState<string | null>(null);
   /** The address a sign-up is waiting on, when Supabase withheld the session until it's confirmed. */
   const [awaitingConfirmation, setAwaitingConfirmation] = useState<string | null>(null);
@@ -49,11 +54,13 @@ export default function AuthScreen() {
   function clearMessages() {
     setError(null);
     setInfo(null);
+    clearLinkError();
   }
 
   function showError(message: string) {
     setError(message);
     setInfo(null);
+    clearLinkError();
   }
 
   function switchMode() {
@@ -268,42 +275,18 @@ export default function AuthScreen() {
           testID="auth-email"
         />
 
-        <View style={styles.passwordRow}>
-          <TextInput
-            ref={passwordRef}
-            style={[styles.input, styles.passwordInput]}
-            placeholder="Password"
-            placeholderTextColor={M3Colors.outline}
-            value={password}
-            onChangeText={(t) => {
-              setPassword(t);
-              clearMessages();
-            }}
-            secureTextEntry={!showPassword}
-            autoCapitalize="none"
-            autoCorrect={false}
-            textContentType={signingUp ? 'newPassword' : 'password'}
-            autoComplete={signingUp ? 'new-password' : 'current-password'}
-            accessibilityLabel="Password"
-            returnKeyType="go"
-            onSubmitEditing={handleSubmit}
-            testID="auth-password"
-          />
-          <Pressable
-            style={styles.passwordToggle}
-            onPress={() => setShowPassword((v) => !v)}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-            testID="auth-password-toggle"
-          >
-            <Ionicons
-              name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-              size={20}
-              color={M3Colors.onSurfaceVariant}
-            />
-          </Pressable>
-        </View>
+        <PasswordField
+          ref={passwordRef}
+          purpose={signingUp ? 'new' : 'current'}
+          value={password}
+          onChangeText={(t) => {
+            setPassword(t);
+            clearMessages();
+          }}
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
+          testID="auth-password"
+        />
 
         {signingUp ? (
           <Text style={styles.hint} testID="auth-hint">
@@ -396,26 +379,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
   },
-  input: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: M3Colors.outlineVariant,
-    borderRadius: Radius.lg,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: M3Colors.onSurface,
-    backgroundColor: M3Colors.surfaceContainerLow,
-  },
-  passwordRow: { justifyContent: 'center' },
-  passwordInput: { paddingRight: 48 },
-  passwordToggle: {
-    position: 'absolute',
-    right: 8,
-    height: 44,
-    width: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  input: authInputStyle,
   hint: {
     fontSize: 12,
     color: M3Colors.outline,

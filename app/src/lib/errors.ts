@@ -105,6 +105,22 @@ const AUTH_MESSAGES: { match: string; result: Omit<FriendlyError, 'kind'> }[] = 
     },
   },
   {
+    match: 'email link is invalid or has expired',
+    result: {
+      title: 'That link has expired',
+      message: 'Email links work once and expire after an hour. Request a new one below.',
+      retryable: false,
+    },
+  },
+  {
+    match: 'auth session missing',
+    result: {
+      title: "You're signed out",
+      message: 'Open the link from your email again, or request a new one.',
+      retryable: false,
+    },
+  },
+  {
     match: 'not authenticated',
     result: {
       title: "You're signed out",

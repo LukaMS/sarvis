@@ -22,6 +22,7 @@
     "e2e": "playwright test",
     "db:types": "node scripts/db-types.mjs",
     "dev:test-user": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=.env scripts/dev-create-test-user.ts",
+    "dev:recovery-link": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=.env scripts/dev-recovery-link.ts",
     "clean": "rimraf --glob \"**/node_modules\" \"**/dist\" \"**/coverage\" \"**/*.tsbuildinfo\""
   },
   "devDependencies": {

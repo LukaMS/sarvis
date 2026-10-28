@@ -4,6 +4,49 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P1.15 Password reset: handle the recovery link
+
+**What changed**
+- **Auth links read by the app (D-028):**
+  - `lib/auth/redirect.ts`: `parseAuthRedirect`, with unit tests.
+  - `service.ts`: `completeAuthRedirect` (calls `setSession` from the link) and `updatePassword`.
+  - `supabase.ts`: `detectSessionInUrl: false`.
+  - `AuthProvider`: reads the opening URL (web: page URL; native: `getInitialURL` plus `url` events) before guards run, and exposes `recovering`, `finishRecovery`, `linkError` and `clearLinkError`. The recovering user id is kept in AsyncStorage so a reload stays on the reset screen. On web, tokens are removed from the address bar.
+- **Root layout:** a third guard. While `signedIn && recovering`, only `reset-password` is open; the app routes need `signedIn && !recovering`.
+- **`/reset-password`:**
+  - "Set a new password" for `<email>`, a new-password field (≥ 8 characters), Save, and "Cancel and sign out". testIDs: `screen-reset-password`, `reset-password-input` and `-input-toggle`, `-submit`, `-error`, `-cancel`.
+  - Saving shows a "Password updated" alert and opens the app.
+- **`/auth`:** shows link errors (used or expired) with the new copy "That link has expired. Email links work once and expire after an hour. Request a new one below."
+- **`errors.ts`:** new mappings for "email link is invalid or has expired" and "auth session missing".
+- **Shared field:** `components/ui/PasswordField.tsx` and `authInputStyle.ts` are used by both auth screens. The `/auth` testIDs are unchanged.
+- **Dev script:** `npm run dev:recovery-link` (`scripts/dev-recovery-link.ts`, dev project only) prints a recovery link without sending email. `e2e/tsconfig.json` gained `allowImportingTsExtensions`, because Node's type stripping needs `.ts` import paths.
+- **E2E:** `auth.spec` has a new "password reset" describe with `RESET_USER` (`e2e-reset@example.com`).
+- **Docs:** D-028 added, a Commands row added, and new owner task **P1.17** (the `sarvis://` redirect).
+
+**Verification**
+- **Redirect probe (dev, generateLink then verify with redirects off):**
+  - `http://localhost:8081/` → `303 http://localhost:8081/#access_token=…&type=recovery`;
+  - `exp://127.0.0.1:8081/--/` → same, with the `exp://` URL;
+  - `sarvis://` → falls back to `http://localhost:3000#…`. Not allowed yet (P1.17).
+- **Unit tests:** `npm test` passes 27 (4 new parser tests and 1 new error-mapping test). typecheck, lint and format:check are clean.
+- **`npm run e2e`:** 28/28 passed (43.7 s), including the 2 new tests:
+  - **Reset link:** opens Set a new password with the email shown and no `access_token` left in the URL. A fresh page load of `/settings` stays on the reset screen. Too short → "Your password needs at least 8 characters." Saving shows the alert, then Impact. After sign-out, the old password fails ("Incorrect email or password.") and the new one signs in.
+  - **Cancel and reuse:** Cancel signs out to `/auth`. Reopening the same link shows the expired-link error, and the URL is cleaned. Typing clears the error. No unexpected console errors.
+- **Web (Playwright MCP):** the link from `npm run dev:recovery-link` opened `/reset-password` (`.screenshots/p1.15-web-reset.png`), with no console errors or warnings.
+- **Android (Pixel_10_Pro, Expo Go):** the link from `npm run dev:recovery-link -- --redirect exp://127.0.0.1:8081/--/` opened in **Chrome** (as tapping it in an email would), went through Supabase, and landed on Set a new password (`p1.15-android-reset.png`). Saving `New-pass-115` showed "Password updated", then Impact. I signed out and signed in with the new password, which reached Impact (`p1.15-android-new-password-signed-in.png`).
+- The throwaway users (`p115-manual`, `p115-probe`) were deleted from dev. The emulator is signed out.
+
+**Things you should know**
+- **Owner action, P1.17:** add `sarvis://**` under Supabase → Authentication → URL Configuration → Redirect URLs (dev project). Until then, email links opened from a dev or release build go to `localhost:3000`. Expo Go and web are fine.
+- **P1.16's LogBox warning** ("The 'state' or 'screen' passed in the params couldn't be applied…") also shows when a recovery link opens the app on Android. The flow still works.
+- **Stale hot reload:** an Expo Go app left open from earlier showed "Property 'PasswordField' doesn't exist" after the `auth.tsx` edit. A fresh load was fine. If you see this, reload the app.
+- **Chrome on the emulator:** its first-run screen intercepted the first link; I chose "Use without an account".
+- **Metro:** the one started in P1.13 is still the server on :8081. Only its npm wrapper was killed, so `npm run web` reports the port as in use.
+
+**Next:** P1.16 signed-out deep-link warning (P1.17 is an owner task, then P2.0).
+
+---
+
 ## 2026-10-28 — P1.13 Phase 1 exit check
 
 **What changed**
@@ -32,7 +75,7 @@ Newest entry first.
 - [x] **Commands table:** filled in. The diff is the two rows above.
 
 **Things you should know**
-- The Metro server that was already running at the start stopped on its own partway through. I started a new one with `npm run web`, and it is still running.
+- The Metro server that was already running at the start stopped on its own partway through. I started a new one with `npm run web`. Later, Claude Code stopped its npm wrapper while memory was low; the Metro process itself kept running (see P1.15).
 - On Android, one tap on Sign In while the keyboard was opening only closed the keyboard; the next tap signed in. `auth.tsx` already has `keyboardShouldPersistTaps="handled"`, the same as legacy, so this looks like a tap during the keyboard animation, not a bug. No task added.
 - The emulator is signed out (the throwaway user was deleted).
 
