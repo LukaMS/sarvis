@@ -482,25 +482,397 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M6 App shell | P1.9 (tabs and stack placeholders), P1.12 (web-only `/admin` gate) |
 | Exit criteria | P1.13 |
 
-## Phase 2 — Catalog core: schema and ingestion framework (outline)
+## Phase 2 — Catalog core: schema and ingestion framework (full detail)
 
-**Exit:** a fixture source goes raw → stored → parsed → validated → upserted. Running it twice creates no duplicates, and every row carries provenance.
+**Exit:**
+- A fixture source goes raw → stored → parsed → validated → upserted.
+- Running it twice creates no duplicates, and every row carries provenance.
 
-- [ ] **P2.0 Refine Phase 2 into session-sized tasks.** Deps: Phase 1.
-- **Milestones:**
-  - Catalog schema migrations from `docs/catalog/DATA_MODEL.md` §3, one domain per task: pipeline bookkeeping, ownership, products, stores and prices, matching and review, scoring and evidence, editorial, AI and audit. Types regenerated each time. Seed `sources` from SOURCES.md (verdicts included; jobs refuse non-`use` sources).
-  - `packages/core`: pure TS zod schemas for every ingestible record, plus the validation library (required fields, price sanity, size/unit normalization hooks, duplicate detection).
-  - `pipeline` package:
-    - a polite HTTP client (robots.txt check, ~1 req/s/host, exponential backoff, on-disk cache);
-    - a raw store (gzip → Supabase Storage, retention per D-010);
-    - `ingestion_runs` bookkeeping;
-    - idempotent upsert helpers keyed on GTIN/SKU/slug;
-    - a CLI: `pipeline run <source> --sample N [--dry-run]`;
-    - port the Keep/Adapt modules listed in `docs/legacy/CATALOG_REVIEW.md` §4 (errors, retry, logger, env, safeguards, change detection, run driver) instead of rewriting them;
-    - every run records expected vs fetched totals (review lesson 3).
-  - Re-import the legacy content (P0.2 JSON) with `legacy-import` provenance, using the mapping in DATA_MODEL §8. All legacy facts arrive as `pending` review.
-  - Pipeline unit tests on fixtures, plus an end-to-end run-twice idempotency test of the driver against the dev DB (review lesson 6).
-  - The dev DB size is checked after the seed against `docs/catalog/BUDGET.md` §3 (`pg_total_relation_size` per table).
+- [x] **P2.0 Refine Phase 2** → done 2026-10-28 (this section; D-030).
+
+**Milestones** (each one maps to tasks in the coverage table at the end of this phase):
+- **M1 Schema:** catalog migrations from `docs/catalog/DATA_MODEL.md` §3, one domain per task, with types regenerated each time.
+- **M2 Sources seed:** `sources` seeded from SOURCES.md, verdicts included. Jobs refuse sources that aren't `use`.
+- **M3 Core records and validation:** pure TS zod schemas for every ingestible record in `packages/core`, plus the validation library: required fields, price sanity, size/unit normalization hooks, duplicate detection.
+- **M4 Pipeline framework:**
+  - a polite HTTP client (robots.txt, ~1 req/s/host, backoff, on-disk cache);
+  - a raw store (gzip → Storage, retention per D-010);
+  - `ingestion_runs` bookkeeping, recording expected vs fetched totals;
+  - idempotent upsert helpers;
+  - the CLI `pipeline run <source> --sample N [--dry-run]`;
+  - the Keep/Adapt modules from `docs/legacy/CATALOG_REVIEW.md` §4, ported rather than rewritten.
+- **M5 Legacy re-import:** P0.2 JSON → new tables with `legacy-import` provenance (DATA_MODEL §8). Everything arrives `pending`.
+- **M6 Tests:** pipeline unit tests on fixtures, and an end-to-end run-twice idempotency test against the dev DB.
+- **M7 Budget check:** dev DB size after the seed, measured against `docs/catalog/BUDGET.md` §3.
+
+**Feature slices** (each task touches exactly one): `schema`, `sources-seed`, `core-records`, `core-validation`, `pipeline-runtime`, `pipeline-http`, `pipeline-raw`, `pipeline-runs`, `pipeline-db`, `pipeline-cli`, `legacy-import`, `release-check`.
+
+**Rules for every `schema` task (P2.1, P2.3–P2.9):**
+- One migration file per domain, applied with `supabase-dev` `apply_migration`, then renamed to the recorded version and listed in `supabase/README.md`.
+- Columns, keys and RLS level exactly as in DATA_MODEL §3, with explicit per-role grants and then RLS (D-020 pattern). `+prov` and `+review` columns as in §1.2 and §1.5. `updated_at` uses the existing `private.set_updated_at()`.
+- Types regenerated into `packages/core/src/db/database.types.ts`.
+- An RLS check script, `supabase/tests/<domain>.sql`, runs inside `begin … rollback` through `execute_sql`. It switches role with `set local role` and `request.jwt.claims` and asserts:
+  - `anon` sees only public rows (`approved` or active where the table has a status) and can't write;
+  - `authenticated` non-admins can't read admin tables;
+  - an admin can read and write.
+- **Verification (all schema tasks):**
+  - The RLS script passes, and its output is pasted into PROGRESS.
+  - `get_advisors` (security and performance) shows no new warnings.
+  - A query on `pg_class.relrowsecurity` shows RLS on every new table.
+  - `npm run typecheck`, `lint` and `test` all pass.
+- **Out (all schema tasks):** data, except P2.2 and fixed lookup rows the domain itself needs; pipeline code.
+
+### [ ] P2.1 Schema: pipeline bookkeeping, shared SQL helpers, `raw` bucket
+- **Slice:** schema.
+- **Goal:** the tables every run writes to, plus the SQL helpers later domains need.
+- **Deps:** P1.13.
+- **In:**
+  - Extensions `pg_trgm` and `unaccent`, in the `extensions` schema.
+  - `public.normalize_match_text(text)`: immutable, wrapping `unaccent`, lower-casing and collapsing spaces. Used by later trigram expression indexes.
+  - A slug check domain or constraint with the §1.3 pattern.
+  - Tables `sources`, `ingestion_runs`, `ingestion_run_events`, `raw_objects`, `validation_failures` (§3.1).
+  - The public column-limited view over `sources` (§3.1 RLS).
+  - The private Storage bucket `raw`: admin read, no client write. The pipeline writes with the service role.
+- **Out:** as in the schema-task rules.
+- **Files:** `supabase/migrations/*_catalog_pipeline_bookkeeping.sql`, `supabase/tests/pipeline_bookkeeping.sql`, `supabase/README.md`, `packages/core/src/db/database.types.ts`.
+- **Verification:** the schema-task rules above. Also:
+  - `normalize_match_text('Ben’s  ÉPICERIE')` returns `ben’s epicerie` or the documented equivalent;
+  - the slug check rejects `Bad Slug` and accepts `bens-original`;
+  - `anon` can't list the `raw` bucket.
+
+### [ ] P2.2 Seed `sources` from SOURCES.md
+- **Slice:** sources-seed.
+- **Goal:** one `sources` row for each S-id in SOURCES.md, plus the internal sources, so every fact can point at a source and jobs can check the verdict.
+- **Deps:** P2.1.
+- **In:**
+  - A data migration that upserts on `key` (re-runnable).
+  - S1–S30 with `sources_md_id`, name, homepage, licence, licence URL, attribution text, access method, terms URL, `terms_checked_at`, `verdict` (`use` / `manual_only` / `avoid`), `url_template` where one exists (S1 OFF product pages), and `rate_limit_per_sec` (≤ 1).
+  - Avoided sources are seeded with `enabled = false`, so a later approval is a one-row change.
+  - Internal sources: `manual`, `legacy-import`, `receipts`, `derived`, and `fixture` (test-only, `use`).
+  - S24 RSS feeds are **not** seeded one per feed here. Each feed is added, with its terms checked, when Phase 3 or 7 adds it (D-013 D4).
+- **Out:** the pipeline-side verdict check (P2.15).
+- **Files:** `supabase/migrations/*_seed_sources.sql`, `supabase/README.md`, `docs/catalog/SOURCES.md` (a line saying the table is mirrored in `sources`).
+- **Verification:**
+  - A SQL count by verdict matches the SOURCES.md §1 summary table, with every S-id present.
+  - Applying the migration's SQL a second time through `execute_sql` changes 0 rows.
+  - `anon` reads only `key`, `name`, `licence`, `attribution_text` and `homepage_url` through the public view.
+
+### [ ] P2.3 Schema: matching and review
+- **Slice:** schema.
+- **Goal:** `match_candidates` and `review_queue` (§3.5). They come before ownership because `brand_ownership.match_candidate_id` references them.
+- **Deps:** P2.1.
+- **In:** both tables with keys, checks and admin RLS. The `+review` column convention (`review_status`, `reviewed_by`, `reviewed_at`, `decision_method`) is written as a reusable SQL snippet in the README, so later domains copy it exactly.
+- **Out:** as in the schema-task rules.
+- **Files:** `supabase/migrations/*_catalog_matching_review.sql`, `supabase/tests/matching_review.sql`, `supabase/README.md`, types.
+- **Verification:** the schema-task rules. Also, a duplicate `(kind, subject_id, candidate_id, match_method_version)` insert fails.
+
+### [ ] P2.4 Schema: ownership (companies, brands, ownership edges, banners)
+- **Slice:** schema.
+- **Goal:** the ownership chain tables (§3.2), plus `banners` (§3.4). `banners` is moved here because `product_identifiers.banner_id` (P2.5) references it, and a banner is an operating-company link (D-030).
+- **Deps:** P2.3.
+- **In:**
+  - `companies`, `brands`, `company_ownership` (with a cycle-rejecting trigger), `brand_ownership` (with a partial unique index allowing one current approved owner per brand), and `banners`.
+  - Trigram indexes on `normalize_match_text(name)`.
+  - Views `brand_current_owner` and `company_ultimate_parent` (§4), both `security_invoker`.
+- **Out:** as in the schema-task rules.
+- **Files:** `supabase/migrations/*_catalog_ownership.sql`, `supabase/tests/ownership.sql`, `supabase/README.md`, types.
+- **Verification:** the schema-task rules. Also:
+  - an edge A→B followed by B→A is rejected;
+  - a second current approved owner for a brand is rejected;
+  - `company_ultimate_parent` walks a three-level test chain;
+  - `anon` doesn't see a `pending` ownership edge.
+
+### [ ] P2.5 Schema: products
+- **Slice:** schema.
+- **Goal:** the product tables (§3.3).
+- **Deps:** P2.4.
+- **In:**
+  - Tables `categories`, `category_mappings`, `labels` (with a small fixed seed: organic, fair-trade, rspo and the codes listed in §3.3), `products`, `product_identifiers`, `product_sources`.
+  - An immutable SQL GTIN check-digit function for the `products.gtin` check (the DATA_MODEL §1.4 rule; P2.10 writes the TS twin, and both use the same test vectors).
+  - Trigram index on the product name.
+  - Views `products_with_source_url` and `product_ownership_chain` (§4).
+- **Out:** as in the schema-task rules.
+- **Files:** `supabase/migrations/*_catalog_products.sql`, `supabase/tests/products.sql`, `supabase/README.md`, types.
+- **Verification:** the schema-task rules. Also:
+  - a bad check digit is rejected;
+  - a duplicate `(source_id, external_id)` is rejected;
+  - `products_with_source_url` rebuilds an OFF URL from `url_template`;
+  - `product_ownership_chain` returns product → brand → company → parent for a test chain.
+
+### [ ] P2.6 Schema: stores and prices
+- **Slice:** schema.
+- **Goal:** the store and price tables (§3.4, except `banners`, which moved to P2.4).
+- **Deps:** P2.5.
+- **In:**
+  - Tables `stores`, `store_listings` (with partial unique keys), `price_observations` (price check > 0 and ≤ 10,000), `price_points_weekly` (public only where `n_receipts ≥ 2`), `price_points_monthly`, `reference_prices`, `price_sanity_bounds`.
+  - Views `current_prices` (the effective-price rule) and `price_observations_with_source_url`.
+  - Unmatched `store_listings` are admin-only.
+- **Out:** as in the schema-task rules.
+- **Files:** `supabase/migrations/*_catalog_stores_prices.sql`, `supabase/tests/stores_prices.sql`, `supabase/README.md`, types.
+- **Verification:** the schema-task rules. Also:
+  - a price of 0 or 10,001 is rejected;
+  - `current_prices` picks `sale` over `regular` and never `member`;
+  - `anon` can't see an unmatched listing or a weekly point with `n_receipts = 1`.
+
+### [ ] P2.7 Schema: AI and audit
+- **Slice:** schema.
+- **Goal:** `ai_calls` and `audit_log` (§3.8). They come before scoring because `company_scores.ai_call_id` references `ai_calls`.
+- **Deps:** P2.1.
+- **In:** both tables, admin RLS, and checks on `purpose` and `status`.
+- **Out:** as in the schema-task rules.
+- **Files:** `supabase/migrations/*_catalog_ai_audit.sql`, `supabase/tests/ai_audit.sql`, `supabase/README.md`, types.
+- **Verification:** the schema-task rules.
+
+### [ ] P2.8 Schema: scoring and evidence
+- **Slice:** schema.
+- **Goal:** the scoring and evidence tables (§3.6).
+- **Deps:** P2.4, P2.5, P2.7.
+- **In:**
+  - Tables `rubrics`, `company_scores`, `score_citations`, `documents`, `document_entities` (exactly one of company/brand), `certifications` (exactly one of company/brand/product), `external_ratings`, `company_events`.
+  - A deferred constraint trigger: an `approved` score needs at least one citation.
+  - The view `published_company_scores` (§4).
+  - Document visibility follows its links (§3.6).
+- **Out:** as in the schema-task rules.
+- **Files:** `supabase/migrations/*_catalog_scoring_evidence.sql`, `supabase/tests/scoring_evidence.sql`, `supabase/README.md`, types.
+- **Verification:** the schema-task rules. Also:
+  - approving a score with no citation fails at commit, and succeeds once a citation is added;
+  - `anon` sees only approved, non-superseded scores;
+  - a document with no visible link is hidden from `anon`.
+
+### [ ] P2.9 Schema: editorial
+- **Slice:** schema.
+- **Goal:** `product_features`, `transparency_steps` and `stories` (§3.7).
+- **Deps:** P2.5.
+- **In:**
+  - `product_features`: icon allow-list check.
+  - `transparency_steps`: `step` unique per product.
+  - `stories`: public where `published_at <= now()`.
+- **Out:** as in the schema-task rules.
+- **Files:** `supabase/migrations/*_catalog_editorial.sql`, `supabase/tests/editorial.sql`, `supabase/README.md`, types.
+- **Verification:** the schema-task rules. Also, a future-dated story is hidden from `anon`.
+
+### [ ] P2.10 Core: record schemas, slugs and GTIN
+- **Slice:** core-records.
+- **Goal:** the typed, validated shapes that every source parser produces, plus the two key builders that every import needs.
+- **Deps:** P1.1. Can run before the schema tasks; field names must match DATA_MODEL §3.
+- **In:**
+  - `packages/core/src/records/`: zod schemas per record kind: company, brand, brand-ownership edge, company-ownership edge, product, product identifier, store, store listing, price observation, reference price, document. Each embeds a shared `provenance` schema (§1.2).
+  - Tightening from CATALOG_REVIEW `providers/schemas.ts`: price > 0 and ≤ 10,000, a currency enum, URL checks, ISO datetimes.
+  - `slugify()` per §1.3, plus a collision helper (`-ca`, `-2` …).
+  - `normalizeGtin()` per §1.4: digits only, check digit, GTIN-14 padding, and classification of restricted 02/20–29 prefixes and 4–5 digit PLUs. Moved forward from Phase 4 because P2.17 and P2.18 key on it (D-030).
+  - `runs.ts`: run modes and statuses (adapted from legacy `jobs/job-types.ts`).
+  - `zod` becomes a runtime dependency of `@sarvis/core` (DECISIONS entry).
+- **Out:** the size/unit parser (P4); the validation library (P2.11).
+- **Files:** `packages/core/src/records/**`, `packages/core/src/slug.ts`, `packages/core/src/gtin.ts`, `packages/core/src/runs.ts`, `packages/core/src/index.ts`, tests beside them, `packages/core/package.json`, `docs/DECISIONS.md`.
+- **Verification:**
+  - Unit tests: slug examples from §1.3 ("Ben's Original" → `bens-original`, accents, `&`, 64-char cap); GTIN cases (UPC-A, EAN-13, EAN-8, a bad check digit, a 02 prefix, a PLU, and the 13 legacy barcodes from `docs/legacy/data/products.json`); one valid and one invalid sample per record schema.
+  - `npm run typecheck`, `lint` and `test` pass.
+  - Metro still bundles the app with zod in core: `npm run web` loads `/` with no console errors.
+
+### [ ] P2.11 Core: validation library and safeguards
+- **Slice:** core-validation.
+- **Goal:** one function that turns a batch of parsed records into valid and invalid sets, with failure rows shaped for `validation_failures`.
+- **Deps:** P2.10.
+- **In:**
+  - `validateBatch(kind, records, opts)`, covering the rules `schema`, `required_field`, `gtin_check_digit`, `price_sanity` (hard bounds plus an optional per-category bounds lookup), `unit_parse` (a hook interface that P4's parser plugs into, with a pass-through default) and `duplicate` (in-batch, on the record's stable key).
+  - Failure payloads trimmed to ≤ 1 KB.
+  - `contentHash()` (sha-256 over the imported fields, in stable key order), from legacy `fingerprintMetadata`.
+  - Ported from legacy `jobs/safeguards.ts` and its tests: fail a batch over 50% invalid; fail on a drop from N to 0; warn on a drop over 50%. Extended with thresholds for duplicate rate and unit-parse success.
+  - The pure legacy helpers `cleanText`, `stripHtml` and `parsePrice` (negative prices rejected), with their legacy test cases.
+- **Out:** `parsePackageSize` and the unit parser (P4).
+- **Files:** `packages/core/src/validation/**`, `packages/core/src/text.ts`, `packages/core/src/price.ts`, tests.
+- **Verification:**
+  - Unit tests cover each rule with a passing and a failing record.
+  - The ported safeguards tests pass unchanged apart from imports.
+  - `contentHash` is identical for reordered keys.
+  - typecheck, lint and test pass.
+
+### [ ] P2.12 Pipeline runtime: env, logger, errors, retry, shutdown, DB client
+- **Slice:** pipeline-runtime.
+- **Goal:** the pipeline process basics, ported from legacy `catalog-worker` rather than rewritten.
+- **Deps:** P1.5.
+- **In:**
+  - `env.ts`: zod-validated, `emptyToUndefined`, readable errors; no Fortinos variables.
+  - `log.ts`: single-line JSON with recursive secret redaction, plus a rule that row data from user tables is never logged.
+  - `errors.ts`: typed taxonomy with a `retryable` flag. A 403 or 429 is `SourceBlockedError`, which stops the source, never retries, and flags for an alert. Error classes are matched by status and type, not by message substrings.
+  - `http/retry.ts`: `sleep` with abort, jitter, and `withRetry`.
+  - `shutdown.ts`: SIGINT/SIGTERM → AbortSignal.
+  - `db/client.ts`: a service-role client, using `SUPABASE_DEV_SERVICE_ROLE_KEY` locally. The production key is an Actions secret later (Phase 6).
+  - The legacy tests for errors and async, ported.
+  - Run TS with Node 22 `--experimental-strip-types` (already used by `scripts/`), so no `tsx`. `@supabase/supabase-js` becomes a pipeline runtime dependency (DECISIONS).
+- **Out:** HTTP fetching (P2.13), runs (P2.15).
+- **Files:** `pipeline/src/{env,log,errors,shutdown}.ts`, `pipeline/src/http/retry.ts`, `pipeline/src/db/client.ts`, `pipeline/test/**` or tests beside the files, `pipeline/package.json`, `.env.example`, `docs/DECISIONS.md`.
+- **Verification:**
+  - The ported tests pass.
+  - A test asserts that a log line containing `service_role_key`, `authorization` or `password` prints `[redacted]`.
+  - A smoke script connects to dev with the service role and counts `sources`, printing the count only.
+  - typecheck, lint and test pass.
+
+### [ ] P2.13 Pipeline: polite HTTP client
+- **Slice:** pipeline-http.
+- **Goal:** one fetch path for every source that enforces CLAUDE.md's scraper rules.
+- **Deps:** P2.12.
+- **In:**
+  - `http/client.ts`: the `Sarvis/<version> (+repo)` User-Agent (D-015) and a per-host token bucket. The rate defaults to 1 req/s and never exceeds `sources.rate_limit_per_sec`.
+  - Exponential backoff with jitter on 5xx and network errors.
+  - 403 and 429 throw `SourceBlockedError`. A 429 honours `Retry-After` once, then stops.
+  - `http/robots.ts`: fetch and cache `robots.txt` per host, then check the User-Agent and path. A disallowed path throws before any request. A small in-repo parser for `User-agent`, `Allow`, `Disallow` and `Crawl-delay`, so no dependency. `Crawl-delay` raises the per-host delay.
+  - `http/cache.ts`: an on-disk cache under `.cache/http/` (gitignored), keyed by method + URL, honouring ETag / Last-Modified and a per-source TTL. Phase 6 persists it with `actions/cache`.
+  - `http/paginate.ts`: port of legacy `computeHasNextPage` and `pageFingerprint`, with their tests.
+- **Out:** storing raw responses (P2.14).
+- **Files:** `pipeline/src/http/**`, tests, `.gitignore`.
+- **Verification:**
+  - Tests against a local `node:http` server:
+    - 5 requests to one host take ≥ 4 s, and two hosts interleave;
+    - a 503 then 200 succeeds after a backoff;
+    - a 403 throws `SourceBlockedError` with one request made;
+    - a robots-disallowed path makes 0 requests to it;
+    - a second fetch is served from cache (304 or a TTL hit).
+  - The pagination tests pass. typecheck, lint and test pass.
+
+### [ ] P2.14 Pipeline: raw store
+- **Slice:** pipeline-raw.
+- **Goal:** save every raw response, gzipped, before parsing, and read it back for re-parsing (CLAUDE.md "Raw data"; D-010).
+- **Deps:** P2.1, P2.12.
+- **In:**
+  - `raw/store.ts`: gzip (`node:zlib`), then upload to `raw/{source_key}/{run_id}/{seq}.json.gz`, then insert a `raw_objects` row (sha-256, byte size, request URL, HTTP status, `fetched_at`, `expires_at` from the §5 retention table).
+  - `readRaw(id)` returns the decompressed body, and fails if the file was deleted.
+  - `raw/redact.ts`: header allow-list and body-secret redaction (legacy `sanitize.ts`, generalised), applied before upload.
+  - `retentionFor(sourceKey)`: a pure function, unit-tested. The cleanup job is Phase 6.
+- **Out:** the cleanup job (P6).
+- **Files:** `pipeline/src/raw/**`, tests.
+- **Verification:**
+  - Unit tests for redaction and retention.
+  - A dev-DB check script uploads a 3-record fixture, reads it back byte-equal, shows the `raw_objects` row, then deletes the file and the row. Paste the output.
+  - Storage usage before and after is unchanged.
+
+### [ ] P2.15 Pipeline: source interface and run driver
+- **Slice:** pipeline-runs.
+- **Goal:** the generic run lifecycle that every source plugs into, with bookkeeping in `ingestion_runs`.
+- **Deps:** P2.2, P2.11, P2.13, P2.14.
+- **In:**
+  - `sources/source.ts`: the source interface `plan → fetch (via the HTTP client) → storeRaw → parse(raw) → validate → upsert`. `parse` takes only stored raw, so it can re-run from storage. Kept from legacy: capability flags and `verifyContext` before writing.
+  - `sources/registry.ts` and `sources/index.ts`: legacy registry pattern and tests.
+  - `runs/driver.ts`:
+    - refuses a source unless `verdict = 'use'` and `enabled`;
+    - sweeps stale `running` runs to `failed` at start;
+    - creates the run row (job, version, mode, sample size, git sha, trigger);
+    - checks for cancellation between pages and applies a politeness delay;
+    - records `expected_total` and `counts`;
+    - writes events (capped at 50) and `validation_failures` (capped at 50, with `counts.invalid` holding the full number);
+    - applies the safeguards;
+    - sets the final status (port of `jobs/progress.ts`);
+    - deactivates conservatively: only a clean, full, uncancelled run may mark unseen rows inactive.
+  - `--dry-run` runs everything except upserts and raw writes.
+  - The upsert step is an injected function here; P2.16 supplies the real ones.
+- **Out:** domain upserts (P2.16), the CLI (P2.17).
+- **Files:** `pipeline/src/sources/**`, `pipeline/src/runs/**`, tests.
+- **Verification:**
+  - Unit tests with a fake source and an in-memory DB adapter:
+    - an `avoid` source is refused;
+    - a stale run is swept;
+    - 60 invalid records store 50 failures and `counts.invalid = 60`;
+    - a batch that is more than 50% invalid fails;
+    - cancel mid-run gives `cancelled`, with no deactivation;
+    - `expected_total` ≠ fetched gives `completed_with_errors`.
+  - The ported progress and registry tests pass.
+
+### [ ] P2.16 Pipeline: idempotent upsert helpers
+- **Slice:** pipeline-db.
+- **Goal:** per-domain writers that upsert on stable keys, skip unchanged and locked rows, and always carry provenance.
+- **Deps:** P2.6, P2.10, P2.15.
+- **In:**
+  - `db/` writers for companies and brands (on slug or QID), ownership edges, products (on GTIN, then `(source_id, external_id)`), product identifiers, stores, store listings (on SKU or listing key), and price observations (append on change, otherwise bump `last_confirmed_on`).
+  - Chunked `.in()` reads (300) and upserts (500), from legacy `catalogue-repository.ts`.
+  - `content_hash` comparison: unchanged rows count as `unchanged` and aren't written.
+  - `locked_fields` are left alone and counted in `skipped_locked`.
+  - Change detection ported from legacy `db/upsert.ts`: the 0.005 price epsilon, with its 10 tests.
+  - Unmatched listings create `match_candidates` rather than products (review fix).
+  - Generated types only. Each writer returns `inserted`, `updated`, `unchanged` and `skipped_locked`.
+- **Out:** the matcher (P4); scoring and document writers (P7).
+- **Files:** `pipeline/src/db/**`, tests.
+- **Verification:**
+  - The ported change-detection tests pass.
+  - A dev-DB script under the `fixture` source upserts 5 products, 2 brands and 3 prices twice:
+    - run 2 reports `inserted = 0` and `unchanged = 5 / 2 / 3`;
+    - a changed price appends 1 row, and an equal price only bumps `last_confirmed_on`;
+    - a locked field survives;
+    - every row has a non-null `source_id`, `fetched_at`, `method` and `method_version`;
+    - test rows are deleted afterwards.
+  - Paste the counts.
+
+### [ ] P2.17 Pipeline: CLI, fixture source and run-twice e2e test
+- **Slice:** pipeline-cli.
+- **Goal:** meet the Phase 2 exit end to end.
+- **Deps:** P2.16.
+- **In:**
+  - `pipeline/src/cli.ts`, using `node:util` `parseArgs` with no dependency: `pipeline run <source> [--sample N] [--dry-run] [--mode full|delta]`. The run row records `triggered_by = cli`.
+  - The root script is `npm run pipeline -- run <source> …`.
+  - A `fixture` source serves about 20 synthetic, OFF-shaped product records (with brands and a few deliberately invalid ones), plus a `robots.txt`, from an in-process local HTTP server, so the full polite-client path runs.
+  - An e2e test (Vitest, tagged and skipped when `SUPABASE_DEV_SERVICE_ROLE_KEY` is unset, so CI stays secret-free per D-019):
+    - run 1, then run 2;
+    - assert the same row counts and `inserted = 0` on run 2;
+    - check the provenance columns on every row;
+    - check one `raw_objects` row per page, with the stored file re-parsing to identical records;
+    - check the invalid records appear in `validation_failures`;
+    - clean up the `fixture` rows and files at the end.
+  - CLAUDE.md Commands: fill "Run a scraper on a sample".
+- **Out:** real sources (Phase 3).
+- **Files:** `pipeline/src/cli.ts`, `pipeline/src/sources/fixture/**`, `pipeline/test/e2e/**`, `package.json`, `pipeline/package.json`, `CLAUDE.md`, `.env.example` if needed.
+- **Verification:**
+  - `npm run pipeline -- run fixture --sample 10 --dry-run` prints counts and writes nothing (row counts checked before and after).
+  - The e2e test passes locally; paste the summary into PROGRESS.
+  - `npm test` in CI stays green, with the e2e test skipped.
+
+### [ ] P2.18 Legacy re-import
+- **Slice:** legacy-import.
+- **Goal:** bring the P0.2 legacy content into the new schema as `pending` facts with `legacy-import` provenance (DATA_MODEL §8).
+- **Deps:** P2.8, P2.9, P2.17.
+- **In:**
+  - A `legacy-import` source in the registry. It reads `docs/legacy/data/*.json` (local files, so no HTTP). Each file is still stored as a raw object.
+  - Mapping per §8:
+    - companies (slugs kept);
+    - brands (slugs generated) plus `brand_ownership`;
+    - `ethical_scores` → `company_scores` under a `legacy` rubric row (`approved_by_owner_at` null, D-030);
+    - certifications, and boycotts/controversies → `company_events`;
+    - products (barcode → GTIN via P2.10, with the brand link inferred from the name where a brand matches exactly; others left null and queued);
+    - product features, transparency steps, and stories (no body, cover image dropped until a licence check).
+  - Every reviewable fact is `pending` with a `review_queue` row (`legacy_fact`). The P0.2 quality notes (Kashi, Ben's Original, Bolthouse, Sun-Brite) become the queue `reason` where they apply.
+- **Out:** fixing the flagged errors (that's admin review, Phase 5); legacy product-level scores (dropped per §8).
+- **Files:** `pipeline/src/sources/legacy-import/**`, tests, `docs/legacy/data/README.md` (a line on the re-import).
+- **Verification:**
+  - Run it twice with `npm run pipeline -- run legacy-import`. Run 2 shows `inserted = 0`.
+  - Row counts per table match the README (11 companies, 49 brands, 55 scores, 13 products, …), with any intentional drops listed.
+  - `anon` sees none of the pending facts. Show 3 example rows with provenance.
+
+### [ ] P2.19 Phase 2 exit check
+- **Slice:** release-check.
+- **Goal:** prove the exit criteria together, and measure the DB against the budget.
+- **Deps:** P2.1–P2.18.
+- **In:**
+  - Clean clone, `npm ci`, typecheck/lint/test, and the fixture e2e test (run twice).
+  - `get_advisors` is clean.
+  - `pg_total_relation_size` per catalog table and `pg_database_size`, compared with BUDGET §3 row widths (an empty-table baseline plus legacy rows).
+  - Storage bucket usage.
+  - The latest CI run is green.
+- **Out:** new features. Gaps become PLAN tasks.
+- **Files:** `docs/PROGRESS.md`, `docs/catalog/BUDGET.md` (an "Actuals" note).
+- **Verification:** a checklist in PROGRESS with evidence for each exit bullet: test output, the size table, advisors output and the CI run URL.
+
+### Phase 2 milestone coverage
+
+| Milestone | Tasks |
+|---|---|
+| M1 Schema (8 domains) | P2.1 bookkeeping, P2.3 matching and review, P2.4 ownership, P2.5 products, P2.6 stores and prices, P2.7 AI and audit, P2.8 scoring and evidence, P2.9 editorial |
+| M2 Sources seed and verdict refusal | P2.2 (seed), P2.15 (refusal) |
+| M3 Core records and validation | P2.10 (schemas, slug, GTIN), P2.11 (validation, safeguards) |
+| M4 Pipeline framework | P2.12 (env, logger, errors, retry, shutdown), P2.13 (HTTP client), P2.14 (raw store), P2.15 (driver, expected vs fetched), P2.16 (upserts, change detection), P2.17 (CLI) |
+| M5 Legacy re-import | P2.18 |
+| M6 Tests | Unit tests in P2.10–P2.16; run-twice e2e in P2.17 and P2.18 |
+| M7 Budget check | P2.19 |
+| Exit criteria | P2.17 (proof), P2.19 (checked together) |
+
+**Open 🟡 decisions in Phase 2:** none. Every choice above follows from DATA_MODEL or an existing decision; the new ones are in D-030.
 
 ## Phase 3 — Catalog sources (outline)
 
@@ -529,7 +901,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - [ ] **P4.0 Refine Phase 4 into session-sized tasks.**
 - **Milestones:**
   - Size/unit parser and unit price (g/kg/ml/L/ct, multipacks, "x"), tested on real strings from P3. Seed the tests from legacy `normalizer.test.ts` and fix the gaps in CATALOG_REVIEW §4.1.
-  - GTIN normalization: UPC-A/EAN-13/GTIN-14 check digits, PLU, and store-internal codes (rules in DATA_MODEL §1.4).
+  - GTIN normalization: the TS function (P2.10) and the SQL check function (P2.5) arrive in Phase 2 (D-030). Phase 4 extends both with any rules the P3 data shows are missing.
   - Category taxonomy: Sarvis taxonomy plus mappings from OFF categories (retailer categories only if a retailer is ever approved, D-013).
   - Product matcher: GTIN exact first, then fuzzy name/brand/size (`pg_trgm` plus scoring in core), with a confidence score and stored match decisions (`match_candidates`).
     - Includes **receipt-abbreviation → product** matching via `store_listings`. Receipts are the main price source (D-013 D7).

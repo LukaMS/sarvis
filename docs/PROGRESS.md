@@ -4,6 +4,38 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P2.0 Refine Phase 2 into session-sized tasks
+
+**What changed**
+- PLAN Phase 2 now has full detail: milestones M1–M7, feature slices, shared rules for the `schema` tasks, 19 tasks P2.1–P2.19, and a coverage table.
+  - Schema: 8 domain migrations (P2.1, P2.3–P2.9) plus the `sources` seed (P2.2).
+  - Core: P2.10 (record schemas, slug, GTIN) and P2.11 (validation, safeguards).
+  - Pipeline: P2.12–P2.17 (runtime, HTTP client, raw store, driver, upserts, CLI with the fixture source and the run-twice e2e).
+  - P2.18 is the legacy re-import, and P2.19 is the exit check with the DB size against BUDGET.
+- Phase 4 outline: GTIN normalization now arrives in Phase 2, and Phase 4 extends it.
+- D-030 records the choices: migration order follows foreign keys; `banners` moves to the ownership migration; GTIN is moved forward; the sources seed is a migration; legacy scores go under a `legacy` rubric; dev-DB tests are skipped in CI; no `tsx`.
+
+**Verification**
+- A script over the Phase 2 section:
+  - all 19 tasks have Slice, Goal, Deps, In, Out, Files and Verification;
+  - each task's slice is one of the 12 listed;
+  - M1–M7 each map to at least one task;
+  - there are no dangling P2 deps.
+  - Result: 0 problems.
+
+**Open 🟡 decisions** (none block Phase 2)
+- P5: the scope of the GitHub token for triggering runs from the admin portal.
+- P7: rubric v1 approval; the auto-publish rule (D-006).
+- P8:
+  - receipt-price consent and privacy wording, and the k-anonymity floor;
+  - product grades derived from company scores, or kept per product;
+  - community submissions.
+- P10: web hosting; Android distribution (Play Store $25); a paid Supabase tier near the 400 MB alarm.
+
+**Next:** P2.1 Schema: pipeline bookkeeping, shared SQL helpers, `raw` bucket.
+
+---
+
 ## 2026-10-28 — P1.17 Allow the `sarvis://` auth redirect (owner)
 
 **What changed**
