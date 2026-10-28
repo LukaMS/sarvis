@@ -4,6 +4,46 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P2.4 Schema: ownership
+
+**What changed**
+- The migration `20261028225008_catalog_ownership` is applied to dev. It adds:
+  - `companies` and `brands`: slug keys, unique `wikidata_qid` (and `sec_cik` for companies), merge columns, `locked_fields`, trigram GIN indexes on `normalize_match_text(name)`, and public read except `rejected`;
+  - `company_ownership`: a cycle-rejecting trigger, and one current approved controlling parent per company;
+  - `brand_ownership`: one current approved `owner` / `private_label_of` per brand, and `match_candidate_id` → `match_candidates`;
+  - `banners`: fully public;
+  - the views `brand_current_owner` and `company_ultimate_parent`, both `security_invoker`.
+- All five tables carry the `+prov` block. The edges also carry `+review`. Every foreign key is indexed. Writes are admin-only, with one policy per command.
+- `supabase/tests/ownership.sql` holds the checks (rolled back).
+- `supabase/README.md` has the reusable `+prov` snippet and the migration row.
+- The types are regenerated. The diff adds lines only.
+- D-034 records the design choices.
+
+**Verification**
+- RLS script: **40/40 ok**.
+  - Cycles: B→A after A→B, and C→A across A→B→C, are rejected with `23514`. A rejected B→A can be stored, but reopening it as `pending` is rejected with `23514`. A self edge is rejected with `23514`.
+  - Duplicate keys: a duplicate edge with a null `valid_from` → `23505`, and `on conflict … do nothing` on the edge key inserts 0 rows.
+  - A second current approved controlling parent → `23505`. A second current approved brand owner → `23505`, but a pending competing owner is allowed.
+  - Rejected with `23514`: an `ai` edge without `confidence`, an `auto` decision with a `reviewed_by`, `valid_to` before `valid_from`, `merged` without `merged_into_id`, a `Bad Slug`, and `method = 'scraper'`. A missing `fetched_at` → `23502`.
+  - `company_ultimate_parent`: C → A at depth 2, with path `{C,B,A}`. A is its own top parent at depth 0, because a minority stake isn't walked. `brand_current_owner` maps X → C.
+  - anon: sees 4 of 5 companies (not the rejected one) and only the 2 approved company edges, and doesn't see the pending company or brand edge. Walks C up to A. Gets `42501` on insert and on update.
+  - Non-admin user: sees 4 companies and no pending edges. Gets `42501` inserting a brand or a banner, and updates or deletes 0 rows.
+  - Admin: sees all 5 companies and the pending edges, inserts a banner, approves a brand edge, updates a company, and deletes an edge.
+- Afterwards: 0 rows in all five tables and 0 test users.
+- `relrowsecurity` is true on all 13 public tables.
+- Advisors:
+  - Security: only the existing leaked-password warning.
+  - Performance: only INFO "unused index" notices on the empty tables.
+- `npm run typecheck`, `lint` and `test` (27 tests) pass, and Prettier is clean.
+
+**Notes for you**
+- I added one line to **P2.7**: add `ai_call_id` to the two edge tables once `ai_calls` exists.
+- I made two choices that go slightly beyond DATA_MODEL (D-034). A company can have at most one current approved controlling parent, and `private_label_of` counts as ownership in the one-owner rule.
+
+**Next:** P2.5 Schema: products.
+
+---
+
 ## 2026-10-28 — P2.3 Schema: matching and review
 
 **What changed**

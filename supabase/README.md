@@ -54,6 +54,30 @@ create policy <table>_select_authenticated on public.<table> for select to authe
 
 When the decision comes from the review queue, also set the `review_queue` row to `done` (or `dismissed`) with `resolved_at`.
 
+## The `+prov` columns
+
+Every fact table (DATA_MODEL §1.2) copies this block exactly, followed by `created_at` / `updated_at` and a `private.set_updated_at()` trigger. `source_url` may be null only when `sources.url_template` plus the row's `external_id` rebuilds it. AI-produced facts also get `ai_call_id bigint references public.ai_calls (id) on delete set null` (P2.7 onward), and an `ai` row on a table with `confidence` must set it (`<table>_ai_confidence` check).
+
+```sql
+  source_id uuid not null references public.sources (id) on delete restrict,
+  source_url text check (source_url ~ '^https?://'),
+  fetched_at timestamptz not null,
+  method text not null check (method in ('import', 'api', 'ai', 'manual', 'legacy-import', 'receipt', 'derived')),
+  method_version text not null check (char_length(method_version) between 1 and 200),
+  ingestion_run_id uuid references public.ingestion_runs (id) on delete set null,
+  raw_object_id uuid references public.raw_objects (id) on delete set null,
+```
+
+Alongside it, one index per foreign key (the performance advisor flags unindexed ones):
+
+```sql
+create index <table>_source_idx on public.<table> (source_id);
+create index <table>_ingestion_run_idx on public.<table> (ingestion_run_id);
+create index <table>_raw_object_idx on public.<table> (raw_object_id);
+```
+
+Public tables with write access use one policy per command (`insert`, `update`, `delete`) for the admin check, never `for all`, so each role keeps a single permissive `select` policy.
+
 ## Types
 
 Run `generate_typescript_types` on the `supabase-dev` MCP and save the output verbatim to `packages/core/src/db/database.types.ts`. `npm run db:types` prints this reminder. A CLI-based generator would need a personal access token, which isn't set up.
@@ -68,3 +92,4 @@ Run `generate_typescript_types` on the `supabase-dev` MCP and save the output ve
 | 20261028200133 | catalog_pipeline_bookkeeping | `pg_trgm`, `unaccent`, `normalize_match_text()`, the `slug` domain; `sources` (public read), `ingestion_runs`, `ingestion_run_events`, `raw_objects`, `validation_failures` (admin); `source_attributions` view; private `raw` bucket with admin read (P2.1) |
 | 20261028221731 | seed_sources | Data: `sources` rows for S1–S30 (avoided ones disabled; S24 as one disabled umbrella row) plus internal `manual`, `legacy-import`, `receipts`, `derived`, `fixture`. Re-runnable upsert on `key` that changes 0 rows on a second run (P2.2, D-032) |
 | 20261028223450 | catalog_matching_review | `match_candidates` (unique on kind, subject, candidate, method version; kind pins the subject and candidate tables) and `review_queue` (one open row per item), both admin only (P2.3, D-033) |
+| 20261028225008 | catalog_ownership | `companies`, `brands` (trigram name indexes, merge columns), `company_ownership` (cycle-rejecting trigger, one current approved controlling parent per company), `brand_ownership` (one current approved owner per brand), `banners`; `+prov` block; views `brand_current_owner` and `company_ultimate_parent`. Public read, admin write (P2.4, D-034) |

@@ -14,6 +14,616 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          country: string | null
+          created_at: string
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          name: string
+          operator_company_id: string | null
+          raw_object_id: string | null
+          slug: string
+          source_id: string
+          source_url: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          name: string
+          operator_company_id?: string | null
+          raw_object_id?: string | null
+          slug: string
+          source_id: string
+          source_url?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          name?: string
+          operator_company_id?: string | null
+          raw_object_id?: string | null
+          slug?: string
+          source_id?: string
+          source_url?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banners_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banners_operator_company_id_fkey"
+            columns: ["operator_company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "banners_operator_company_id_fkey"
+            columns: ["operator_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banners_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banners_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_ownership: {
+        Row: {
+          brand_id: string
+          company_id: string
+          confidence: number | null
+          created_at: string
+          decision_method: string | null
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          match_candidate_id: number | null
+          method: string
+          method_version: string
+          raw_object_id: string | null
+          relation: string
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string
+          source_url: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          brand_id: string
+          company_id: string
+          confidence?: number | null
+          created_at?: string
+          decision_method?: string | null
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          match_candidate_id?: number | null
+          method: string
+          method_version: string
+          raw_object_id?: string | null
+          relation: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id: string
+          source_url?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          brand_id?: string
+          company_id?: string
+          confidence?: number | null
+          created_at?: string
+          decision_method?: string | null
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          match_candidate_id?: number | null
+          method?: string
+          method_version?: string
+          raw_object_id?: string | null
+          relation?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string
+          source_url?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_ownership_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "brand_ownership_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_ownership_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "brand_ownership_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_ownership_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_ownership_match_candidate_id_fkey"
+            columns: ["match_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "match_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_ownership_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_ownership_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_ownership_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brands: {
+        Row: {
+          aliases: string[]
+          created_at: string
+          description: string | null
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          is_private_label: boolean
+          locked_fields: string[]
+          logo_url: string | null
+          merged_into_id: string | null
+          method: string
+          method_version: string
+          name: string
+          raw_object_id: string | null
+          slug: string
+          source_id: string
+          source_url: string | null
+          status: string
+          updated_at: string
+          website: string | null
+          wikidata_qid: string | null
+        }
+        Insert: {
+          aliases?: string[]
+          created_at?: string
+          description?: string | null
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          is_private_label?: boolean
+          locked_fields?: string[]
+          logo_url?: string | null
+          merged_into_id?: string | null
+          method: string
+          method_version: string
+          name: string
+          raw_object_id?: string | null
+          slug: string
+          source_id: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+          wikidata_qid?: string | null
+        }
+        Update: {
+          aliases?: string[]
+          created_at?: string
+          description?: string | null
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          is_private_label?: boolean
+          locked_fields?: string[]
+          logo_url?: string | null
+          merged_into_id?: string | null
+          method?: string
+          method_version?: string
+          name?: string
+          raw_object_id?: string | null
+          slug?: string
+          source_id?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+          wikidata_qid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brands_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brands_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "brands_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brands_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brands_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          aliases: string[]
+          ceo: string | null
+          corp_canada_number: string | null
+          country: string | null
+          created_at: string
+          description: string | null
+          fetched_at: string
+          founded_year: number | null
+          headquarters: string | null
+          id: string
+          ingestion_run_id: string | null
+          kind: string
+          legal_name: string | null
+          locked_fields: string[]
+          logo_url: string | null
+          merged_into_id: string | null
+          method: string
+          method_version: string
+          name: string
+          opencorporates_id: string | null
+          ownership_type: string | null
+          raw_object_id: string | null
+          revenue_range: string | null
+          sec_cik: string | null
+          slug: string
+          source_id: string
+          source_url: string | null
+          status: string
+          stock_ticker: string | null
+          updated_at: string
+          website: string | null
+          wikidata_qid: string | null
+          wikipedia_revision_id: number | null
+          wikipedia_title: string | null
+        }
+        Insert: {
+          aliases?: string[]
+          ceo?: string | null
+          corp_canada_number?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          fetched_at: string
+          founded_year?: number | null
+          headquarters?: string | null
+          id?: string
+          ingestion_run_id?: string | null
+          kind?: string
+          legal_name?: string | null
+          locked_fields?: string[]
+          logo_url?: string | null
+          merged_into_id?: string | null
+          method: string
+          method_version: string
+          name: string
+          opencorporates_id?: string | null
+          ownership_type?: string | null
+          raw_object_id?: string | null
+          revenue_range?: string | null
+          sec_cik?: string | null
+          slug: string
+          source_id: string
+          source_url?: string | null
+          status?: string
+          stock_ticker?: string | null
+          updated_at?: string
+          website?: string | null
+          wikidata_qid?: string | null
+          wikipedia_revision_id?: number | null
+          wikipedia_title?: string | null
+        }
+        Update: {
+          aliases?: string[]
+          ceo?: string | null
+          corp_canada_number?: string | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          fetched_at?: string
+          founded_year?: number | null
+          headquarters?: string | null
+          id?: string
+          ingestion_run_id?: string | null
+          kind?: string
+          legal_name?: string | null
+          locked_fields?: string[]
+          logo_url?: string | null
+          merged_into_id?: string | null
+          method?: string
+          method_version?: string
+          name?: string
+          opencorporates_id?: string | null
+          ownership_type?: string | null
+          raw_object_id?: string | null
+          revenue_range?: string | null
+          sec_cik?: string | null
+          slug?: string
+          source_id?: string
+          source_url?: string | null
+          status?: string
+          stock_ticker?: string | null
+          updated_at?: string
+          website?: string | null
+          wikidata_qid?: string | null
+          wikipedia_revision_id?: number | null
+          wikipedia_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "companies_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_ownership: {
+        Row: {
+          child_company_id: string
+          confidence: number | null
+          created_at: string
+          decision_method: string | null
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          parent_company_id: string
+          raw_object_id: string | null
+          relation: string
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          share_pct: number | null
+          source_id: string
+          source_url: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          child_company_id: string
+          confidence?: number | null
+          created_at?: string
+          decision_method?: string | null
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          parent_company_id: string
+          raw_object_id?: string | null
+          relation: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          share_pct?: number | null
+          source_id: string
+          source_url?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          child_company_id?: string
+          confidence?: number | null
+          created_at?: string
+          decision_method?: string | null
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          parent_company_id?: string
+          raw_object_id?: string | null
+          relation?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          share_pct?: number | null
+          source_id?: string
+          source_url?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_ownership_child_company_id_fkey"
+            columns: ["child_company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_ownership_child_company_id_fkey"
+            columns: ["child_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_ownership_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_ownership_parent_company_id_fkey"
+            columns: ["parent_company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_ownership_parent_company_id_fkey"
+            columns: ["parent_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_ownership_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_ownership_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_ownership_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingestion_run_events: {
         Row: {
           at: string
@@ -461,6 +1071,31 @@ export type Database = {
       }
     }
     Views: {
+      brand_current_owner: {
+        Row: {
+          brand_id: string | null
+          brand_name: string | null
+          brand_slug: string | null
+          company_id: string | null
+          company_name: string | null
+          company_slug: string | null
+          confidence: number | null
+          relation: string | null
+          valid_from: string | null
+        }
+        Relationships: []
+      }
+      company_ultimate_parent: {
+        Row: {
+          company_id: string | null
+          depth: number | null
+          path: string[] | null
+          ultimate_parent_id: string | null
+          ultimate_parent_name: string | null
+          ultimate_parent_slug: string | null
+        }
+        Relationships: []
+      }
       source_attributions: {
         Row: {
           attribution_text: string | null

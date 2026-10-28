@@ -566,7 +566,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `supabase/migrations/*_catalog_matching_review.sql`, `supabase/tests/matching_review.sql`, `supabase/README.md`, types.
 - **Verification:** the schema-task rules. Also, a duplicate `(kind, subject_id, candidate_id, match_method_version)` insert fails.
 
-### [ ] P2.4 Schema: ownership (companies, brands, ownership edges, banners)
+### [x] P2.4 Schema: ownership (companies, brands, ownership edges, banners)
 - **Slice:** schema.
 - **Goal:** the ownership chain tables (§3.2), plus `banners` (§3.4). `banners` is moved here because `product_identifiers.banner_id` (P2.5) references it, and a banner is an operating-company link (D-030).
 - **Deps:** P2.3.
@@ -618,7 +618,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Slice:** schema.
 - **Goal:** `ai_calls` and `audit_log` (§3.8). They come before scoring because `company_scores.ai_call_id` references `ai_calls`.
 - **Deps:** P2.1.
-- **In:** both tables, admin RLS, and checks on `purpose` and `status`.
+- **In:** both tables, admin RLS, and checks on `purpose` and `status`. Also add `ai_call_id bigint references ai_calls on delete set null` (indexed) to `company_ownership` and `brand_ownership`, which P2.4 shipped without it (D-034).
 - **Out:** as in the schema-task rules.
 - **Files:** `supabase/migrations/*_catalog_ai_audit.sql`, `supabase/tests/ai_audit.sql`, `supabase/README.md`, types.
 - **Verification:** the schema-task rules.
