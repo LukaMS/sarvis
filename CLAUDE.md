@@ -53,8 +53,8 @@ Fill these in during Phase 1 and keep them current.
 | Start Android | `npm run android` (emulator must be running; check with `adb devices`; opens in Expo Go). With Metro already running: `adb reverse tcp:8081 tcp:8081`, then `adb shell am start -a android.intent.action.VIEW -d exp://127.0.0.1:8081/--/<route> host.exp.exponent` (e.g. `/--/dev/gallery`). The older `exp://10.0.2.2:8081` URL can reopen a stale cached bundle. |
 | Typecheck / lint | `npm run typecheck` / `npm run lint` (format: `npm run format`, check only: `npm run format:check`) |
 | Unit tests | `npm test` (Vitest, all workspaces) |
-| E2E (web) | `npm run e2e` (Playwright, Chromium, 390 × 844; starts Expo web on :8081 or reuses a running one). Needs `.env` with the dev service-role key: global setup creates the e2e test users and signs one in. Report: `npx playwright show-report` |
-| Create a dev test user | `npm run dev:test-user -- --email <email> --password <8+ chars> [--name <name>]` (confirmed user on the **dev** project only; idempotent) |
+| E2E (web) | `npm run e2e` (Playwright, Chromium, 390 × 844; starts Expo web on :8081 or reuses a running one). Needs `.env` with the dev service-role key: global setup creates the e2e test users (one admin) and signs one in. Runs 4 workers. After adding or removing a route file, restart Metro: a running server can 404 or show "Unmatched Route" for it. Report: `npx playwright show-report` |
+| Create a dev test user | `npm run dev:test-user -- --email <email> --password <8+ chars> [--name <name>] [--role user\|admin]` (confirmed user on the **dev** project only; idempotent; `--role admin` opens `/admin` on web) |
 | Generate Supabase types | `supabase-dev` MCP `generate_typescript_types` → save verbatim to `packages/core/src/db/database.types.ts` (`npm run db:types` prints the steps; see `supabase/README.md`) |
 | Run a scraper on a sample | TBD |
 

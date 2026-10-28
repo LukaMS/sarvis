@@ -2,10 +2,10 @@
 // manual checks (D-015 option a). Uses SUPABASE_DEV_SERVICE_ROLE_KEY, so it is Node-only, never bundled,
 // and refuses any project but dev.
 //
-//   npm run dev:test-user -- --email you+test@example.com --password '<8+ chars>' [--name 'Test User']
+//   npm run dev:test-user -- --email you+test@example.com --password '<8+ chars>' [--name 'Test User'] [--role admin]
 //
 // Idempotent: an existing user with that email gets the new password, is marked confirmed, and keeps
-// its id (and so its profiles row).
+// its id (and so its profiles row). `--role` sets profiles.role; without it the role is left as it is.
 import { createClient } from '@supabase/supabase-js';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -17,7 +17,11 @@ export interface TestUserOptions {
   email: string;
   password: string;
   displayName?: string;
+  /** Sets profiles.role. Leave it out to keep the current role (new users get 'user'). */
+  role?: TestUserRole;
 }
+
+export type TestUserRole = 'user' | 'admin';
 
 /** Reads the dev URL and key from the environment, and checks the URL is the dev project. */
 export function devAdminEnv(env: NodeJS.ProcessEnv = process.env): { url: string; key: string } {
@@ -51,13 +55,30 @@ export async function ensureTestUser({
   email,
   password,
   displayName,
+  role,
 }: TestUserOptions): Promise<string> {
   if (password.length < 8) throw new Error('The password needs at least 8 characters.');
   const { url, key } = devAdminEnv();
-  const admin = createClient(url, key, {
+  const client = createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
-  }).auth.admin;
+  });
+  const id = await upsertAuthUser(client.auth.admin, email, password, displayName);
+  if (role) {
+    // Clients can't write profiles.role (column privileges); the service role can.
+    const { error } = await client.from('profiles').update({ role }).eq('id', id);
+    if (error) throw error;
+  }
+  return id;
+}
 
+type Admin = ReturnType<typeof createClient>['auth']['admin'];
+
+async function upsertAuthUser(
+  admin: Admin,
+  email: string,
+  password: string,
+  displayName: string | undefined,
+): Promise<string> {
   const normalized = email.trim().toLowerCase();
   const metadata = { display_name: displayName ?? normalized.split('@')[0] };
 
@@ -82,8 +103,6 @@ export async function ensureTestUser({
   return data.user.id;
 }
 
-type Admin = ReturnType<typeof createClient>['auth']['admin'];
-
 async function findUserByEmail(admin: Admin, email: string): Promise<string | null> {
   const perPage = 200;
   for (let page = 1; ; page++) {
@@ -101,11 +120,13 @@ async function main() {
       email: { type: 'string' },
       password: { type: 'string' },
       name: { type: 'string' },
+      role: { type: 'string' },
     },
   });
-  if (!values.email || !values.password) {
+  const role = values.role;
+  if (!values.email || !values.password || (role && role !== 'user' && role !== 'admin')) {
     console.error(
-      'Usage: npm run dev:test-user -- --email <email> --password <password> [--name <name>]',
+      'Usage: npm run dev:test-user -- --email <email> --password <password> [--name <name>] [--role user|admin]',
     );
     process.exit(1);
   }
@@ -113,9 +134,12 @@ async function main() {
     email: values.email,
     password: values.password,
     displayName: values.name,
+    role: role as TestUserRole | undefined,
   });
-  // The id and email only; never the password or key.
-  console.log(`Test user ready on the dev project: ${values.email.trim().toLowerCase()} (${id})`);
+  // The id, email and role only; never the password or key.
+  console.log(
+    `Test user ready on the dev project: ${values.email.trim().toLowerCase()} (${id})${role ? `, role ${role}` : ''}`,
+  );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

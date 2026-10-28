@@ -4,6 +4,47 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P1.12 Web-only `/admin` route group gated by role
+
+**What changed**
+- Migration `20261028174807_admin_ping.sql`, applied to dev: `public.admin_ping()` (security invoker, `search_path = ''`, `EXECUTE` for `authenticated` only) returns `true` for admins and raises `42501 Admin only` otherwise. Types regenerated, and `supabase/README.md` lists it.
+- `(admin)` route group:
+  - `_layout.tsx` (native) redirects to the tabs;
+  - `_layout.web.tsx` is the gate. It calls `checkIsAdmin()` (`lib/admin.ts`) and shows a spinner, then either "Not authorised" with "Back to home", a retryable error, or the page;
+  - `admin/index.tsx` lazy-loads `components/admin/AdminHome.tsx` (`testID="admin-home"`).
+- The root layout lists `(admin)` inside the signed-in guard.
+- `ensureTestUser` / `npm run dev:test-user` take `role` / `--role user|admin`. E2E global setup creates `e2e-admin@example.com` as admin and resets the other e2e users to `user`.
+- New `e2e/admin-gate.spec.ts`. `playwright.config.ts` now runs **4 workers** (see below).
+- **D-027** records the decisions. Added **P1.16** (a signed-out deep-link warning on Android that predates this task).
+
+**Verification**
+- **`npm run e2e`:** 26 passed (`--workers=4` ×3, then once more through `npm run e2e` with the new config). `admin-gate.spec`:
+  - signed out, `/admin` → `/auth`;
+  - the normal (shell) user sees "Not authorised", the page's `admin_ping` gets a 403, and a direct PostgREST call with the user's token returns 403 `{code: 42501, message: "Admin only"}`. "Back to home" goes to Impact;
+  - the admin user sees `admin-home` with their email, and a direct call returns 200 `true`;
+  - no console errors apart from the expected 403.
+- **SQL (dev):** `prosecdef=false`, `search_path=""`, anon/public can't execute, authenticated can. In-transaction calls with JWT claims:
+  - user → `42501 Admin only`;
+  - admin → `true`;
+  - no `sub` → `42501 Admin only`;
+  - anon → `permission denied for function admin_ping`.
+- **`get_advisors` (security):** only the old project-wide "Leaked password protection disabled" warning.
+- **Lazy chunk:** `npx expo export -p web` (to scratchpad) outputs `entry-….js` (1.9 MB, contains the gate but not `admin-home`) and `AdminHome-….js` (1 KB, the admin page). No `SERVICE_ROLE` reference in the export or in `app/src`.
+- **Android (Pixel_10_Pro):** signed in as `e2e-android@example.com`. The `/settings` deep link opened Settings, then the `/admin` deep link landed on the Impact tab (`.screenshots/p1.12-admin-deeplink-android.png`). Signed out, `/admin` → `/auth`.
+- **Web screenshots:** `.screenshots/p1.12-admin-denied-web.png` and `p1.12-admin-home-web.png`. The only console error is the denied page's expected 403.
+- typecheck, lint and format:check exit 0. `npm test`: 22 passed.
+
+**Things you should know**
+- **E2E now runs 4 workers.** With the emulator up and the default 8 workers, `auth.spec`'s sign-in/reload test and `account-deletion.spec` timed out at 30 s even with the new spec excluded. The single-threaded dev SSR queued page loads for about 5 s each. At 4 workers the suite is green and faster.
+- **Restart Metro after adding a route group.** A running dev server served `/admin` as 404 (SSR) and "Unmatched Route" (client) until restarted. This is noted in the CLAUDE.md e2e row.
+- **New P1.16:** on Android, signed out, deep links to guarded routes (e.g. `/settings`) land on `/auth` but show a dev LogBox warning ("The 'state' or 'screen' passed in the params couldn't be applied…"). It predates P1.12.
+- The admin check is a gate for the UI. Phase 5 admin data must still be protected by RLS on `private.is_admin()`.
+- `e2e-android@example.com` was given a new password for the Android check, and the emulator is signed out again.
+
+**Next:** P1.13 Phase 1 exit check.
+
+---
+
 ## 2026-10-27 — P1.11 Account deletion RPC and the Settings action
 
 **What changed**

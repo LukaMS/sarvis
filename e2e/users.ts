@@ -1,4 +1,5 @@
-// Test users on the dev project. global-setup.ts creates them; passwords are random per run.
+// Test users on the dev project. global-setup.ts creates them; passwords are random per run. Users
+// without a role field are reset to 'user', so a stray role change can't leak into other specs.
 
 /** Signed in by global setup; its saved session is the default for every spec except auth.spec. */
 export const SHELL_USER = {
@@ -12,6 +13,14 @@ export const AUTH_USER = {
   email: 'e2e-auth@example.com',
   displayName: 'E2E Auth',
   passwordEnv: 'E2E_AUTH_PASSWORD',
+} as const;
+
+/** profiles.role = 'admin'. admin-gate.spec signs in as it to reach /admin. */
+export const ADMIN_USER = {
+  email: 'e2e-admin@example.com',
+  displayName: 'E2E Admin',
+  passwordEnv: 'E2E_ADMIN_PASSWORD',
+  role: 'admin',
 } as const;
 
 export const STORAGE_STATE = 'e2e/.auth/shell-user.json';

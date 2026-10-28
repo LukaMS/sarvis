@@ -65,6 +65,8 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
+        {/* Web-only admin portal; its own layout checks the role with the server (D-005). */}
+        <Stack.Screen name="(admin)" />
         {Object.entries(HEADER_TITLES).map(([name, title]) => (
           <Stack.Screen key={name} name={name} options={{ ...header, headerTitle: title }} />
         ))}

@@ -402,7 +402,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The e2e test creates a throwaway test user, deletes it via the UI, then confirms that signing in with it fails.
   - `get_advisors` (security) is clean for the new function.
 
-### [ ] P1.12 Web-only `/admin` route group gated by role
+### [x] P1.12 Web-only `/admin` route group gated by role
 - **Slice:** admin-gate.
 - **Goal:** `/admin` exists on web only, is lazy-loaded, and is refused to non-admins both in the UI and on the server (D-005).
 - **Deps:** P1.10.
@@ -454,6 +454,14 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** email change, password change from Settings (Phase 8).
 - **Files:** `app/src/lib/auth/**`, `app/src/app/reset-password.tsx`, `app/src/app/_layout.tsx`, `e2e/auth.spec.ts`.
 - **Verification:** with a dev test user, generate a recovery link (admin `generateLink` in a dev script, so no real email is needed), open it on web and Android, set a new password, and sign in with it.
+
+### [ ] P1.16 Signed-out deep link to a guarded route shows a dev warning (added in P1.12)
+- **Slice:** navigation.
+- **Goal:** on Android, signed out, opening a deep link to any guarded route (e.g. `/settings`, `/admin`) lands correctly on `/auth` but shows a LogBox warning: "The 'state' or 'screen' passed in the params couldn't be applied to the navigator with the screens: 'auth', 'dev/gallery', 'dev/error-boundary'…". It's dev-only and has been there since P1.10, not caused by P1.12. Find out whether it's expected `Stack.Protected` behaviour or a fixable misuse, then fix it or record why it's harmless.
+- **Deps:** P1.10.
+- **Out:** remembering the deep-link target and returning to it after sign-in (Phase 8, if wanted).
+- **Files:** `app/src/app/_layout.tsx`, `docs/DECISIONS.md`.
+- **Verification:** Android, signed out, `/settings` and `/admin` deep links land on `/auth` with no LogBox warning, or a DECISIONS note explains why the warning is harmless. Signed-in deep links still work (mobile MCP screenshots).
 
 ### Phase 1 milestone coverage
 

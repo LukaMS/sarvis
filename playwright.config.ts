@@ -16,6 +16,9 @@ const BASE_URL = `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // The dev server renders each page on one Node thread. At the default 8 workers, page loads queue for
+  // ~5 s each and the multi-reload auth specs hit the 30 s timeout; 4 is faster overall and stable.
+  workers: 4,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',

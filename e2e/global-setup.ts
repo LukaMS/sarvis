@@ -1,16 +1,21 @@
-// Runs once before the suite (after the web server is up). Creates or resets two confirmed users on the
-// dev project with fresh random passwords, then signs one in through the UI and saves the session, so
-// specs other than auth.spec start signed in.
+// Runs once before the suite (after the web server is up). Creates or resets three confirmed users on the
+// dev project (one of them an admin) with fresh random passwords, then signs one in through the UI and
+// saves the session, so specs other than auth.spec start signed in.
 import { chromium, type FullConfig } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
 
 import { ensureTestUser } from '../scripts/dev-create-test-user';
-import { AUTH_USER, SHELL_USER, STORAGE_STATE } from './users';
+import { ADMIN_USER, AUTH_USER, SHELL_USER, STORAGE_STATE } from './users';
 
 export default async function globalSetup(config: FullConfig) {
-  for (const user of [SHELL_USER, AUTH_USER]) {
+  for (const user of [SHELL_USER, AUTH_USER, ADMIN_USER]) {
     const password = randomBytes(18).toString('base64url');
-    await ensureTestUser({ email: user.email, password, displayName: user.displayName });
+    await ensureTestUser({
+      email: user.email,
+      password,
+      displayName: user.displayName,
+      role: 'role' in user ? user.role : 'user',
+    });
     // Workers inherit env set here; the passwords never touch disk.
     process.env[user.passwordEnv] = password;
   }

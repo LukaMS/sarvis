@@ -27,3 +27,4 @@ Run `generate_typescript_types` on the `supabase-dev` MCP and save the output ve
 |---|---|---|
 | 20261027180523 | profiles_and_roles | `profiles`, `private.is_admin()`, `private.handle_new_user()` trigger, `updated_at` trigger, RLS (P1.5) |
 | 20261027205021 | delete_own_account | `private.delete_own_account()` (security definer) + `public.delete_own_account()` invoker wrapper for `rpc()` (P1.11) |
+| 20261028174807 | admin_ping | `public.admin_ping()`: `true` for admins, raises `42501` otherwise. The web `/admin` gate (P1.12) |
