@@ -645,5 +645,5 @@ This mapping is for the Phase 2 re-import (`method = legacy-import`, `review_sta
 
 ## 9. Open points
 - **Legacy product-level scores:** legacy product scores (`products.ethical_score`/`grade`) are hand-set and not derived from company scores. The model drops them; product grades derive from the owner company's published score. Confirm in P0.12 or Phase 7.
-- **k-anonymity floor:** `n_receipts ≥ 2` on `price_points_weekly` is a placeholder. The final rule and the consent wording are owner decisions in Phase 8 (D-013 D7).
+- **k-anonymity floor:** `n_receipts ≥ 2` on `price_points_weekly` is a placeholder. The final rule and the consent wording are owner decisions in Phase 8 (D-013 D7). The same rule must cover `price_points_monthly` rows built from receipts: P2.6 makes them fully public, and `n` there counts rows, not receipts (D-036).
 - **`community_submissions`:** user-submitted products or corrections aren't modelled yet. If kept, they become `review_queue` items with `method = user-submission`. Decide in Phase 8.

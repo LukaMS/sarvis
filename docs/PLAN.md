@@ -599,7 +599,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `products_with_source_url` rebuilds an OFF URL from `url_template`;
   - `product_ownership_chain` returns product → brand → company → parent for a test chain.
 
-### [ ] P2.6 Schema: stores and prices
+### [x] P2.6 Schema: stores and prices
 - **Slice:** schema.
 - **Goal:** the store and price tables (§3.4, except `banners`, which moved to P2.4).
 - **Deps:** P2.5.

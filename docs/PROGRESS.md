@@ -4,6 +4,49 @@ Newest entry first.
 
 ---
 
+## 2026-10-28 — P2.6 Schema: stores and prices
+
+**What changed**
+- The migration `20261028232852_catalog_stores_prices` is applied to dev. It adds:
+  - `stores` (OSM and banner keys, and coordinates set in pairs);
+  - `store_listings` (a generated `listing_key`, partial keys on SKU or normalized name + size, and a trigram name index);
+  - `price_observations` (price > 0 and ≤ 10,000, and the `(source_id, external_id)` key);
+  - `price_points_weekly` (Monday weeks, min ≤ median ≤ max), `price_points_monthly` (per store or per banner), `reference_prices` (StatCan vectors), and `price_sanity_bounds` (admin only);
+  - the views `current_prices` (the effective-price rule) and `price_observations_with_source_url`.
+- `supabase/tests/stores_prices.sql` holds the checks (rolled back).
+- The README has the migration row. The types are regenerated, and the diff adds tables only.
+- DATA_MODEL §9 has a note on monthly k-anonymity. D-036 records the design choices.
+
+**Verification**
+- RLS script: **46/46 ok**.
+  - Prices: a price of 0 and one of 10,001 are rejected with `23514`, and exactly 10,000 is accepted.
+  - Also rejected with `23514`: an observation with no product or listing, `last_confirmed_on` before `observed_on`, an undiscounted price below the price, `method = 'receipt'` on an observation, a non-Monday week, a median below the min, half an OSM key, an external store id without a banner, a mid-month reference price, and inverted sanity bounds.
+  - Rejected with `23505`: a duplicate source key, a duplicate SKU at a banner, the same normalized name + size without a SKU (`PC BLK BEAN 540ML` vs `pc  blk bean 540ml`), a duplicate OSM key, and a duplicate banner-level monthly row. `on conflict … where external_sku is null do nothing` inserts 0 rows.
+  - `current_prices`:
+    - regular 5.00 and sale 3.99 on the same day, with member 2.99 a day later → **3.99 sale**;
+    - an old sale, then a regular confirmed later → **4.50 regular**;
+    - a member-only product has no row;
+    - an admin's newer regular replaces the sale → 4.79 regular.
+  - `price_observations_with_source_url`: a stored URL wins, and the URL is rebuilt from a `url_template`.
+  - anon: sees 2 of 3 stores, only the matched listing, no weekly point with `n_receipts = 1`, and only 1 weekly point in `current_prices`. Reads observations, monthly points and reference prices. Gets `42501` on `price_sanity_bounds` and on insert.
+  - Non-admin user: no unmatched listing, no low weekly point, and 0 sanity bounds. Gets `42501` on insert, and updates or deletes 0 rows.
+  - Admin: sees everything, inserts an observation, matches a listing, updates bounds, and deletes a weekly point.
+- Afterwards: 0 rows in the new tables and 0 test users, and the fixture `url_template` is still null.
+- `relrowsecurity` is true on all 26 public tables.
+- Advisors:
+  - Security: only the existing leaked-password warning.
+  - Performance: only INFO "unused index" notices.
+- `npm run typecheck`, `lint` and `test` (27 tests) pass, and Prettier is clean.
+
+**Notes for you**
+- **Effective price with separate readings:** the newest reading wins, and on the same day a sale beats regular, which beats a receipt median. Member prices never count (D-036). A sale stays effective until a newer regular price is seen, because Open Prices has no sale end dates.
+- **Monthly price rollups are fully public.** If they include receipt data, the Phase 8 k-anonymity rule (your decision) must cover them too. I noted this in DATA_MODEL §9.
+- **Open Prices observations must store their URL for now:** the `open-prices` source has no URL template yet. Phase 3 should add one.
+
+**Next:** P2.7 Schema: AI and audit.
+
+---
+
 ## 2026-10-28 — P2.5 Schema: products
 
 **What changed**

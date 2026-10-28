@@ -1021,6 +1021,375 @@ export type Database = {
           },
         ]
       }
+      price_observations: {
+        Row: {
+          created_at: string
+          currency: string
+          external_id: string | null
+          fetched_at: string
+          id: number
+          ingestion_run_id: string | null
+          is_discounted: boolean
+          last_confirmed_on: string | null
+          listing_id: string | null
+          method: string
+          method_version: string
+          observed_on: string
+          price: number
+          price_kind: string
+          price_per: string | null
+          price_without_discount: number | null
+          product_id: string | null
+          raw_object_id: string | null
+          source_id: string
+          source_url: string | null
+          store_id: string
+          unit_basis: string | null
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          fetched_at: string
+          id?: never
+          ingestion_run_id?: string | null
+          is_discounted?: boolean
+          last_confirmed_on?: string | null
+          listing_id?: string | null
+          method: string
+          method_version: string
+          observed_on: string
+          price: number
+          price_kind?: string
+          price_per?: string | null
+          price_without_discount?: number | null
+          product_id?: string | null
+          raw_object_id?: string | null
+          source_id: string
+          source_url?: string | null
+          store_id: string
+          unit_basis?: string | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          fetched_at?: string
+          id?: never
+          ingestion_run_id?: string | null
+          is_discounted?: boolean
+          last_confirmed_on?: string | null
+          listing_id?: string | null
+          method?: string
+          method_version?: string
+          observed_on?: string
+          price?: number
+          price_kind?: string
+          price_per?: string | null
+          price_without_discount?: number | null
+          product_id?: string | null
+          raw_object_id?: string | null
+          source_id?: string
+          source_url?: string | null
+          store_id?: string
+          unit_basis?: string | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_observations_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "store_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_observations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_source_url"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_points_monthly: {
+        Row: {
+          avg_price: number
+          banner_id: string | null
+          created_at: string
+          fetched_at: string
+          id: number
+          max_price: number
+          method: string
+          method_version: string
+          min_price: number
+          month: string
+          n: number
+          product_id: string
+          source_id: string
+          source_mix: string[]
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          avg_price: number
+          banner_id?: string | null
+          created_at?: string
+          fetched_at: string
+          id?: never
+          max_price: number
+          method?: string
+          method_version: string
+          min_price: number
+          month: string
+          n: number
+          product_id: string
+          source_id: string
+          source_mix?: string[]
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avg_price?: number
+          banner_id?: string | null
+          created_at?: string
+          fetched_at?: string
+          id?: never
+          max_price?: number
+          method?: string
+          method_version?: string
+          min_price?: number
+          month?: string
+          n?: number
+          product_id?: string
+          source_id?: string
+          source_mix?: string[]
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_points_monthly_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "banners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_points_monthly_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_points_monthly_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_points_monthly_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_source_url"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_points_monthly_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_points_monthly_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_points_weekly: {
+        Row: {
+          created_at: string
+          fetched_at: string
+          id: number
+          max_price: number
+          median_price: number
+          method: string
+          method_version: string
+          min_price: number
+          n_lines: number
+          n_receipts: number
+          product_id: string
+          source_id: string
+          store_id: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          fetched_at: string
+          id?: never
+          max_price: number
+          median_price: number
+          method?: string
+          method_version: string
+          min_price: number
+          n_lines: number
+          n_receipts: number
+          product_id: string
+          source_id: string
+          store_id: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          fetched_at?: string
+          id?: never
+          max_price?: number
+          median_price?: number
+          method?: string
+          method_version?: string
+          min_price?: number
+          n_lines?: number
+          n_receipts?: number
+          product_id?: string
+          source_id?: string
+          store_id?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_points_weekly_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_points_weekly_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_points_weekly_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_source_url"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_points_weekly_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_points_weekly_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_sanity_bounds: {
+        Row: {
+          basis: string
+          category_id: string
+          created_at: string
+          id: number
+          max_unit_price: number
+          min_unit_price: number
+          unit_basis: string
+          updated_at: string
+        }
+        Insert: {
+          basis: string
+          category_id: string
+          created_at?: string
+          id?: never
+          max_unit_price: number
+          min_unit_price: number
+          unit_basis: string
+          updated_at?: string
+        }
+        Update: {
+          basis?: string
+          category_id?: string
+          created_at?: string
+          id?: never
+          max_unit_price?: number
+          min_unit_price?: number
+          unit_basis?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_sanity_bounds_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_identifiers: {
         Row: {
           banner_id: string | null
@@ -1456,6 +1825,95 @@ export type Database = {
           },
         ]
       }
+      reference_prices: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          fetched_at: string
+          geography: string
+          id: number
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          product_label: string
+          raw_object_id: string | null
+          ref_month: string
+          source_id: string
+          source_url: string | null
+          unit: string | null
+          updated_at: string
+          value: number
+          vector_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          fetched_at: string
+          geography: string
+          id?: never
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          product_label: string
+          raw_object_id?: string | null
+          ref_month: string
+          source_id: string
+          source_url?: string | null
+          unit?: string | null
+          updated_at?: string
+          value: number
+          vector_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          fetched_at?: string
+          geography?: string
+          id?: never
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          product_label?: string
+          raw_object_id?: string | null
+          ref_month?: string
+          source_id?: string
+          source_url?: string | null
+          unit?: string | null
+          updated_at?: string
+          value?: number
+          vector_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reference_prices_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reference_prices_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reference_prices_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reference_prices_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_queue: {
         Row: {
           assigned_to: string | null
@@ -1576,6 +2034,239 @@ export type Database = {
         }
         Relationships: []
       }
+      store_listings: {
+        Row: {
+          banner_id: string
+          created_at: string
+          external_sku: string | null
+          fetched_at: string
+          first_seen_at: string
+          id: string
+          ingestion_run_id: string | null
+          is_active: boolean
+          last_seen_at: string
+          listing_key: string | null
+          listing_name: string
+          match_candidate_id: number | null
+          method: string
+          method_version: string
+          product_id: string | null
+          raw_object_id: string | null
+          size_text: string | null
+          source_id: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          banner_id: string
+          created_at?: string
+          external_sku?: string | null
+          fetched_at: string
+          first_seen_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          is_active?: boolean
+          last_seen_at: string
+          listing_key?: string | null
+          listing_name: string
+          match_candidate_id?: number | null
+          method: string
+          method_version: string
+          product_id?: string | null
+          raw_object_id?: string | null
+          size_text?: string | null
+          source_id: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          banner_id?: string
+          created_at?: string
+          external_sku?: string | null
+          fetched_at?: string
+          first_seen_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          is_active?: boolean
+          last_seen_at?: string
+          listing_key?: string | null
+          listing_name?: string
+          match_candidate_id?: number | null
+          method?: string
+          method_version?: string
+          product_id?: string | null
+          raw_object_id?: string | null
+          size_text?: string | null
+          source_id?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_listings_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "banners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_listings_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_listings_match_candidate_id_fkey"
+            columns: ["match_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "match_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "store_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_source_url"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_listings_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_listings_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          address: string | null
+          banner_id: string | null
+          city: string | null
+          created_at: string
+          external_store_id: string | null
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          lat: number | null
+          lon: number | null
+          method: string
+          method_version: string
+          name: string
+          osm_id: number | null
+          osm_type: string | null
+          postal_code: string | null
+          province: string | null
+          raw_object_id: string | null
+          slug: string
+          source_id: string
+          source_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          banner_id?: string | null
+          city?: string | null
+          created_at?: string
+          external_store_id?: string | null
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          lat?: number | null
+          lon?: number | null
+          method: string
+          method_version: string
+          name: string
+          osm_id?: number | null
+          osm_type?: string | null
+          postal_code?: string | null
+          province?: string | null
+          raw_object_id?: string | null
+          slug: string
+          source_id: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          banner_id?: string | null
+          city?: string | null
+          created_at?: string
+          external_store_id?: string | null
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          lat?: number | null
+          lon?: number | null
+          method?: string
+          method_version?: string
+          name?: string
+          osm_id?: number | null
+          osm_type?: string | null
+          postal_code?: string | null
+          province?: string | null
+          raw_object_id?: string | null
+          slug?: string
+          source_id?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_banner_id_fkey"
+            columns: ["banner_id"]
+            isOneToOne: false
+            referencedRelation: "banners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stores_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       validation_failures: {
         Row: {
           created_at: string
@@ -1650,6 +2341,111 @@ export type Database = {
           ultimate_parent_slug: string | null
         }
         Relationships: []
+      }
+      current_prices: {
+        Row: {
+          as_of: string | null
+          currency: string | null
+          effective_price: number | null
+          fetched_at: string | null
+          observation_id: number | null
+          origin: string | null
+          price_kind: string | null
+          product_id: string | null
+          source_id: string | null
+          store_id: string | null
+          unit_basis: string | null
+          unit_price: number | null
+          weekly_id: number | null
+        }
+        Relationships: []
+      }
+      price_observations_with_source_url: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          external_id: string | null
+          fetched_at: string | null
+          id: number | null
+          ingestion_run_id: string | null
+          is_discounted: boolean | null
+          last_confirmed_on: string | null
+          listing_id: string | null
+          method: string | null
+          method_version: string | null
+          observed_on: string | null
+          price: number | null
+          price_kind: string | null
+          price_per: string | null
+          price_without_discount: number | null
+          product_id: string | null
+          raw_object_id: string | null
+          resolved_source_url: string | null
+          source_id: string | null
+          source_url: string | null
+          store_id: string | null
+          unit_basis: string | null
+          unit_price: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_observations_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "store_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "price_observations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_source_url"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_observations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_ownership_chain: {
         Row: {
