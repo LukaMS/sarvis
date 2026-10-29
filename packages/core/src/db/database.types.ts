@@ -392,6 +392,7 @@ export type Database = {
         Row: {
           aliases: string[]
           created_at: string
+          decision_method: string | null
           description: string | null
           fetched_at: string
           id: string
@@ -404,6 +405,9 @@ export type Database = {
           method_version: string
           name: string
           raw_object_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           slug: string
           source_id: string
           source_url: string | null
@@ -415,6 +419,7 @@ export type Database = {
         Insert: {
           aliases?: string[]
           created_at?: string
+          decision_method?: string | null
           description?: string | null
           fetched_at: string
           id?: string
@@ -427,6 +432,9 @@ export type Database = {
           method_version: string
           name: string
           raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           slug: string
           source_id: string
           source_url?: string | null
@@ -438,6 +446,7 @@ export type Database = {
         Update: {
           aliases?: string[]
           created_at?: string
+          decision_method?: string | null
           description?: string | null
           fetched_at?: string
           id?: string
@@ -450,6 +459,9 @@ export type Database = {
           method_version?: string
           name?: string
           raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           slug?: string
           source_id?: string
           source_url?: string | null
@@ -492,6 +504,13 @@ export type Database = {
             columns: ["raw_object_id"]
             isOneToOne: false
             referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brands_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -837,6 +856,7 @@ export type Database = {
           corp_canada_number: string | null
           country: string | null
           created_at: string
+          decision_method: string | null
           description: string | null
           fetched_at: string
           founded_year: number | null
@@ -855,6 +875,9 @@ export type Database = {
           ownership_type: string | null
           raw_object_id: string | null
           revenue_range: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           sec_cik: string | null
           slug: string
           source_id: string
@@ -873,6 +896,7 @@ export type Database = {
           corp_canada_number?: string | null
           country?: string | null
           created_at?: string
+          decision_method?: string | null
           description?: string | null
           fetched_at: string
           founded_year?: number | null
@@ -891,6 +915,9 @@ export type Database = {
           ownership_type?: string | null
           raw_object_id?: string | null
           revenue_range?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sec_cik?: string | null
           slug: string
           source_id: string
@@ -909,6 +936,7 @@ export type Database = {
           corp_canada_number?: string | null
           country?: string | null
           created_at?: string
+          decision_method?: string | null
           description?: string | null
           fetched_at?: string
           founded_year?: number | null
@@ -927,6 +955,9 @@ export type Database = {
           ownership_type?: string | null
           raw_object_id?: string | null
           revenue_range?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sec_cik?: string | null
           slug?: string
           source_id?: string
@@ -973,6 +1004,13 @@ export type Database = {
             columns: ["raw_object_id"]
             isOneToOne: false
             referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -2698,6 +2736,7 @@ export type Database = {
           category_id: string | null
           content_hash: string | null
           created_at: string
+          decision_method: string | null
           description: string | null
           external_id: string
           fetched_at: string
@@ -2716,6 +2755,9 @@ export type Database = {
           pack_count: number | null
           quantity_text: string | null
           raw_object_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           source_id: string
           source_modified_at: string | null
           source_url: string | null
@@ -2729,6 +2771,7 @@ export type Database = {
           category_id?: string | null
           content_hash?: string | null
           created_at?: string
+          decision_method?: string | null
           description?: string | null
           external_id: string
           fetched_at: string
@@ -2747,6 +2790,9 @@ export type Database = {
           pack_count?: number | null
           quantity_text?: string | null
           raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_id: string
           source_modified_at?: string | null
           source_url?: string | null
@@ -2760,6 +2806,7 @@ export type Database = {
           category_id?: string | null
           content_hash?: string | null
           created_at?: string
+          decision_method?: string | null
           description?: string | null
           external_id?: string
           fetched_at?: string
@@ -2778,6 +2825,9 @@ export type Database = {
           pack_count?: number | null
           quantity_text?: string | null
           raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_id?: string
           source_modified_at?: string | null
           source_url?: string | null
@@ -2847,6 +2897,13 @@ export type Database = {
             columns: ["raw_object_id"]
             isOneToOne: false
             referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

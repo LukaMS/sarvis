@@ -46,6 +46,11 @@ begin
   insert into public.brands (id, slug, name, source_id, fetched_at, method, method_version)
   values (v_x, 'rls-x', 'RLS X', v_src, now(), 'manual', 'manual@test'),
          (v_y, 'rls-y', 'RLS Y', v_src, now(), 'manual', 'manual@test');
+  -- Users see companies and brands only once approved (P2.22, D-050).
+  update public.companies set review_status = 'approved', reviewed_at = now(), decision_method = 'admin'
+  where id = any (v_ids);
+  update public.brands set review_status = 'approved', reviewed_at = now(), decision_method = 'admin'
+  where id in (v_x, v_y);
 
   insert into public.company_ownership
     (parent_company_id, child_company_id, relation, review_status, reviewed_at, decision_method,

@@ -54,6 +54,12 @@ const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const reason = (...notes: (string | null | undefined | false)[]) =>
   [UNREVIEWED, ...notes.filter(Boolean)].join(' ');
 
+/** Legacy companies, brands and products are hidden from users until approved (D-050). */
+export const ENTITY_UNREVIEWED =
+  'Legacy import: hidden from users until approved. Its details have no source; check them first.';
+const entityReason = (...notes: (string | null | undefined | false)[]) =>
+  [ENTITY_UNREVIEWED, ...notes.filter(Boolean)].join(' ');
+
 export interface LegacyIndex {
   companySlug: Map<string, string>;
   /** Legacy brand id → generated slug, name and owner company id. */
@@ -81,6 +87,14 @@ const BRAND_NOTES: Record<string, string> = {
   Patagonia:
     'P0.2 note: Patagonia is apparel, not grocery (Patagonia Provisions is its food line).',
   'Tin Shed Ventures': 'P0.2 note: Tin Shed Ventures is an investment fund, not a grocery brand.',
+};
+const COMPANY_NOTES: Record<string, string> = {
+  nestle: 'P0.2 note: the legacy CEO (Laurent Freixe) looks out of date.',
+  unilever: 'P0.2 note: the legacy CEO (Hein Schumacher) looks out of date.',
+  patagonia:
+    'P0.2 note: Patagonia is apparel, not grocery (Patagonia Provisions is its food line).',
+  'bolthouse-farms':
+    'P0.2 note: the legacy row is otherwise empty; it was apparently auto-created by lookup-product.',
 };
 const COMPANY_SCORE_NOTES: Record<string, string> = {
   'bolthouse-farms':
@@ -175,6 +189,7 @@ function companies(rows: Row[]): RecordBatch[] {
     ceo: text(c.ceo),
     description: text(c.description),
     logo_url: text(c.logo_url),
+    review_reason: entityReason(COMPANY_NOTES[str(c.slug)]),
     ...prov,
   }));
   // The legacy overall rating becomes an overall score with a rating only (D-038).
@@ -200,7 +215,14 @@ function brands(rows: Row[], index: LegacyIndex): RecordBatch[] {
     const entry = index.brands.get(str(b.id));
     const slug = entry?.slug ?? '';
     const name = text(b.name) ?? '';
-    records.push({ slug, name, logo_url: text(b.logo_url), description: text(b.notes), ...prov });
+    records.push({
+      slug,
+      name,
+      logo_url: text(b.logo_url),
+      description: text(b.notes),
+      review_reason: entityReason(BRAND_NOTES[name]),
+      ...prov,
+    });
     if (b.company_id) {
       owners.push({
         brand_slug: slug,
@@ -287,7 +309,7 @@ function products(rows: Row[], index: LegacyIndex): RecordBatch[] {
       brand_slug: brand.slug,
       brand_text: brand.slug ? brand.name : null,
       description: text(p.description),
-      review_reason: notes.length > 0 ? `Legacy import: ${notes.join(' ')}` : null,
+      review_reason: entityReason(...notes),
       ...prov,
     });
     for (const label of (p.certifications as unknown[] | null) ?? []) {

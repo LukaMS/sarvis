@@ -1,6 +1,7 @@
 // Company, brand and ownership-edge records (DATA_MODEL §3.2).
 // Status values a source can report only; `merged` and `rejected` are admin decisions.
-// Edges carry no +review block: every imported edge starts `pending`, and the writer sets that.
+// Records carry no +review block: companies, brands and edges arrive `pending` (the column default),
+// and an import never changes `review_status` (D-050, D-052).
 
 import { z } from 'zod';
 
@@ -52,6 +53,7 @@ export const CompanyRecordSchema = z.strictObject({
     .regex(/^[a-z]{2}(_[a-z0-9]+)?\/.+$/, 'jurisdiction/number')
     .nullish(),
   status: z.enum(['active', 'defunct']).default('active'),
+  ...reviewNoteShape,
   ...provenanceShape,
 });
 export type CompanyRecord = z.infer<typeof CompanyRecordSchema>;
@@ -66,6 +68,7 @@ export const BrandRecordSchema = z.strictObject({
   description: z.string().min(1).nullish(),
   is_private_label: z.boolean().default(false),
   status: z.enum(['active', 'defunct']).default('active'),
+  ...reviewNoteShape,
   ...provenanceShape,
 });
 export type BrandRecord = z.infer<typeof BrandRecordSchema>;

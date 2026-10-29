@@ -1,6 +1,7 @@
 // Companies, brands and their ownership edges (DATA_MODEL §3.2). Companies and brands key on the
-// Wikidata QID, then the slug; the slug never changes once written. Edges key on
-// (owner, owned, relation, valid_from) and arrive `pending`; a reviewed edge is left alone.
+// Wikidata QID, then the slug; the slug never changes once written. All of them arrive `pending`
+// and no import changes `review_status` (D-052). A reviewed company or brand still takes updates to
+// its unlocked fields; a reviewed edge is left alone.
 import type { TablesInsert } from '@sarvis/core';
 
 import type { ServiceClient } from '../client.ts';
@@ -14,6 +15,7 @@ import {
   provOf,
   resolverFor,
   unknownRef,
+  writeRecords,
 } from './common.ts';
 import { ReviewNotes, queueNotes } from './review.ts';
 
@@ -73,18 +75,15 @@ export function companyWriter(db: ServiceClient): DomainWriter<'company'> {
     async upsert(records, ctx) {
       const refs = resolverFor(db, ctx);
       await loadSources(refs, records);
-      const result = emptyWriteResult();
-      const payloads = records.flatMap((r) => {
-        const prov = provOf(r, refs, ctx);
-        if (!prov) {
-          result.rejected.push(unknownRef(keyOf('company', r), `source ${r.source_key}`));
-          return [];
-        }
-        const { source_key: _s, ...fields } = r;
-        return [{ ...fields, ...prov }];
+      return writeRecords({
+        db,
+        kind: 'company',
+        spec,
+        records,
+        refs,
+        ctx,
+        build: ({ source_key: _s, review_reason: _r, ...fields }, prov) => ({ ...fields, ...prov }),
       });
-      const out = await upsertKeyed(db, spec, payloads);
-      return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
     },
   };
 }
@@ -99,18 +98,15 @@ export function brandWriter(db: ServiceClient): DomainWriter<'brand'> {
     async upsert(records, ctx) {
       const refs = resolverFor(db, ctx);
       await loadSources(refs, records);
-      const result = emptyWriteResult();
-      const payloads = records.flatMap((r) => {
-        const prov = provOf(r, refs, ctx);
-        if (!prov) {
-          result.rejected.push(unknownRef(keyOf('brand', r), `source ${r.source_key}`));
-          return [];
-        }
-        const { source_key: _s, ...fields } = r;
-        return [{ ...fields, ...prov }];
+      return writeRecords({
+        db,
+        kind: 'brand',
+        spec,
+        records,
+        refs,
+        ctx,
+        build: ({ source_key: _s, review_reason: _r, ...fields }, prov) => ({ ...fields, ...prov }),
       });
-      const out = await upsertKeyed(db, spec, payloads);
-      return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
     },
   };
 }

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { envelopeOf } from '../../raw/store.ts';
 import type { RawPayload, RecordBatch } from '../source.ts';
 import { createLegacyImportSource } from './index.ts';
-import { UNREVIEWED, schemeOf, stepOf } from './map.ts';
+import { ENTITY_UNREVIEWED, UNREVIEWED, schemeOf, stepOf } from './map.ts';
 
 async function parseAll(): Promise<RecordBatch[]> {
   const source = createLegacyImportSource();
@@ -80,7 +80,7 @@ describe('legacy-import mapping', () => {
     expect(products.get('KitKat Original')?.brand_slug).toBe('kitkat');
     expect(products.get("Lay's Classic Chips")?.brand_slug).toBe('lays');
     expect(products.get('Scoobi Doo Pasta')?.brand_slug).toBe('unico');
-    expect(products.get('KitKat Original')?.review_reason).toBeNull();
+    expect(products.get('KitKat Original')?.review_reason).toBe(ENTITY_UNREVIEWED);
     for (const name of ['Green Goodness', 'Kashi Bars']) {
       expect(products.get(name)?.brand_slug).toBeNull();
       expect(products.get(name)?.review_reason).toMatch(/link it/);
@@ -110,6 +110,20 @@ describe('legacy-import mapping', () => {
     for (const r of reasons('company_score', 'company_slug', 'sun-brite-foods'))
       expect(r).toMatch(/placeholders/);
     expect(reasons('brand_ownership', 'brand_slug', 'uncle-bens')[0]).toMatch(/Ben's Original/);
+  });
+
+  it('queues every company, brand and product, since users only see approved ones', () => {
+    for (const kind of ['company', 'brand', 'product'] as const) {
+      expect(of(kind).length, kind).toBeGreaterThan(0);
+      for (const r of of(kind)) expect(r.review_reason, kind).toMatch(ENTITY_UNREVIEWED);
+    }
+    const reasons = (kind: RecordKind, slug: string) =>
+      of(kind).find((r) => r.slug === slug)?.review_reason;
+    expect(reasons('company', 'nestle')).toMatch(/CEO .* out of date/);
+    expect(reasons('company', 'unilever')).toMatch(/CEO .* out of date/);
+    expect(reasons('company', 'patagonia')).toMatch(/not grocery/);
+    expect(reasons('company', 'danone')).toBe(ENTITY_UNREVIEWED);
+    expect(reasons('brand', 'tin-shed-ventures')).toMatch(/investment fund/);
   });
 
   it('maps legacy score categories and overall ratings', () => {

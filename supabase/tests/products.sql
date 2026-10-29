@@ -112,6 +112,14 @@ begin
   insert into public.products (id, external_id, name, status, source_id, fetched_at, method, method_version)
   values (v_r, 'rls-rejected', 'RLS Rejected', 'rejected', v_src, now(), 'manual', 'manual@test'),
          (v_s, 'rls-discontinued', 'RLS Discontinued', 'discontinued', v_src, now(), 'manual', 'manual@test');
+  -- Users see companies, brands and products only once approved (P2.22, D-050); the status
+  -- filters still hide the rejected and discontinued products.
+  update public.companies set review_status = 'approved', reviewed_at = now(), decision_method = 'admin'
+  where id in (v_a, v_b, v_c);
+  update public.brands set review_status = 'approved', reviewed_at = now(), decision_method = 'admin'
+  where id = v_x;
+  update public.products set review_status = 'approved', reviewed_at = now(), decision_method = 'admin'
+  where id = any (v_products);
 
   insert into public.product_identifiers (product_id, scheme, value, banner_id, source_id, fetched_at, method, method_version)
   values (v_p, 'store_sku', '12345', v_banner1, v_src, now(), 'manual', 'manual@test'),
