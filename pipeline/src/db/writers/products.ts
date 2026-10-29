@@ -21,6 +21,7 @@ import {
   resolverFor,
   unknownRef,
 } from './common.ts';
+import { ReviewNotes, queueNotes } from './review.ts';
 
 type ProductPayload = TablesInsert<'products'>;
 
@@ -86,7 +87,11 @@ export async function productPayloads(
   db: ServiceClient,
   records: ProductRecord[],
   ctx: Parameters<DomainWriter<'product'>['upsert']>[1],
-): Promise<{ payloads: ProductPayload[]; rejected: WriteResult['rejected'] }> {
+): Promise<{
+  payloads: ProductPayload[];
+  rejected: WriteResult['rejected'];
+  notes: ReviewNotes;
+}> {
   const refs = resolverFor(db, ctx);
   await loadSources(refs, records);
   await refs.loadSlugs(
@@ -99,32 +104,41 @@ export async function productPayloads(
   );
   await refs.loadLabels(records.flatMap((r) => r.label_codes));
   const rejected: WriteResult['rejected'] = [];
+  const notes = new ReviewNotes();
   const payloads = records.flatMap((r): ProductPayload[] => {
     const prov = provOf(r, refs, ctx);
     if (!prov) {
       rejected.push(unknownRef(keyOf('product', r), `source ${r.source_key}`));
       return [];
     }
-    const { source_key: _s, brand_slug, category_slug, label_codes, net_quantity, ...fields } = r;
+    const {
+      source_key: _s,
+      review_reason: _r,
+      brand_slug,
+      category_slug,
+      label_codes,
+      net_quantity,
+      ...fields
+    } = r;
     // An unknown brand or category isn't fatal: brand_text stays for the P4 resolver.
-    return [
-      {
-        ...fields,
-        brand_id: refs.slug('brands', brand_slug) ?? null,
-        category_id: refs.slug('categories', category_slug) ?? null,
-        label_codes: refs.labelIds(label_codes),
-        net_quantity: roundTo(net_quantity, 3),
-        ...prov,
-      },
-    ];
+    const payload = {
+      ...fields,
+      brand_id: refs.slug('brands', brand_slug) ?? null,
+      category_id: refs.slug('categories', category_slug) ?? null,
+      label_codes: refs.labelIds(label_codes),
+      net_quantity: roundTo(net_quantity, 3),
+      ...prov,
+    };
+    notes.add(productSpec.label(payload), r);
+    return [payload];
   });
-  return { payloads, rejected };
+  return { payloads, rejected, notes };
 }
 
 export function productWriter(db: ServiceClient): DomainWriter<'product'> {
   return {
     async upsert(records, ctx) {
-      const { payloads, rejected } = await productPayloads(db, records, ctx);
+      const { payloads, rejected, notes } = await productPayloads(db, records, ctx);
 
       // A GTIN already held by another source's product: record this source beside it.
       const byGtin = await selectIn(
@@ -157,6 +171,7 @@ export function productWriter(db: ServiceClient): DomainWriter<'product'> {
       }
 
       const main = await upsertKeyed(db, productSpec, own);
+      await queueNotes(db, productSpec, notes, main);
       const extra = await upsertKeyed(db, productSourceSpec, secondary);
       const result = mergeWriteResults(main.result, extra.result);
       return { ...result, rejected: [...rejected, ...result.rejected] };

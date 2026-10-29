@@ -10,6 +10,7 @@ import {
   Gtin14Schema,
   ProductRefSchema,
   provenanceShape,
+  reviewNoteShape,
   SlugSchema,
   textField,
 } from './common.ts';
@@ -36,6 +37,7 @@ export const ProductRecordSchema = z
     description: z.string().min(1).nullish(),
     source_modified_at: DateTimeSchema.nullish(),
     status: z.enum(['active', 'discontinued']).default('active'),
+    ...reviewNoteShape,
     ...provenanceShape,
   })
   .refine((r) => (r.net_quantity == null) === (r.net_unit == null), {

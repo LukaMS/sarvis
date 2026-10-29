@@ -55,6 +55,25 @@ const KEYS: { [K in RecordKind]: (r: RecordOf<K>) => (string | false | null | un
   ],
   reference_price: (r) => [`${r.vector_id}@${r.ref_month}`],
   document: (r) => [r.url_normalized],
+  // AI and manual scores are append-only events; only a legacy score has a natural key (D-038).
+  company_score: (r) => [
+    r.method === 'legacy-import'
+      ? `${r.company_slug}:${r.category}`
+      : `${r.company_slug}:${r.category}@${r.fetched_at}`,
+  ],
+  certification: (r) => [
+    [
+      r.company_slug ?? '',
+      r.brand_slug ?? '',
+      r.product ? productRefKey(r.product) : '',
+      r.scheme,
+      r.scheme_name ?? '',
+    ].join('|'),
+  ],
+  company_event: (r) => [`${r.company_slug}:${r.kind}:${r.title}@${r.event_date ?? ''}`],
+  product_feature: (r) => [`${productRefKey(r.product)}#${r.sort_order}`],
+  transparency_step: (r) => [`${productRefKey(r.product)}:${r.step}`],
+  story: (r) => [`slug:${r.slug}`],
 };
 
 /** The record's stable keys, the most readable first. */
@@ -70,6 +89,8 @@ const RAW_KEY_FIELDS = [
   'vector_id',
   'value',
   'listing_name',
+  'company_slug',
+  'title',
 ];
 
 /** A best-effort key for a record that failed the schema, so the failure row can still be traced. */

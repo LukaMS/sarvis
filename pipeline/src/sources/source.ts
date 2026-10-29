@@ -62,9 +62,20 @@ export interface RawPayload {
   fetchedAt: string;
 }
 
+/** Unvalidated records of one kind. */
+export interface RecordBatch {
+  kind: RecordKind;
+  records: unknown[];
+}
+
 export interface ParseResult {
   /** Unvalidated records of the source's `recordKind`. */
   records: unknown[];
+  /**
+   * Batches of other kinds, validated and written after `records`, in this order. A source that
+   * reads several tables (legacy-import) uses them, so one stored file can feed several tables.
+   */
+  batches?: RecordBatch[];
   /** How many records the source says exist in total, when the response tells us (capped pagination). */
   expectedTotal?: number | null;
 }

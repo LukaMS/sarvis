@@ -120,6 +120,7 @@ export async function runCommand(
       store: createSupabaseRunStore(db),
       raw: storageRawWriter(db),
       writer: writerFor(db, source.recordKind),
+      writerFor: (kind) => writerFor(db, kind),
       log: deps.log,
     },
   );

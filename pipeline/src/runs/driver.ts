@@ -39,6 +39,7 @@ import type {
   FetchResult,
   ParseResult,
   RawPayload,
+  RecordBatch,
   Source,
   SourceRow,
   SourceRunContext,
@@ -102,6 +103,8 @@ export interface RunDeps<K extends RecordKind> {
   /** Creates the raw writer once the run exists. Not called in a dry run. */
   raw: (ctx: { runId: string; source: SourceRow }) => RawWriter;
   writer: RecordWriter<K>;
+  /** Writers for steps whose parse names another record kind (ParseResult.kind). */
+  writerFor?: (kind: RecordKind) => RecordWriter<RecordKind>;
   /** Defaults to a polite client limited by the source row's rate. */
   http?: HttpClient;
   log?: Logger;
@@ -311,59 +314,77 @@ export async function runSource<K extends RecordKind>(
       }
       if (parsed.expectedTotal != null) expectedTotal = parsed.expectedTotal;
 
-      const records =
-        sampleSize === null ? parsed.records : parsed.records.slice(0, sampleSize - counts.fetched);
-      const batch = validateBatch(source.recordKind, records, validateOptions);
-      counts = addCounts(counts, {
-        fetched: records.length,
-        valid: batch.stats.valid,
-        invalid: batch.stats.invalid,
-      });
-      duplicates += batch.stats.byRule.duplicate;
-
-      const room = MAX_VALIDATION_FAILURES - failuresStored;
-      if (room > 0 && batch.failures.length > 0) {
-        const rows = batch.failures.slice(0, room).map((f) => ({
-          run_id: runId,
-          raw_object_id: rawObjectId,
-          record_key: f.record_key,
-          rule: f.rule,
-          message: f.message,
-          payload: f.payload,
-        }));
-        await store.addValidationFailures(rows);
-        failuresStored += rows.length;
-      }
-
-      const verdict = evaluateBatch(
-        { fetched: records.length, quality: qualityOf(batch.stats), previousCount: null },
-        thresholds,
-      );
-      for (const w of verdict.warnings) await event('warn', 'safeguard_warning', w, { seq });
-      if (verdict.fail) {
-        // A suspect batch isn't written, and the run can't end clean.
-        hadErrors = true;
-        await event('error', 'safeguard_failed', verdict.reason ?? 'Batch failed safeguards.', {
-          seq,
-          rawObjectId,
+      const groups: RecordBatch[] = [
+        ...(parsed.records.length > 0 || !parsed.batches
+          ? [{ kind: source.recordKind, records: parsed.records }]
+          : []),
+        ...(parsed.batches ?? []),
+      ];
+      for (const group of groups) {
+        const { kind } = group;
+        if (sampleSize !== null && counts.fetched >= sampleSize) break;
+        const records =
+          sampleSize === null ? group.records : group.records.slice(0, sampleSize - counts.fetched);
+        const batch = validateBatch(kind, records, validateOptions);
+        counts = addCounts(counts, {
+          fetched: records.length,
+          valid: batch.stats.valid,
+          invalid: batch.stats.invalid,
         });
-      } else if (!dryRun && batch.valid.length > 0) {
-        const written = await deps.writer.upsert(batch.valid, { runId, source: row, rawObjectId });
-        counts = addCounts(counts, written);
-        const rejected = written.rejected ?? [];
-        if (rejected.length > 0) {
-          // Valid but unwritten: the run can't end clean, and the first few say why.
+        duplicates += batch.stats.byRule.duplicate;
+
+        const room = MAX_VALIDATION_FAILURES - failuresStored;
+        if (room > 0 && batch.failures.length > 0) {
+          const rows = batch.failures.slice(0, room).map((f) => ({
+            run_id: runId,
+            raw_object_id: rawObjectId,
+            record_key: f.record_key,
+            rule: f.rule,
+            message: f.message,
+            payload: f.payload,
+          }));
+          await store.addValidationFailures(rows);
+          failuresStored += rows.length;
+        }
+
+        const verdict = evaluateBatch(
+          { fetched: records.length, quality: qualityOf(batch.stats), previousCount: null },
+          thresholds,
+        );
+        for (const w of verdict.warnings)
+          await event('warn', 'safeguard_warning', w, { seq, kind });
+        if (verdict.fail) {
+          // A suspect batch isn't written, and the run can't end clean.
           hadErrors = true;
-          await event(
-            'warn',
-            'records_not_written',
-            `${rejected.length} valid records were not written.`,
-            {
-              seq,
-              rawObjectId,
-              examples: rejected.slice(0, 5),
-            },
-          );
+          await event('error', 'safeguard_failed', verdict.reason ?? 'Batch failed safeguards.', {
+            seq,
+            kind,
+            rawObjectId,
+          });
+        } else if (!dryRun && batch.valid.length > 0) {
+          const writer =
+            kind === source.recordKind
+              ? (deps.writer as RecordWriter<RecordKind>)
+              : deps.writerFor?.(kind);
+          if (!writer) throw new ConfigurationError(`No writer for ${kind} records.`);
+          const written = await writer.upsert(batch.valid, { runId, source: row, rawObjectId });
+          counts = addCounts(counts, written);
+          const rejected = written.rejected ?? [];
+          if (rejected.length > 0) {
+            // Valid but unwritten: the run can't end clean, and the first few say why.
+            hadErrors = true;
+            await event(
+              'warn',
+              'records_not_written',
+              `${rejected.length} valid records were not written.`,
+              {
+                seq,
+                kind,
+                rawObjectId,
+                examples: rejected.slice(0, 5),
+              },
+            );
+          }
         }
       }
       await store.updateRun(runId, { counts, expected_total: expectedTotal });

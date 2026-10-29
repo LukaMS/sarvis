@@ -1,9 +1,10 @@
-// The writer for each record kind the pipeline imports (PLAN P2.16). Scoring and document
-// writers come in Phase 7; reference prices with the StatCan source.
+// The writer for each record kind the pipeline imports (PLAN P2.16, P2.18). Document writers
+// come in Phase 7; reference prices with the StatCan source.
 import type { RecordKind } from '@sarvis/core';
 
 import type { ServiceClient } from '../client.ts';
 import type { DomainWriter } from './common.ts';
+import { productFeatureWriter, storyWriter, transparencyStepWriter } from './editorial.ts';
 import {
   brandOwnershipWriter,
   brandWriter,
@@ -12,6 +13,7 @@ import {
 } from './ownership.ts';
 import { priceObservationWriter } from './prices.ts';
 import { productIdentifierWriter, productWriter } from './products.ts';
+import { certificationWriter, companyEventWriter, companyScoreWriter } from './scoring.ts';
 import { storeListingWriter, storeWriter } from './stores.ts';
 
 export type { DomainWriter } from './common.ts';
@@ -28,6 +30,12 @@ const WRITERS: WriterFactories = {
   store: storeWriter,
   store_listing: storeListingWriter,
   price_observation: priceObservationWriter,
+  company_score: companyScoreWriter,
+  certification: certificationWriter,
+  company_event: companyEventWriter,
+  product_feature: productFeatureWriter,
+  transparency_step: transparencyStepWriter,
+  story: storyWriter,
 };
 
 export function hasWriter(kind: RecordKind): boolean {

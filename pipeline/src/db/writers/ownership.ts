@@ -15,6 +15,7 @@ import {
   resolverFor,
   unknownRef,
 } from './common.ts';
+import { ReviewNotes, queueNotes } from './review.ts';
 
 /** Statuses only an admin sets. A row in one of them is frozen against imports. */
 const ADMIN_STATUSES = new Set(['merged', 'rejected']);
@@ -152,6 +153,7 @@ export function brandOwnershipWriter(db: ServiceClient): DomainWriter<'brand_own
         records.map((r) => r.company_slug),
       );
       const result: WriteResult = emptyWriteResult();
+      const notes = new ReviewNotes();
       const payloads = records.flatMap((r): TablesInsert<'brand_ownership'>[] => {
         const key = keyOf('brand_ownership', r);
         const prov = provOf(r, refs, ctx);
@@ -168,20 +170,21 @@ export function brandOwnershipWriter(db: ServiceClient): DomainWriter<'brand_own
           result.rejected.push(unknownRef(key, missing ?? 'reference'));
           return [];
         }
-        return [
-          {
-            brand_id: brandId,
-            company_id: companyId,
-            relation: r.relation,
-            valid_from: r.valid_from ?? null,
-            valid_to: r.valid_to ?? null,
-            confidence: roundTo(r.confidence, 2),
-            ai_call_id: r.ai_call_id ?? null,
-            ...prov,
-          },
-        ];
+        const payload = {
+          brand_id: brandId,
+          company_id: companyId,
+          relation: r.relation,
+          valid_from: r.valid_from ?? null,
+          valid_to: r.valid_to ?? null,
+          confidence: roundTo(r.confidence, 2),
+          ai_call_id: r.ai_call_id ?? null,
+          ...prov,
+        };
+        notes.add(brandEdgeSpec.label(payload), r);
+        return [payload];
       });
       const out = await upsertKeyed(db, brandEdgeSpec, payloads);
+      await queueNotes(db, brandEdgeSpec, notes, out);
       return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
     },
   };
@@ -218,6 +221,7 @@ export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company
         records.flatMap((r) => [r.parent_company_slug, r.child_company_slug]),
       );
       const result: WriteResult = emptyWriteResult();
+      const notes = new ReviewNotes();
       const payloads = records.flatMap((r): TablesInsert<'company_ownership'>[] => {
         const key = keyOf('company_ownership', r);
         const prov = provOf(r, refs, ctx);
@@ -234,21 +238,22 @@ export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company
           result.rejected.push(unknownRef(key, missing ?? 'reference'));
           return [];
         }
-        return [
-          {
-            parent_company_id: parentId,
-            child_company_id: childId,
-            relation: r.relation,
-            share_pct: roundTo(r.share_pct, 2),
-            valid_from: r.valid_from ?? null,
-            valid_to: r.valid_to ?? null,
-            confidence: roundTo(r.confidence, 2),
-            ai_call_id: r.ai_call_id ?? null,
-            ...prov,
-          },
-        ];
+        const payload = {
+          parent_company_id: parentId,
+          child_company_id: childId,
+          relation: r.relation,
+          share_pct: roundTo(r.share_pct, 2),
+          valid_from: r.valid_from ?? null,
+          valid_to: r.valid_to ?? null,
+          confidence: roundTo(r.confidence, 2),
+          ai_call_id: r.ai_call_id ?? null,
+          ...prov,
+        };
+        notes.add(companyEdgeSpec.label(payload), r);
+        return [payload];
       });
       const out = await upsertKeyed(db, companyEdgeSpec, payloads);
+      await queueNotes(db, companyEdgeSpec, notes, out);
       return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
     },
   };

@@ -4,8 +4,10 @@ import { recordKeys } from '@sarvis/core';
 
 import type { RecordWriter, WriteContext } from '../../runs/driver.ts';
 import type { ServiceClient } from '../client.ts';
-import type { RecordProblem, WriteResult } from '../keyed.ts';
+import { type KeyedSpec, type RecordProblem, type WriteResult, upsertKeyed } from '../keyed.ts';
+import type { AnyRow } from '../query.ts';
 import { RefResolver } from '../refs.ts';
+import { ReviewNotes, queueNotes } from './review.ts';
 
 /** The +prov columns as written (DATA_MODEL §1.2). */
 export interface ProvColumns {
@@ -66,4 +68,37 @@ export function keyOf<K extends RecordKind>(kind: K, record: RecordOf<K>): strin
 
 export function unknownRef(key: string, what: string): RecordProblem {
   return { key, message: `Unknown ${what}; the record was not written.` };
+}
+
+/**
+ * The common write path: build each record's payload (or name the reference it's missing),
+ * upsert on the spec's keys, and queue the records that came with a review reason.
+ */
+export async function writeRecords<K extends RecordKind, P extends AnyRow>(opts: {
+  db: ServiceClient;
+  kind: K;
+  spec: KeyedSpec<P>;
+  records: RecordOf<K>[];
+  refs: RefResolver;
+  ctx: WriteContext;
+  /** The payload, or what's missing (`company acme`) when a reference doesn't resolve. */
+  build: (record: RecordOf<K>, prov: ProvColumns) => P | { missing: string };
+}): Promise<WriteResult> {
+  const { db, kind, spec, refs, ctx } = opts;
+  const rejected: RecordProblem[] = [];
+  const notes = new ReviewNotes();
+  const payloads = opts.records.flatMap((r): P[] => {
+    const prov = provOf(r, refs, ctx);
+    const built = prov ? opts.build(r, prov) : { missing: `source ${r.source_key}` };
+    if ('missing' in built && typeof built.missing === 'string') {
+      rejected.push(unknownRef(keyOf(kind, r), built.missing));
+      return [];
+    }
+    const payload = built as P;
+    notes.add(spec.label(payload), r as { review_reason?: string | null; method: string });
+    return [payload];
+  });
+  const out = await upsertKeyed(db, spec, payloads);
+  await queueNotes(db, spec, notes, out);
+  return { ...out.result, rejected: [...rejected, ...out.result.rejected] };
 }

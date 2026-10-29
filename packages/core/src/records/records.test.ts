@@ -194,6 +194,72 @@ const CASES: { [K in RecordKind]: Case<K> } = {
       'url',
     ],
   },
+  company_score: {
+    valid: {
+      company_slug: 'mars',
+      category: 'labour',
+      rating: 'Mixed',
+      ...prov,
+      method: 'legacy-import',
+    },
+    invalid: [
+      { company_slug: 'mars', category: 'labour', rating: 'Mixed', ...prov, method: 'manual' },
+      'confidence',
+    ],
+  },
+  certification: {
+    valid: { company_slug: 'patagonia', scheme: 'b_corp', certified_on: '2012-01-01', ...prov },
+    invalid: [
+      { company_slug: 'patagonia', brand_slug: 'patagonia', scheme: 'b_corp', ...prov },
+      'company_slug',
+    ],
+  },
+  company_event: {
+    valid: {
+      company_slug: 'nestle',
+      kind: 'controversy',
+      title: 'Water privatization',
+      date_text: '2023 (ongoing)',
+      severity: 'high',
+      ...prov,
+    },
+    invalid: [{ company_slug: 'nestle', kind: 'scandal', title: 'x', ...prov }, 'kind'],
+  },
+  product_feature: {
+    valid: {
+      product: { source_key: 'legacy-import', external_id: 'p1' },
+      icon: 'leaf',
+      title: 'Plant based',
+      sort_order: 0,
+      ...prov,
+    },
+    invalid: [
+      {
+        product: { source_key: 'legacy-import', external_id: 'p1' },
+        icon: 'rocket',
+        title: 'x',
+        sort_order: 0,
+        ...prov,
+      },
+      'icon',
+    ],
+  },
+  transparency_step: {
+    valid: {
+      product: { gtin: '00036000291452' },
+      step: 'distribution',
+      title: 'Carbon Offset Shipping',
+      ...prov,
+    },
+    invalid: [
+      { product: { gtin: '00036000291452' }, step: 'shipping', title: 'x', ...prov },
+      'step',
+    ],
+  },
+  story: {
+    valid: { slug: 'the-hidden-cost-of-chocolate', title: 'The Hidden Cost of Chocolate', ...prov },
+    invalid: [{ slug: 'x', title: 'x', published_at: '2026-03-18', ...prov }, 'published_at'],
+  },
 };
 
 describe('record schemas', () => {
@@ -274,6 +340,33 @@ describe('shared rules', () => {
   it('needs a timezone offset on datetimes', () => {
     expect(
       RECORD_SCHEMAS.product.safeParse({ ...product, fetched_at: '2026-10-29T12:00:00' }).success,
+    ).toBe(false);
+  });
+
+  it('takes a review reason on reviewable records', () => {
+    expect(
+      RECORD_SCHEMAS.product.safeParse({ ...product, review_reason: 'Bad barcode' }).success,
+    ).toBe(true);
+    expect(RECORD_SCHEMAS.product.safeParse({ ...product, review_reason: '' }).success).toBe(false);
+  });
+
+  it('shapes scores by category', () => {
+    const score = { company_slug: 'mars', ...prov, method: 'legacy-import' } as const;
+    const ok = (p: Record<string, unknown>) =>
+      RECORD_SCHEMAS.company_score.safeParse({ ...score, ...p }).success;
+    expect(ok({ category: 'overall', rating: 'Good' })).toBe(true);
+    expect(ok({ category: 'overall', score: 72, grade: 'B-' })).toBe(true);
+    expect(ok({ category: 'overall', score: 72 })).toBe(false);
+    expect(ok({ category: 'labour', rating: 'Good', score: 72, grade: 'B-' })).toBe(false);
+    expect(ok({ category: 'labour', rating: 'Good', method: 'api' })).toBe(false);
+    expect(
+      ok({
+        category: 'labour',
+        rating: 'Good',
+        method: 'ai',
+        confidence: 0.8,
+        rubric_version: 'v1',
+      }),
     ).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 // The run driver with a fake source and the in-memory run store: no network, no database.
-import type { RecordOf } from '@sarvis/core';
+import type { RecordKind, RecordOf } from '@sarvis/core';
 import { describe, expect, it } from 'vitest';
 
 import { SourceBlockedError } from '../errors.ts';
@@ -357,6 +357,44 @@ describe('runSource: lifecycle', () => {
     expect(upserted.map((b) => b.length)).toEqual([2, 1]);
     expect(src.parsed).toHaveLength(2);
     expect(deactivations).toHaveLength(0);
+  });
+
+  it('writes batches of other kinds in order, with their own writers', async () => {
+    const { deps, upserted } = setup();
+    const order: string[] = [];
+    const brand = (slug: string) => ({ slug, name: slug, ...prov });
+    const src = fakeSource({ pages: [[good('a')]] });
+    const parse = src.parse.bind(src);
+    src.parse = (raw) => ({
+      ...parse(raw),
+      batches: [
+        { kind: 'brand', records: [brand('acme'), brand('Not A Slug')] },
+        { kind: 'brand', records: [brand('zed')] },
+      ],
+    });
+    const writerFor = (kind: string): RecordWriter<RecordKind> => ({
+      async upsert(records) {
+        order.push(`${kind}:${records.length}`);
+        return { inserted: records.length, updated: 0, unchanged: 0, skipped_locked: 0 };
+      },
+    });
+    const result = await runSource(src, full, { ...deps, writerFor });
+
+    expect(result.counts).toMatchObject({ fetched: 4, valid: 3, invalid: 1, inserted: 3 });
+    expect(upserted.map((b) => b.length)).toEqual([1]);
+    expect(order).toEqual(['brand:1', 'brand:1']);
+  });
+
+  it('fails the run when a batch has no writer', async () => {
+    const { deps } = setup();
+    const src = fakeSource({ pages: [[]] });
+    src.parse = () => ({
+      records: [],
+      batches: [{ kind: 'brand', records: [{ slug: 'acme', name: 'Acme', ...prov }] }],
+    });
+    const result = await runSource(src, full, deps);
+    expect(result.status).toBe('failed');
+    expect(result.errorSummary).toMatch(/No writer for brand/);
   });
 
   it('a blocked source fails the run at once and flags an alert', async () => {

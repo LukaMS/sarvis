@@ -69,6 +69,14 @@ export const provenanceShape = {
   raw_object_id: UuidSchema.nullish(),
 };
 export const ProvenanceSchema = z.strictObject(provenanceShape);
+
+/**
+ * Why an admin should look at a record (a P0.2 quality note, a bad barcode). The writer gives a
+ * record with a reason one `review_queue` row, once; the reason is never a column of the fact.
+ */
+export const reviewNoteShape = {
+  review_reason: textField(1000).nullish(),
+};
 export type Provenance = z.infer<typeof ProvenanceSchema>;
 
 /** A product by its stable key: the GTIN, else the source record id. */

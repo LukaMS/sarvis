@@ -10,6 +10,7 @@ import {
   DateSchema,
   HttpUrlSchema,
   provenanceShape,
+  reviewNoteShape,
   SlugSchema,
   textField,
   validRangeOk,
@@ -74,6 +75,7 @@ const edgeShape = {
   valid_to: DateSchema.nullish(),
   confidence: ConfidenceSchema.nullish(),
   ai_call_id: z.number().int().positive().nullish(),
+  ...reviewNoteShape,
   ...provenanceShape,
 };
 
