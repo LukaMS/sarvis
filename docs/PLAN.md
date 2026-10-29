@@ -925,26 +925,306 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 
 **Open 🟡 decisions in Phase 2:** none. Every choice above follows from DATA_MODEL or an existing decision; the new ones are in D-030.
 
-## Phase 3 — Catalog sources (outline)
+## Phase 3 — Catalog sources (full detail)
 
-**Exit:** each approved source has been run on a sample, then scaled, with row counts, examples and validation results in PROGRESS. The DB and storage stay within budget.
+**Exit:**
+- Each approved source has been run on a sample, then scaled, with row counts, examples and validation results in PROGRESS.
+- The DB and storage stay within budget.
 
-- [ ] **P3.0 Refine Phase 3 into session-sized tasks.** Deps: Phase 2 and the owner's answers to the SOURCES.md decisions.
-- **Milestones:** each source is its own task pair: (a) sample of ~100 records, (b) scale-up.
-  - Open Food Facts, Canadian subset: products, GTINs, brand strings, categories, quantity.
-    - Apply the BUDGET §4 import filter (~95k rows) and measure real row width in the sample task.
-    - In-app attribution (ODbL, D-013 D1).
-    - Publish the ODbL extract to the `public-exports` bucket; watch egress (BUDGET §6).
-  - Wikidata: brand → company → parent ownership, with dates and Wikidata QIDs as stable IDs.
-  - Open Prices: Canadian store price observations.
-  - StatCan average retail prices, as a price-sanity reference.
-  - Wikipedia summaries (S19) for company pages.
-  - SEC EDGAR Exhibit 21 (S20) → `pending` company ownership edges.
-  - Corporations Canada (S21, low priority): an identity check only.
-  - Retailer catalog sources: **none** for now. All Ontario grocers, Walmart, Costco and Flipp are avoided (D-013). Revisit only if the owner gets written permission.
-  - ✅ User-Agent contact (D-015, amended 2026-10-29): the repo URL, `Sarvis/<version> (+https://github.com/LukaMS/sarvis)`. Sources that ask for an email (OFF, SEC EDGAR) add the owner's email from `PIPELINE_CONTACT_EMAIL` in `.env` (add it to `.env.example` as a placeholder and to the env loader; refuse those sources when it's unset).
-  - A budget check after each scale-up task.
-  - Before any non-legacy source writes companies or brands that need review (Wikidata, AI): add `company` and `brand` to `review_queue.item_type`, so their `review_reason` is queued (found in P2.22, D-052). Also code the D-050 OFF auto-approve in the OFF writer path.
+- [x] **P3.0 Refine Phase 3** → done 2026-10-29 (this section; D-053).
+
+**Milestones** (each one maps to tasks in the coverage table at the end of this phase):
+- **M1 Shared groundwork:** the contact email for sources that ask for one (D-015), streaming dump downloads, the missing writers (`reference_price`, `document`), and the schema additions Phase 3 needs (queue item types `company`/`brand`, a Wikipedia summary field, per-source provenance for companies).
+- **M2 Open Food Facts (S1):** the Canadian subset with the BUDGET §4 import filter (~95k rows), real row width measured in the sample, the D-050 auto-approve, then daily deltas. The ODbL extract is published to `public-exports` (D-013 D1), with egress watched (BUDGET §6).
+- **M3 Open Prices (S5):** Canadian price observations and their OSM stores.
+- **M4 StatCan (S6):** average retail prices, Canada and Ontario, as the price-sanity reference.
+- **M5 Wikidata (S17):** brand → company → parent ownership, with dates and QIDs as stable IDs.
+- **M6 Wikipedia (S19):** summaries for company pages, with attribution.
+- **M7 SEC EDGAR (S20):** Exhibit 21 subsidiaries → `pending` company ownership edges.
+- **M8 Corporations Canada (S21, low priority):** an identity check only.
+- **M9 Budget:** a check after each scale-up, and an exit check over all of Phase 3.
+
+**Not in Phase 3:**
+- Retailer catalog sources: **none**. All Ontario grocers, Walmart, Costco and Flipp are avoided (D-013). Revisit only if the owner gets written permission.
+- Linking products to brands, creating brands from OFF brand strings, and the taxonomy: Phase 4. OFF products arrive with `brand_text` only (D-048), and Wikidata brands with QIDs; the P4 resolver joins them.
+- `price_sanity_bounds`: Phase 4, once there are categories to derive them for. StatCan rows land in `reference_prices` here.
+- In-app attribution for OFF, Open Prices and Wikipedia: Phase 8 (product and company screens) and Phase 10 (About screen). The app shows no catalog data before then.
+- Scheduling: Phase 6. Phase 3 runs everything from the CLI on the dev machine against the dev project.
+
+**Feature slices** (each task touches exactly one): `pipeline-runtime`, `schema`, `pipeline-http`, `pipeline-db`, `source-off`, `exports`, `source-open-prices`, `source-statcan`, `source-wikidata`, `source-wikipedia`, `source-edgar`, `source-corp-canada`, `release-check`.
+
+**Rules for every source task (P3.5–P3.7, P3.9–P3.18):**
+- The source lives in `pipeline/src/sources/<key>/` and is registered under its seeded `sources.key`. It uses the polite client, stores raw before parsing, and sets `method`/`method_version` (`<key>@<version>`).
+- **Its first step is a terms check:** re-read the SOURCES.md entry's terms and robots.txt, and update `terms_checked_at` (SOURCES.md plus a `sources` migration) if anything changed. If the terms now prohibit automated access, stop and ask the owner (CLAUDE.md).
+- Mapping and parsing are unit-tested on a small saved fixture of the real format (no personal data, D-012). No network in `npm test`.
+- **Sample tasks (a):** `npm run pipeline -- run <key> --dry-run --sample 100`, then `--sample 100` for real, then the same command again.
+- **Scale-up tasks (b):** a `--mode full` run, then a second one.
+- **Verification (all source tasks):**
+  - PROGRESS gets the run ids, `counts` from both runs, 5 example records (as stored, with provenance), and the `validation_failures` by rule. Failures are reported as they are.
+  - The second run inserts 0 rows (`counts.inserted = 0`).
+  - Every written row has `source_id`, `fetched_at`, `method`, `method_version`, `ingestion_run_id`, and either `source_url` or a `url_template` that rebuilds it (a SQL count of rows missing one is 0).
+  - `raw_objects` rows exist for the run, and one file read back with `readRaw()` re-parses to the same records.
+  - `npm run typecheck`, `lint` and `test` pass.
+- **Extra verification for scale-up tasks:** the budget check. `pg_total_relation_size` for the tables the source writes, `pg_database_size`, and `raw` bucket bytes, compared with BUDGET §3 and §5, go in PROGRESS and in a BUDGET "Actuals" line. Anything over its estimate by more than 20% becomes a PLAN task before the next scale-up.
+- **Out (all source tasks):** scheduling (Phase 6), matching and resolution (Phase 4), admin UI (Phase 5), app UI (Phase 8).
+
+### [ ] P3.1 Pipeline: contact email for sources that ask for one
+- **Slice:** pipeline-runtime.
+- **Goal:** sources whose terms ask for an email in the User-Agent (OFF, SEC EDGAR) get the owner's email; every other source keeps the repo URL (D-015, amended).
+- **Deps:** P2.19.
+- **In:**
+  - `PIPELINE_CONTACT_EMAIL` in the env loader (optional, email-validated) and in `.env.example` as a placeholder.
+  - A source capability, e.g. `contact: 'email'`. The client then sends `Sarvis/<version> (+https://github.com/LukaMS/sarvis; <email>)`, or the form the source's docs ask for (OFF: `AppName/Version (ContactEmail)`).
+  - The driver refuses an email-requiring source with a configuration error **before** a run row exists when the variable is unset. The message names the variable, never a value.
+  - The email is never logged, never stored in raw envelopes or run rows, and never printed by the CLI (log redaction gets the key).
+- **Out:** the sources themselves.
+- **Files:** `pipeline/src/env.ts`, `pipeline/src/http/client.ts`, `pipeline/src/sources/source.ts`, `pipeline/src/runs/driver.ts`, `pipeline/src/log.ts`, tests beside each, `.env.example`.
+- **Verification:**
+  - Unit tests: the UA with and without the capability; refusal when unset; the value is absent from log output and from a stored raw envelope.
+  - The fixture e2e still passes (`npm run e2e --workspace @sarvis/pipeline`).
+  - `npm run typecheck`, `lint` and `test` pass.
+
+### [ ] P3.2 Schema: Phase 3 additions
+- **Slice:** schema.
+- **Goal:** the small schema changes Phase 3 sources need, in one migration.
+- **Deps:** P2.19.
+- **In:**
+  - `review_queue.item_type` gains `company` and `brand` (D-052 gap), and the writers' type mapping uses them for non-legacy records with a `review_reason`.
+  - **`company_sources`**, mirroring `product_sources` (RLS **admin**): `company_id`, `source_id`, `external_id`, `source_url`, `fetched_at`, `last_seen_at`, `method`, `method_version`, `fields text[]` (the columns that source set), `ingestion_run_id`, `raw_object_id`. Unique on `(company_id, source_id)`. A company has one +prov block (its creating source); this records the provenance of fields that a second source fills in (Wikipedia revision, Corporations Canada number, SEC filing).
+  - **`documents.summary`** text ≤ 2,000 characters, allowed only for `kind = 'wikipedia'` (BUDGET S19: one summary per company). It's a short extract shown with attribution, not full text (D-014).
+  - Public read of a Wikipedia document when it's the page of an approved company: a `companies.wikipedia_document_id` FK plus a clause in the `documents` select policies. The summary is then visible exactly when its company is.
+  - DATA_MODEL §3.2, §3.5, §3.6 and §7 updated to match.
+- **Out:** the writers that fill these (P3.4, P3.14, P3.18).
+- **Files:** `supabase/migrations/*_catalog_phase3_additions.sql`, `supabase/tests/phase3_additions.sql`, `supabase/README.md`, `packages/core/src/db/database.types.ts`, `pipeline/src/db/writers/review.ts`, `docs/catalog/DATA_MODEL.md`.
+- **Verification:** the Phase 2 schema-task rules (RLS script, advisors, `relrowsecurity`, typecheck/lint/test). Also:
+  - a `company` record with a `review_reason` from a non-legacy source gets one `review_queue` row of type `company` (unit test plus `check:writers`);
+  - `anon` reads a Wikipedia document's summary only when its company is approved;
+  - a non-Wikipedia document with a summary is rejected.
+
+### [ ] P3.3 Pipeline: streaming dump downloads
+- **Slice:** pipeline-http.
+- **Goal:** download large bulk files (OFF, Open Prices, Corporations Canada) to disk and read them as streams, because the polite client returns whole bodies as text (D-043).
+- **Deps:** P3.1.
+- **In:**
+  - `download(url, opts)` on the polite client: the same robots check, host limiter, UA and retry policy. It streams to `.cache/dumps/<sha-of-url>` (gitignored), computes sha-256 while writing, keeps `etag` / `last-modified` in a sidecar and revalidates with them, so an unchanged file isn't fetched again.
+  - `openLines(url | path, {gzip})`: an async iterator over the lines of a stream, which can stop early. A sample run then reads only the start of a dump, and stopping closes the connection.
+  - The driver records `dump_url`, `dump_sha256` and `dump_fetched_at` on the run when a source reports them.
+  - No new dependency: `node:zlib`, `node:stream`, `node:readline`.
+- **Out:** parsing any specific format.
+- **Files:** `pipeline/src/http/download.ts`, `pipeline/src/http/lines.ts`, tests beside them, `pipeline/src/runs/driver.ts`, `pipeline/src/sources/source.ts`.
+- **Verification:**
+  - Unit tests against a local `node:http` server serving a gzipped file: the sha-256 matches; a second call with an unchanged ETag gets a 304 and no new body; a robots disallow refuses; a 503 retries; stopping the line iterator after 10 lines closes the socket.
+  - `npm run typecheck`, `lint` and `test` pass.
+
+### [ ] P3.4 Writers: reference prices, documents and company enrichment
+- **Slice:** pipeline-db.
+- **Goal:** writers for the two record kinds that core already validates (P2.10) but nothing writes yet, plus a way for a second source to fill in company fields.
+- **Deps:** P3.2.
+- **In:**
+  - `reference_price` writer: key `(vector_id, ref_month)`, read-diff-write (D-046), unchanged rows untouched.
+  - `document` writer: key `url_normalized`; `summary` and `wikipedia_revision_id` update in place on change.
+  - Company enrichment: a source can set named fields on an **existing** company (matched by QID, slug or a listed id) without replacing its +prov block. The fields and their provenance go in `company_sources`. Locked fields are skipped (D-046).
+  - `writerFor` gains these kinds; `check:writers` covers them.
+- **Out:** the sources (P3.11, P3.14, P3.16, P3.18).
+- **Files:** `pipeline/src/db/writers/prices.ts`, `pipeline/src/db/writers/documents.ts`, `pipeline/src/db/writers/ownership.ts`, `pipeline/src/db/writers/index.ts`, `pipeline/src/db/writers.devdb.ts`.
+- **Verification:**
+  - `npm run check:writers --workspace @sarvis/pipeline` writes the new kinds twice: the second pass is all `unchanged`, provenance is correct, and an enrichment leaves the company's own `source_id` alone while adding one `company_sources` row.
+  - `npm run typecheck`, `lint` and `test` pass.
+
+### [ ] P3.5 OFF (a): Canadian sample
+- **Slice:** source-off.
+- **Goal:** the first real products. 100 Canadian OFF products go dump → filtered extract → parsed → validated → upserted.
+- **Deps:** P3.1, P3.3.
+- **In:**
+  - Source `off`, email UA (P3.1). It reads the CSV export (`en.openfoodfacts.org.products.csv.gz`, ~0.9 GB, tab-separated) with `openLines`, which a sample stops early.
+  - Filter: `countries_tags` contains `en:canada`, then the BUDGET §4 import filter (a name, and a brand or a category). Rows dropped by each rule are counted in the run's events.
+  - Raw: the filtered extract (only the parsed columns), split into 10k-record `seq` files (D-044), with the dump URL and sha-256 on the run.
+  - Mapping as in the fixture preview (D-048): `code` → `external_id` + normalized `gtin`, `brands` → `brand_text`, the quantity fields, `en:` label codes, `last_modified_t`, the image path as `image_key`, `source_url` null (rebuilt from `url_template`). Confirm the CSV column names against the real header first.
+  - **D-050 auto-approve:** products from `off` that pass validation are written with `review_status = 'approved'`, `decision_method = 'auto'`, `reviewed_at = now()` on insert. An update never moves a row away from `rejected`, and no other source takes this path (a writer test proves `legacy-import` and `fixture` rows stay `pending`).
+  - **Row width:** measure `pg_column_size` of the sample rows against BUDGET §3 (`products` 348 B) and note it in BUDGET "Actuals".
+- **Out:** the full import (P3.6), deltas (P3.7).
+- **Files:** `pipeline/src/sources/off/{index,map,csv}.ts` and tests, `pipeline/src/sources/registry.ts`, `pipeline/src/db/writers/products.ts`, `docs/catalog/BUDGET.md`.
+- **Verification:** the source-task rules. Also: the sample's rows are `approved` / `auto`; the filter counts are in PROGRESS; the measured row width is in BUDGET.
+
+### [ ] P3.6 OFF (b): full Canadian import
+- **Slice:** source-off.
+- **Goal:** every Canadian OFF product that passes the filter (~95k estimated).
+- **Deps:** P3.5.
+- **In:**
+  - `--mode full` over the whole dump, on the dev machine. The download lands in `.cache/dumps/`; the dump itself is never stored in Supabase (D-010).
+  - Deactivation (`supportsDeactivation`): a product no longer in the Canadian set after a clean full run becomes `discontinued`, never deleted.
+  - If a full run is too slow for one session (over ~1 h), record the timing and add a task, rather than cut the filter.
+- **Out:** deltas (P3.7).
+- **Files:** `pipeline/src/sources/off/*`, `docs/catalog/BUDGET.md`.
+- **Verification:** the source-task rules, including the budget check (`products`, `product_sources`, `raw_objects`, the `raw` bucket). Also: the real row count against the ~95k estimate, and the second full run reports `unchanged` for nearly every row (the `content_hash` path).
+
+### [ ] P3.7 OFF: daily deltas
+- **Slice:** source-off.
+- **Goal:** keep products fresh between full imports, using OFF's daily delta files (`/data/delta/index.txt`, last 14 days).
+- **Deps:** P3.6.
+- **In:**
+  - `--mode delta` (`supportsDelta`): fetch the delta files not yet imported (tracked by file name on earlier runs), filter them to Canada and the import filter as in P3.5, map the JSONL records with the OFF v2 mapping (D-048), and upsert.
+  - Deltas never deactivate (they can't signal deletions; SOURCES.md S1), so the periodic full import stays.
+  - Raw: the filtered delta extract, kept 30 days (D-044).
+- **Out:** the schedule (Phase 6).
+- **Files:** `pipeline/src/sources/off/*`.
+- **Verification:** the source-task rules, with `--mode delta` in place of the sample commands: one delta run, then a second that fetches no new files and writes nothing.
+
+### [ ] P3.8 Publish the ODbL extract
+- **Slice:** exports.
+- **Goal:** meet the ODbL share-alike condition (D-013 D1) by publishing the OFF- and Open-Prices-derived tables.
+- **Deps:** P3.6, P3.10.
+- **In:**
+  - The public Storage bucket `public-exports` (a migration: public read, no client write).
+  - `npm run pipeline -- export odbl`: the OFF-derived `products` columns and the Open Prices `price_observations` and `stores` columns, as CSV.gz, plus a README naming the ODbL, the sources and the date. Only the latest 2 exports are kept (BUDGET §5: ≈ 8 MB each).
+  - No user data: receipt-derived prices are excluded until the Phase 8 consent decision.
+  - Egress: the export's size goes in the BUDGET §6 egress note.
+- **Out:** a link to it in the app (Phase 10 About screen).
+- **Files:** `supabase/migrations/*_public_exports_bucket.sql`, `pipeline/src/exports/odbl.ts` and test, `pipeline/src/cli.ts`, `docs/catalog/BUDGET.md`, `docs/catalog/SOURCES.md` (where the extract lives).
+- **Verification:**
+  - The export runs; the file downloads anonymously from its public URL; its row count equals a SQL count of OFF products; the README is present.
+  - A second export leaves exactly 2 files.
+  - `anon` can't write to the bucket. `get_advisors` shows no new warnings.
+  - `npm run typecheck`, `lint` and `test` pass.
+
+### [ ] P3.9 Open Prices (a): Canadian sample
+- **Slice:** source-open-prices.
+- **Goal:** the first real store prices, from Open Prices' daily dump.
+- **Deps:** P3.3, P3.6.
+- **In:**
+  - Source `open-prices`: `prices.jsonl.gz` and `locations.jsonl.gz` via `download` / `openLines`, filtered to `currency = CAD` and Canadian locations.
+  - Locations → `stores` keyed on `(osm_type, osm_id)`, banner left null (D-036 allows it). Prices → `price_observations` keyed on `(source_id, external_id)` = the Open Prices price id, with `is_discounted` / `price_without_discount`.
+  - A price whose product code isn't in `products` is skipped with a counted `unmatched_product` event and stays in the raw extract for a later re-parse.
+- **Out:** the full CAD set (P3.10).
+- **Files:** `pipeline/src/sources/open-prices/*` and tests, `pipeline/src/sources/registry.ts`.
+- **Verification:** the source-task rules. Also: the unmatched-product count and the store count.
+
+### [ ] P3.10 Open Prices (b): all Canadian prices
+- **Slice:** source-open-prices.
+- **Goal:** every CAD price (697 on 2026-10-26).
+- **Deps:** P3.9.
+- **In:** `--mode full`. Watch the D-046 known limit (the price writer reads a store's whole history); add a "latest per series" RPC only if the run is slow.
+- **Out:** contributing receipt prices back (Phase 8, D-013 D7).
+- **Files:** `pipeline/src/sources/open-prices/*`, `docs/catalog/BUDGET.md`.
+- **Verification:** the source-task rules, including the budget check. Also: the count against the Open Prices API total for CAD on the same day.
+
+### [ ] P3.11 StatCan reference prices
+- **Slice:** source-statcan.
+- **Goal:** monthly average retail prices (table 18-10-0245-01) for Canada and Ontario, as the price-sanity reference.
+- **Deps:** P3.4.
+- **In:**
+  - Source `statcan-18100245`: WDS (`getCubeMetadata`, then data for the Canada and Ontario vectors), respecting `Crawl-delay: 2`.
+  - Rows → `reference_prices` keyed on `(vector_id, ref_month)`, since 2017.
+  - The source is small (~30k rows estimated in BUDGET §3), so the sample and the full run are one task.
+- **Out:** `price_sanity_bounds` (Phase 4).
+- **Files:** `pipeline/src/sources/statcan/*` and tests, `pipeline/src/sources/registry.ts`, `docs/catalog/BUDGET.md`.
+- **Verification:** the source-task rules for **both** a sample and a full run, including the budget check. Also: one series checked by hand against the StatCan table page (value, month, geography).
+
+### [ ] P3.12 Wikidata (a): ownership sample
+- **Slice:** source-wikidata.
+- **Goal:** brands, owner companies and parent chains for OFF brand strings, from SPARQL.
+- **Deps:** P3.2, P3.6.
+- **In:**
+  - Source `wikidata`: `plan()` reads the distinct OFF `brand_text` values (split on commas), most frequent first. Batched SPARQL (≤ 50 labels per query, POST) finds items whose English or French label or alias matches exactly, restricted to brand and business classes (P31/P279*). For each hit it walks P127 owned by / P749 parent organization upward (≤ 5 hops), with P580/P582 dates.
+  - Records: `brand` and `company` with `wikidata_qid`, name, aliases, country, website, enwiki title, P5531 SEC CIK and P1320 OpenCorporates id where present; `brand_ownership` and `company_ownership` edges with dates. All `pending`, with a `review_reason` (item types from P3.2).
+  - Wikidata limits (SOURCES.md S17): one query at a time, the 60 s timeout, and a 429's `Retry-After`.
+  - **Precision check for the owner:** hand-check 50 sampled brand → owner edges against Wikidata and the company's own site, and report how many are right. This is the evidence for the 🟡 decision on P3.13.
+- **Out:** linking products to brands (Phase 4), the scale-up (P3.13).
+- **Files:** `pipeline/src/sources/wikidata/{index,sparql,map}.ts` and tests, `pipeline/src/sources/registry.ts`.
+- **Verification:** the source-task rules (`--sample 100` counts brand items). Also: the 50-edge precision check in PROGRESS, and a SQL check that every edge's endpoints exist and no cycle was written.
+
+### [ ] P3.13 Wikidata (b): ownership scale-up
+- **Slice:** source-wikidata.
+- **Goal:** Wikidata ownership for every OFF brand string that has a match (budget: ~20k brands, ~5k companies).
+- **Deps:** P3.12 and the 🟡 decision below.
+- 🟡 **Decision (before this task):** which Wikidata brands, companies and ownership edges users may see without a manual review. D-050 auto-approves only OFF products, so today all of these stay `pending`, and approved OFF products show no brand or owner until an admin approves each one. The P3.12 precision check is the evidence. Options: (a) all stay `pending`; (b) auto-approve a brand, its owner and the edge when the brand label matched an OFF brand string exactly and the item has exactly one current owner statement; (c) auto-approve the entities only, keeping edges `pending`.
+- **In:** `--mode full`, plus the owner's rule as code (with a test) if it's (b) or (c).
+- **Out:** as P3.12.
+- **Files:** `pipeline/src/sources/wikidata/*`, `docs/DECISIONS.md`, `docs/catalog/BUDGET.md`.
+- **Verification:** the source-task rules, including the budget check (`brands`, `companies`, both ownership tables, `review_queue`). Also: the number of OFF brand strings matched, out of the total.
+
+### [ ] P3.14 Wikipedia (a): company summary sample
+- **Slice:** source-wikipedia.
+- **Goal:** a short summary for each company page, with attribution.
+- **Deps:** P3.4, P3.12.
+- **In:**
+  - Source `wikipedia`: for companies with a `wikipedia_title` (from Wikidata), the REST summary endpoint, serially with `maxlag` (SOURCES.md S19).
+  - A `document` (kind `wikipedia`, URL, title, revision id, `summary`), linked from the company by `wikipedia_document_id`, with `wikipedia_revision_id` set through the enrichment path (P3.4).
+  - Raw is stored only when the revision changed (D-044; 3 kept per page).
+- **Out:** the scale-up (P3.15), the company screen (Phase 8).
+- **Files:** `pipeline/src/sources/wikipedia/*` and tests, `pipeline/src/sources/registry.ts`.
+- **Verification:** the source-task rules. Also: a second run stores no raw file for unchanged pages.
+
+### [ ] P3.15 Wikipedia (b): all companies with a page
+- **Slice:** source-wikipedia.
+- **Goal:** summaries for every company with a Wikipedia title.
+- **Deps:** P3.13, P3.14.
+- **In:** `--mode full` (about 1 request a second, so roughly 1.5 h for 5k pages; run it in the background).
+- **Out:** as P3.14.
+- **Files:** `pipeline/src/sources/wikipedia/*`, `docs/catalog/BUDGET.md`.
+- **Verification:** the source-task rules, including the budget check (`documents`, `company_sources`, the `raw` bucket).
+
+### [ ] P3.16 SEC EDGAR (a): Exhibit 21 sample
+- **Slice:** source-edgar.
+- **Goal:** parent → subsidiary evidence from US-listed parents' 10-K Exhibit 21 lists.
+- **Deps:** P3.1, P3.4, P3.12.
+- **In:**
+  - Source `sec-edgar`, email UA (P3.1): for companies with a `sec_cik`, the submissions JSON, then the latest 10-K's Exhibit 21 document. 20-F filers (no Exhibit 21) are skipped and counted.
+  - The filing becomes a `document` (kind `sec_filing`, accession, filed date), and the CIK's provenance goes in `company_sources`.
+  - Exhibit 21 is free text (HTML tables or lines). Parse subsidiary name and jurisdiction. **Only subsidiaries whose normalized name matches an existing company or brand** become `pending` `company_ownership` edges citing the filing. The rest are counted, not created as companies (BUDGET: ~5k companies), and stay in the raw file.
+- **Out:** fuzzy matching of subsidiary names (Phase 4).
+- **Files:** `pipeline/src/sources/sec-edgar/*` and tests (two real Exhibit 21 formats as fixtures), `pipeline/src/sources/registry.ts`.
+- **Verification:** the source-task rules (`--sample` counts filings, e.g. 10). Also: matched vs unmatched subsidiary counts per filing, and 10 edges checked by hand against the filing.
+
+### [ ] P3.17 SEC EDGAR (b): all companies with a CIK
+- **Slice:** source-edgar.
+- **Goal:** Exhibit 21 evidence for every company with a SEC CIK (about 50–100 parents).
+- **Deps:** P3.13, P3.16.
+- **In:** `--mode full`.
+- **Out:** as P3.16.
+- **Files:** `pipeline/src/sources/sec-edgar/*`, `docs/catalog/BUDGET.md`.
+- **Verification:** the source-task rules, including the budget check.
+
+### [ ] P3.18 Corporations Canada: identity check (low priority)
+- **Slice:** source-corp-canada.
+- **Goal:** confirm Canadian companies' legal names and federal corporation numbers.
+- **Deps:** P3.3, P3.4, P3.13.
+- **In:**
+  - Source `corp-canada`: the bulk CSVs (Open Government Licence – Canada; `Crawl-delay: 20`), streamed with `openLines`. Confirm the field list on the first file (SOURCES.md S21 has it as unknown).
+  - Only companies with `country = 'CA'` whose normalized legal or display name matches exactly get `corp_canada_number` and `legal_name` through the enrichment path. Nothing else is stored.
+  - Small enough that the sample and the full run are one task.
+- **Out:** Ontario-incorporated companies (not in this dataset).
+- **Files:** `pipeline/src/sources/corp-canada/*` and tests, `pipeline/src/sources/registry.ts`, `docs/catalog/SOURCES.md` (the field list).
+- **Verification:** the source-task rules for a sample and a full run, including the budget check. Also: the match count, and 5 matches checked by hand on the Corporations Canada search page.
+
+### [ ] P3.19 Phase 3 exit check
+- **Slice:** release-check.
+- **Goal:** prove the exit criteria together.
+- **Deps:** P3.1–P3.18.
+- **In:**
+  - A table of every Phase 3 source with its last sample and full run: run ids, counts, validation failures by rule.
+  - The budget: `pg_database_size`, per-table sizes against BUDGET §3, and storage bytes per bucket against §5. Both stay under their alarms.
+  - `get_advisors` is clean; clean clone, `npm ci`, typecheck/lint/test; the fixture e2e; the latest CI run is green.
+- **Out:** new features. Gaps become PLAN tasks.
+- **Files:** `docs/PROGRESS.md`, `docs/catalog/BUDGET.md`.
+- **Verification:** a checklist in PROGRESS with evidence for each exit bullet.
+
+### Phase 3 milestone coverage
+
+| Milestone | Tasks |
+|---|---|
+| M1 Shared groundwork | P3.1 (contact email), P3.2 (schema additions), P3.3 (dump downloads), P3.4 (writers, enrichment) |
+| M2 Open Food Facts | P3.5 (sample, row width, auto-approve), P3.6 (full), P3.7 (deltas), P3.8 (ODbL extract) |
+| M3 Open Prices | P3.9 (sample), P3.10 (full) |
+| M4 StatCan | P3.11 (sample and full) |
+| M5 Wikidata | P3.12 (sample, precision check), P3.13 (scale-up) |
+| M6 Wikipedia | P3.14 (sample), P3.15 (full) |
+| M7 SEC EDGAR | P3.16 (sample), P3.17 (full) |
+| M8 Corporations Canada | P3.18 (sample and full) |
+| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.19 |
+| Exit criteria | P3.19 |
+
+**Open 🟡 decisions in Phase 3:** one, **P3.13**: what users may see from Wikidata without a manual review. It's needed before P3.13, not now, and P3.12 gathers the evidence. The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
 
 ## Phase 4 — Normalization and matching (outline)
 
@@ -959,6 +1239,8 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - Includes **receipt-abbreviation → product** matching via `store_listings`. Receipts are the main price source (D-013 D7).
     - Calibrate the legacy `match_receipt_items` tiers on the gold set.
   - Brand → company resolver: exact, alias, Wikidata, fuzzy, plus the legacy BulkBrandLink rules (CATALOG_REVIEW §6). Unresolved brands go to the queue.
+    - This is also where OFF `brand_text` values become `brands` rows (new or an alias of an existing one) and products get `brand_id`. Phase 3 imports brand strings and Wikidata brands but doesn't join them (P3.0).
+  - `price_sanity_bounds` per category and unit basis, from StatCan `reference_prices` (P3.11) and observed distributions.
   - Gold-set evaluation script that reports precision and recall.
 
 ## Phase 5 — Admin portal: catalog tools (outline)
@@ -1011,8 +1293,8 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Milestones:** one task per screen or flow.
   - Home.
   - Search: catalog-wide, by product, brand or company.
-  - Product detail: ownership chain, rating, prices by store.
-  - Company detail: scores with citations, articles.
+  - Product detail: ownership chain, rating, prices by store. Attribution next to OFF data and images (ODbL, CC BY-SA) and Open Prices prices (D-013 D1; moved here from Phase 3 in P3.0).
+  - Company detail: scores with citations, articles, the Wikipedia summary with its CC BY-SA link (P3.14).
   - Barcode scan.
   - Receipt scan: rebuilt `process-receipt` on the shared AI module and the P4 matcher, with user confirmation of matches.
   - History and spending tracking: by month, store and company.

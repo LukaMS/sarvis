@@ -411,6 +411,18 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-053 Phase 3 task plan choices — Accepted (P3.0)
+- **Shared groundwork first:** the contact email (P3.1), the schema additions (P3.2), streaming dump downloads (P3.3) and the missing writers (P3.4) come before any source, so each source task stays one slice.
+- **OFF reads the CSV export, not the JSONL.** The CSV is ~0.9 GB compressed (SOURCES.md S1) against several GB for the JSONL, and it has every column we parse. It's streamed, so a sample reads only the start of the file. Deltas are JSONL only, so P3.7 reuses the OFF v2 mapping from the fixture (D-048).
+- **Streaming downloads are new client code (P3.3), with no new dependency.** The polite client returns whole bodies as text (D-043), which can't hold a dump. Downloads keep the same robots check, limiter and UA.
+- **`company_sources`** (P3.2) mirrors `product_sources`. A company has one +prov block, but Wikipedia, SEC EDGAR and Corporations Canada fill in fields on companies Wikidata created. Writing those through the company writer would overwrite the company's provenance with the second source's, so each enriching source records its own row instead (CLAUDE.md provenance rule).
+- **Wikipedia summaries live on `documents.summary`** (Wikipedia only, ≤ 2,000 characters), linked from the company by `wikipedia_document_id`. They're visible exactly when the company is. The CC BY-SA attribution link is the document URL. Not `companies.description`, which holds manual and legacy text.
+- **SEC EDGAR and Corporations Canada write only matches.** An Exhibit 21 subsidiary becomes an edge only when its normalized name matches an existing company or brand. Corporations Canada only fills in numbers on existing Canadian companies. Neither creates companies, so the ~5k-company budget holds. Fuzzy matching waits for Phase 4.
+- **Small sources are one task, not a pair:** StatCan (P3.11) and Corporations Canada (P3.18) run their sample and their full run in the same task.
+- **Moved out of Phase 3:** brand creation from OFF strings and product → brand links (Phase 4 resolver), `price_sanity_bounds` (Phase 4, needs categories), in-app attribution (Phase 8 screens, Phase 10 About). The app shows no catalog data before Phase 8.
+- **Wikidata visibility is an owner decision before the scale-up (P3.13).** Until then, every Wikidata brand, company and edge is `pending` (D-050). The sample (P3.12) hand-checks 50 edges as evidence.
+**Why:** each task fits one session, and every source writes provenance that stays correct when several sources touch one company.
+
 ## D-052 Review block on companies, brands and products — Accepted (P2.22)
 - **Same §1.5 block as the edges:** `review_status` (default `pending`), `reviewed_by`, `reviewed_at`, `decision_method`, with the same `*_review_decided` check (pending ⇔ no decision; `auto` has no person). Existing rows became `pending` when the columns were added. `reviewed_by` is indexed (FK).
 - **Public read = `review_status = 'approved'` and the existing status filter** (`status <> 'rejected'` for companies and brands, `status = 'active'` for products). Admins see everything. The views are `security_invoker`, so `product_ownership_chain` and `brand_current_owner` drop an unapproved brand or company for users without any view change.

@@ -2,6 +2,28 @@
 
 Newest entry first.
 
+## 2026-10-29 — P3.0 Refine Phase 3 (done)
+
+**What changed**
+- `docs/PLAN.md`: Phase 3 is now full detail. It has 19 tasks (P3.1–P3.19), shared source-task rules and verification, a "Not in Phase 3" list, and a coverage table.
+  - Groundwork: P3.1 contact email, P3.2 schema additions, P3.3 streaming dump downloads, P3.4 writers.
+  - Then one task pair per source: OFF (sample, full, deltas, ODbL extract), Open Prices, StatCan, Wikidata, Wikipedia, SEC EDGAR, Corporations Canada.
+  - P3.19 is the exit check.
+- Phase 4 outline: brand rows from OFF strings, and `price_sanity_bounds` from StatCan. Phase 8 outline: OFF, Open Prices and Wikipedia attribution on the product and company screens.
+- `docs/DECISIONS.md`: D-053 records the plan choices: OFF via the CSV export, `company_sources` for per-source company provenance, Wikipedia summaries on `documents`, and match-only writes for EDGAR and Corporations Canada.
+
+**Verification**
+- A script over the Phase 3 section: all 19 tasks have the seven fields (slice, goal, deps, in, out, files, verification), each names exactly one slice, and every task appears in the coverage table. Every milestone M1–M9 maps to at least one task.
+- `prettier --check docs/PLAN.md` passes.
+
+**Notes for you**
+- **One open 🟡 decision, needed before P3.13 (not now):** which Wikidata brands, companies and ownership edges users may see without a manual review. Today only OFF products are auto-approved (D-050), so approved products would show no brand or owner until each one is reviewed. P3.12 hand-checks 50 edges so you can decide from the numbers. The options are in P3.13.
+- P3.8 creates the **public** `public-exports` bucket for the ODbL extract you accepted in D-013 D1. It holds only OFF and Open Prices data, no user data.
+
+**Next:** P3.1 Pipeline: contact email for sources that ask for one.
+
+---
+
 ## 2026-10-29 — P2.19 Phase 2 exit check (done)
 
 **What changed**
