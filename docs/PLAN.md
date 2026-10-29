@@ -709,7 +709,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A smoke script connects to dev with the service role and counts `sources`, printing the count only.
   - typecheck, lint and test pass.
 
-### [ ] P2.13 Pipeline: polite HTTP client
+### [x] P2.13 Pipeline: polite HTTP client
 - **Slice:** pipeline-http.
 - **Goal:** one fetch path for every source that enforces CLAUDE.md's scraper rules.
 - **Deps:** P2.12.

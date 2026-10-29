@@ -4,6 +4,38 @@ Newest entry first.
 
 ---
 
+## 2026-10-29 — P2.13 Pipeline: polite HTTP client
+
+**What changed**
+- New in `pipeline/src/http/`:
+  - `client.ts`: `createHttpClient()` with the Sarvis User-Agent and a per-host limiter (at most 1 req/s, lowered by the source row or Crawl-delay). It does backoff with jitter on 5xx and network errors, throws `SourceBlockedError` on 403/429 (after one Retry-After wait for a 429), follows redirects by hand, and has a 30 s timeout.
+  - `robots.ts`: an in-repo RFC 9309 parser and matcher (User-agent, Allow, Disallow, Crawl-delay, `*`, `$`).
+  - `cache.ts`: an on-disk cache in `.cache/http/` with a TTL and ETag / Last-Modified revalidation.
+  - `paginate.ts`: `computeHasNextPage` and `pageFingerprint`, ported from legacy.
+- `PIPELINE_VERSION` is added for the User-Agent. D-043 records the details.
+
+**Verification**
+- Pipeline tests: **73 pass**. All tests: **232 pass** (`npm test`). Against a local `node:http` server:
+  - 5 requests to one host: each gap is ≥ 990 ms and the total is ≥ 4 s.
+  - Two hosts (`127.0.0.1` and `localhost`, 3 requests each): they finish in 3–5 s, not 7 s, and the order alternates.
+  - Crawl-delay 2 spaces requests ≥ 2 s apart.
+  - A 503 then a 200 succeeds after a backoff, with 2 requests. A dropped socket is retried as a `NetworkError`.
+  - A 403 throws `SourceBlockedError` after 1 request. A 429 with `Retry-After: 1` makes 2 requests, then blocks. A 429 without Retry-After makes 1 request.
+  - A robots-disallowed path gets 0 requests, and so does a redirect into one. A 404 robots.txt allows everything. An unreachable robots.txt disallows the host.
+  - A second fetch inside the TTL makes 0 requests (`cache: 'ttl'`). After the TTL it sends `If-None-Match`, gets a 304 and serves the cached body. Errors aren't cached.
+- The 4 ported pagination tests pass, plus 1 new one for `totalPages`.
+- `npm run typecheck`, `lint` and `format:check` pass.
+
+**Notes for you**
+- **`npm test` now takes about 30 s** because the client tests use the real 1 s spacing. That's deliberate, since the spacing is what they check.
+- **A host whose robots.txt returns 5xx or can't be reached is skipped for the whole run.** RFC 9309 says to assume it is fully disallowed. If a real source hits this in Phase 3, it will show up as `RobotsDisallowedError`.
+- **The rate is capped at 1 req/s even if a source row says more.** Raising the cap for an API whose terms allow it would be your call.
+- `.gitignore` needed no change: `.cache/` was already ignored.
+
+**Next:** P2.14 Pipeline: raw store.
+
+---
+
 ## 2026-10-29 — P2.12 Pipeline runtime: env, logger, errors, retry, shutdown, DB client
 
 **What changed**
