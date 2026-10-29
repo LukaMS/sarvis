@@ -872,7 +872,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Metro still bundles: `npm run web` loads `/` with no console errors.
   - typecheck, lint and test pass.
 
-### [ ] P2.21 Make the HTTP rate-limit test immune to timing jitter (added in P2.17)
+### [x] P2.21 Make the HTTP rate-limit test immune to timing jitter (added in P2.17)
 - **Slice:** pipeline-http.
 - **Goal:** `npm test` is reliably green. `src/http/client.test.ts` "spaces 5 requests to one host at least 1 s apart" failed in about 1 of 5 full runs (P2.16, and once in P2.17 after 5014 ms) and passed on rerun. It most likely measures the gaps from the server's receive times, which can drift under CPU load even when the client spaced its sends correctly.
 - **Deps:** none.

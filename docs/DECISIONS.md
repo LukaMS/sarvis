@@ -410,6 +410,12 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-051 Host limiter spaces from the actual previous request — Accepted (P2.21)
+- **The limiter waits from when the previous request actually went out**, using a per-host promise queue, instead of booking fixed slots 1 s apart. With fixed slots, a request that woke late (timer or event-loop lag) left the next one less than 1 s behind it. Under load, sends were as little as 989 ms apart (captured in P2.21). The new rule guarantees ≥ the interval between consecutive sends to a host.
+- **It re-checks the clock after each sleep**, because a timer can fire a millisecond early. A cancelled caller still counts as a turn, so the spacing holds for the next one.
+- **Tests measure spacing at the send point** (a `fetch` spy), with exact bounds (≥ 1000 ms, ≥ 2000 ms with Crawl-delay 2). Server receive times add connection jitter that says nothing about the client. A deterministic test blocks the event loop past a turn and checks that the next turn still waits a full interval (the old limiter gave 53 ms of a 100 ms interval).
+**Why:** CLAUDE.md caps us at about 1 request per second per host. The limiter should never go under that, and its test should only fail when it does.
+
 ## D-050 Who can see companies, brands and products — Accepted by owner (2026-10-29, for P2.22)
 - **Users see no company, brand or product until it is approved.** Legacy details are unreliable, so nothing from the legacy import is user-visible until an admin reviews it.
 - **Auto-approve rule:** Open Food Facts products that pass validation are approved automatically (`decision_method = 'auto'`), because about 95k rows can't be reviewed by hand. Legacy and AI-sourced companies, brands and products are never auto-approved.

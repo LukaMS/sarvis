@@ -2,6 +2,29 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.21 Make the HTTP rate-limit test immune to timing jitter
+
+**What changed**
+- **The capture found a real limiter bug, not only test jitter.**
+  - Under `npm test` load, the Crawl-delay test failed with `expected 1989 to be greater than or equal to 1990` (`client.test.ts:127`).
+  - A probe that recorded `fetch` call times showed that the **sends themselves** were 989–999 ms apart at times, usually right after a late one (1009, then 991). The limiter booked fixed slots, so a late wake-up made the next request early.
+- **The fix:** `HostLimiter` (`pipeline/src/http/client.ts`) now waits from when the previous request to the host actually went out, using a per-host promise queue. It re-checks the clock after sleeping (D-051).
+- **Tests** (`client.test.ts`):
+  - Spacing is now measured at the `fetch` call, with exact bounds (≥ 1000 ms, ≥ 2000 ms for Crawl-delay). The two-host test also checks per-host spacing.
+  - A new deterministic test blocks the event loop past a turn. It fails on the old limiter (53 ms of 100) and passes on the new one.
+
+**Verification**
+- **20 runs in a row:** `client.test.ts` passed 20/20 (21 tests each), while `npm test` looped alongside the whole time. All 21 background `npm test` runs passed as well.
+- `typecheck`, `lint`, `format:check` and `npm test` (353 passed, 1 skipped) pass. The fixture e2e passes.
+
+**Notes for you**
+- This was a real limiter change, allowed by the task's "unless the capture shows a real bug". The effect is small: requests to one host are now never less than 1 s apart, where before they could be about 10 ms less.
+- **Next session:** P2.22 (hide unreviewed companies, brands and products). Your D-050 decision covers it, so nothing is waiting on you.
+
+**Next:** P2.22 Hide unreviewed companies, brands and products from users.
+
+---
+
 ## 2026-10-29 — P2.18 Legacy re-import
 
 **What changed**
