@@ -15,7 +15,7 @@ Newest entry first.
 **Verification**
 - **20 runs in a row:** `client.test.ts` passed **20/20** (22 tests each), while `npm test` looped alongside the whole time. All **21/21** background `npm test` runs passed (355 passed, 1 skipped).
 - `typecheck`, `lint`, `format:check` pass. The fixture e2e passes: run 1 `inserted 17`, run 2 `inserted 0, unchanged 17`, cleanup left nothing.
-- CI: checked after the push (see the next entry, P2.19).
+- **CI green on `fdda6a8`:** https://github.com/LukaMS/sarvis/actions/runs/40948601027. The P2.19 docs commit just before it (`f787f52`) had failed with the same `expected 999 to be greater than or equal to 1000` (https://github.com/LukaMS/sarvis/actions/runs/40945701842), so that's two red runs from this bug and none since.
 
 **Notes for you**
 - The real-world effect is at most a few milliseconds per request. The point is that the 1 req/s rule now holds exactly, so the test only fails on a real regression.
