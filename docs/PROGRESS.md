@@ -4,6 +4,47 @@ Newest entry first.
 
 ---
 
+## 2026-10-29 — P2.8 Schema: scoring and evidence
+
+**What changed**
+- The migration `20261028235724_catalog_scoring_evidence` is applied to dev. It adds:
+  - `rubrics` (anon sees published ones only);
+  - `documents` (`url_normalized` key, visible only through a visible link);
+  - `company_scores` (rating vs score/grade shape check, one approved row per company × category, a legacy-import key, and legacy rows allowed without confidence or rubric only while pending);
+  - `score_citations` (follow their score);
+  - `document_entities` (exactly one of company/brand, categories within the rubric);
+  - `certifications` (exactly one of company/brand/product; approved needs a document);
+  - `external_ratings` and `company_events` (`critical` severity kept for legacy);
+  - a deferred constraint trigger, so an approved score needs a citation at commit, and deleting the last one fails too;
+  - the view `published_company_scores`.
+- `supabase/tests/scoring_evidence.sql` holds the checks (rolled back), plus a commented block for the real commit-time check.
+- The README row is added, and DATA_MODEL §3.6 has two "as built" notes. The types are regenerated: every old line is still present, and git shows 152 "deletions" that are only diff realignment. D-038 records the design choices.
+
+**Verification**
+- RLS script: **55/55 ok**.
+  - Citation rule (forced with `set constraints all immediate`): an uncited approval fails `23514` and passes once a citation is added. Deleting the last citation fails `23514`, and deleting one of two is fine.
+  - Rejected with `23505`: a second approved score per company × category, a second legacy row, a duplicate `url_normalized`, and a duplicate entity link.
+  - Rejected with `23514`: a category row with a 0–100 score, overall without a grade, AI without a model, manual without confidence or rubric, approving a legacy row with no confidence or rubric, `superseded_by` on a non-superseded row, a quote over 300 characters, SEC fields on news, an entity with both or neither subject, a non-rubric entity category, a certification with two subjects, an approved certification with no document, `other` with no name, a rating above max, and an unknown event kind. A legacy overall rating-only row is accepted as pending.
+  - anon: sees only the 2 approved scores. `published_company_scores` returns `environment:v1, overall:v1`. Sees the approved score's citation and not the pending one's. Sees only the documents `Cert` and `Cited`: the unlinked one, the one with a pending link and the one with a pending citation are hidden, and the pending-link one appears once the link is approved. Sees only the published rubric, no pending link or event, and the approved certification. Gets `42501` on insert.
+  - Non-admin user: same visibility (2 scores, 2 documents, no draft rubric). Gets `42501` on insert, and updates or deletes 0 rows.
+  - Admin: sees all 5 scores and 5 documents and the pending citation. Inserts a document and a rating, approves a link, and deletes an event.
+- **Real commit check:** a separate `begin … commit` that approves an uncited score failed at commit with `23514 company score … is approved but has no citation`. Nothing was left behind.
+- Afterwards: 0 rows in the new tables, 0 rubrics, 0 `rls-*` companies and 0 test users.
+- `relrowsecurity` is true on all 36 public tables.
+- Advisors:
+  - Security: only the existing leaked-password warning.
+  - Performance: only INFO "unused index" notices.
+- `npm run typecheck`, `lint` and `test` (27 tests) pass, and Prettier is clean.
+
+**Notes for you**
+- **Legacy scores can't be published as they are.** They have no confidence, rubric or citations, so they stay `pending` until Phase 7 rescores them or an admin completes them. This matches DATA_MODEL R13.
+- **Approving a new score means superseding the old one first,** in the same transaction (one approved row per company × category). The admin review screen (Phase 5) should do both in one RPC.
+- **Rubric v1 isn't seeded.** `docs/catalog/RUBRIC.md` doesn't exist yet, and Phase 7 writes it.
+
+**Next:** P2.9 Schema: editorial.
+
+---
+
 ## 2026-10-28 — P2.7 Schema: AI and audit
 
 **What changed**

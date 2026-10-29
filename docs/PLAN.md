@@ -623,7 +623,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `supabase/migrations/*_catalog_ai_audit.sql`, `supabase/tests/ai_audit.sql`, `supabase/README.md`, types.
 - **Verification:** the schema-task rules.
 
-### [ ] P2.8 Schema: scoring and evidence
+### [x] P2.8 Schema: scoring and evidence
 - **Slice:** schema.
 - **Goal:** the scoring and evidence tables (§3.6).
 - **Deps:** P2.4, P2.5, P2.7.

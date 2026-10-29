@@ -392,7 +392,7 @@ The decision itself is written to the item's own `review_status` (§1.5); the qu
 | `superseded_by_id` | uuid null | |
 | +review, +prov | | `method` = `ai` / `manual` / `legacy-import`. |
 
-Check: `review_status = 'approved'` needs at least one citation (a deferred constraint trigger). Legacy scores have no sources, so they stay `pending` until cited (P0.2 note).
+Check: `review_status = 'approved'` needs at least one citation (a deferred constraint trigger). Legacy scores have no sources, so they stay `pending` until cited (P0.2 note). As built (D-038), `confidence` and `rubric_id` may be null only on pending `legacy-import` rows.
 
 **`score_citations`**: RLS **public** when the parent score is visible.
 
@@ -427,7 +427,7 @@ bigint id · `document_id` · `company_id` null · `brand_id` null (check: exact
 
 **`company_events`**: boycotts, controversies, recalls, lawsuits, awards (legacy `boycotts` + `controversies`). RLS **public** (`approved`).
 
-`id` uuid · `company_id` · `kind` (`boycott`, `controversy`, `recall`, `lawsuit`, `award`) · `title` · `description` · `event_date` date null · `date_text` text null (legacy free text) · `status` (`active`, `resolved`, `paused`) · `severity` (`low`, `medium`, `high`) · `document_id` null · +review · +prov.
+`id` uuid · `company_id` · `kind` (`boycott`, `controversy`, `recall`, `lawsuit`, `award`) · `title` · `description` · `event_date` date null · `date_text` text null (legacy free text) · `status` (`active`, `resolved`, `paused`) · `severity` (`low`, `medium`, `high`, `critical`; D-038) · `document_id` null · +review · +prov.
 
 ### 3.7 Editorial (legacy product page and stories)
 

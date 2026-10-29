@@ -650,6 +650,186 @@ export type Database = {
           },
         ]
       }
+      certifications: {
+        Row: {
+          brand_id: string | null
+          certified_on: string | null
+          company_id: string | null
+          created_at: string
+          decision_method: string | null
+          document_id: string | null
+          expires_on: string | null
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          product_id: string | null
+          raw_object_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheme: string
+          scheme_name: string | null
+          score: number | null
+          source_id: string
+          source_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          brand_id?: string | null
+          certified_on?: string | null
+          company_id?: string | null
+          created_at?: string
+          decision_method?: string | null
+          document_id?: string | null
+          expires_on?: string | null
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          product_id?: string | null
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheme: string
+          scheme_name?: string | null
+          score?: number | null
+          source_id: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_id?: string | null
+          certified_on?: string | null
+          company_id?: string | null
+          created_at?: string
+          decision_method?: string | null
+          document_id?: string | null
+          expires_on?: string | null
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          product_id?: string | null
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheme?: string
+          scheme_name?: string | null
+          score?: number | null
+          source_id?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certifications_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "certifications_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certifications_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "certifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "certifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["owner_company_id"]
+          },
+          {
+            foreignKeyName: "certifications_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certifications_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certifications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "certifications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certifications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_source_url"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certifications_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certifications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certifications_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           aliases: string[]
@@ -804,6 +984,141 @@ export type Database = {
           },
         ]
       }
+      company_events: {
+        Row: {
+          company_id: string
+          created_at: string
+          date_text: string | null
+          decision_method: string | null
+          description: string | null
+          document_id: string | null
+          event_date: string | null
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          kind: string
+          method: string
+          method_version: string
+          raw_object_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string | null
+          source_id: string
+          source_url: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          date_text?: string | null
+          decision_method?: string | null
+          description?: string | null
+          document_id?: string | null
+          event_date?: string | null
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          kind: string
+          method: string
+          method_version: string
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string | null
+          source_id: string
+          source_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          date_text?: string | null
+          decision_method?: string | null
+          description?: string | null
+          document_id?: string | null
+          event_date?: string | null
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          kind?: string
+          method?: string
+          method_version?: string
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string | null
+          source_id?: string
+          source_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["owner_company_id"]
+          },
+          {
+            foreignKeyName: "company_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_events_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_events_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_events_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_events_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_ownership: {
         Row: {
           ai_call_id: number | null
@@ -950,6 +1265,554 @@ export type Database = {
           },
           {
             foreignKeyName: "company_ownership_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_scores: {
+        Row: {
+          ai_call_id: number | null
+          category: string
+          company_id: string
+          confidence: number | null
+          created_at: string
+          decision_method: string | null
+          fetched_at: string
+          grade: string | null
+          id: string
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          model: string | null
+          rating: string | null
+          rationale: string | null
+          raw_object_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rubric_id: string | null
+          score: number | null
+          source_id: string
+          source_url: string | null
+          superseded_by_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_call_id?: number | null
+          category: string
+          company_id: string
+          confidence?: number | null
+          created_at?: string
+          decision_method?: string | null
+          fetched_at: string
+          grade?: string | null
+          id?: string
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          model?: string | null
+          rating?: string | null
+          rationale?: string | null
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rubric_id?: string | null
+          score?: number | null
+          source_id: string
+          source_url?: string | null
+          superseded_by_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_call_id?: number | null
+          category?: string
+          company_id?: string
+          confidence?: number | null
+          created_at?: string
+          decision_method?: string | null
+          fetched_at?: string
+          grade?: string | null
+          id?: string
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          model?: string | null
+          rating?: string | null
+          rationale?: string | null
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rubric_id?: string | null
+          score?: number | null
+          source_id?: string
+          source_url?: string | null
+          superseded_by_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_scores_ai_call_id_fkey"
+            columns: ["ai_call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["owner_company_id"]
+          },
+          {
+            foreignKeyName: "company_scores_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_rubric_id_fkey"
+            columns: ["rubric_id"]
+            isOneToOne: false
+            referencedRelation: "rubrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "company_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "published_company_scores"
+            referencedColumns: ["score_id"]
+          },
+        ]
+      }
+      document_entities: {
+        Row: {
+          ai_call_id: number | null
+          brand_id: string | null
+          categories: string[]
+          company_id: string | null
+          created_at: string
+          decision_method: string | null
+          document_id: string
+          fetched_at: string
+          id: number
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          model: string | null
+          raw_object_id: string | null
+          relevance: number
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string
+          source_url: string | null
+          stance: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_call_id?: number | null
+          brand_id?: string | null
+          categories?: string[]
+          company_id?: string | null
+          created_at?: string
+          decision_method?: string | null
+          document_id: string
+          fetched_at: string
+          id?: never
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          model?: string | null
+          raw_object_id?: string | null
+          relevance: number
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id: string
+          source_url?: string | null
+          stance: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_call_id?: number | null
+          brand_id?: string | null
+          categories?: string[]
+          company_id?: string | null
+          created_at?: string
+          decision_method?: string | null
+          document_id?: string
+          fetched_at?: string
+          id?: never
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          model?: string | null
+          raw_object_id?: string | null
+          relevance?: number
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string
+          source_url?: string | null
+          stance?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_entities_ai_call_id_fkey"
+            columns: ["ai_call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_entities_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "document_entities_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_entities_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["brand_id"]
+          },
+          {
+            foreignKeyName: "document_entities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "document_entities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_entities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["owner_company_id"]
+          },
+          {
+            foreignKeyName: "document_entities_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_entities_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_entities_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_entities_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_entities_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          archive_url: string | null
+          created_at: string
+          domain: string | null
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          kind: string
+          language: string | null
+          method: string
+          method_version: string
+          published_at: string | null
+          publisher: string | null
+          raw_object_id: string | null
+          sec_accession: string | null
+          sec_filed_on: string | null
+          source_id: string
+          source_url: string | null
+          title: string | null
+          updated_at: string
+          url: string
+          url_normalized: string
+          wikipedia_revision_id: number | null
+        }
+        Insert: {
+          archive_url?: string | null
+          created_at?: string
+          domain?: string | null
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          kind: string
+          language?: string | null
+          method: string
+          method_version: string
+          published_at?: string | null
+          publisher?: string | null
+          raw_object_id?: string | null
+          sec_accession?: string | null
+          sec_filed_on?: string | null
+          source_id: string
+          source_url?: string | null
+          title?: string | null
+          updated_at?: string
+          url: string
+          url_normalized: string
+          wikipedia_revision_id?: number | null
+        }
+        Update: {
+          archive_url?: string | null
+          created_at?: string
+          domain?: string | null
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          kind?: string
+          language?: string | null
+          method?: string
+          method_version?: string
+          published_at?: string | null
+          publisher?: string | null
+          raw_object_id?: string | null
+          sec_accession?: string | null
+          sec_filed_on?: string | null
+          source_id?: string
+          source_url?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+          url_normalized?: string
+          wikipedia_revision_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_ratings: {
+        Row: {
+          company_id: string
+          created_at: string
+          decision_method: string | null
+          document_id: string
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          max_score: number
+          method: string
+          method_version: string
+          period: string
+          raw_object_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheme: string
+          score: number
+          source_id: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          decision_method?: string | null
+          document_id: string
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          max_score: number
+          method: string
+          method_version: string
+          period: string
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheme: string
+          score: number
+          source_id: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          decision_method?: string | null
+          document_id?: string
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          max_score?: number
+          method?: string
+          method_version?: string
+          period?: string
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheme?: string
+          score?: number
+          source_id?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_ratings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "external_ratings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_ratings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["owner_company_id"]
+          },
+          {
+            foreignKeyName: "external_ratings_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_ratings_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_ratings_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_ratings_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_ratings_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "sources"
@@ -2118,6 +2981,97 @@ export type Database = {
           },
         ]
       }
+      rubrics: {
+        Row: {
+          approved_by_owner_at: string | null
+          categories: Json
+          created_at: string
+          doc_url: string | null
+          evidence_rules: string
+          grade_thresholds: Json
+          id: string
+          published_at: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          approved_by_owner_at?: string | null
+          categories: Json
+          created_at?: string
+          doc_url?: string | null
+          evidence_rules: string
+          grade_thresholds: Json
+          id?: string
+          published_at?: string | null
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          approved_by_owner_at?: string | null
+          categories?: Json
+          created_at?: string
+          doc_url?: string | null
+          evidence_rules?: string
+          grade_thresholds?: Json
+          id?: string
+          published_at?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      score_citations: {
+        Row: {
+          added_by_method: string
+          created_at: string
+          document_id: string
+          id: number
+          quote: string | null
+          score_id: string
+          stance: string
+        }
+        Insert: {
+          added_by_method: string
+          created_at?: string
+          document_id: string
+          id?: never
+          quote?: string | null
+          score_id: string
+          stance: string
+        }
+        Update: {
+          added_by_method?: string
+          created_at?: string
+          document_id?: string
+          id?: never
+          quote?: string | null
+          score_id?: string
+          stance?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_citations_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_citations_score_id_fkey"
+            columns: ["score_id"]
+            isOneToOne: false
+            referencedRelation: "company_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_citations_score_id_fkey"
+            columns: ["score_id"]
+            isOneToOne: false
+            referencedRelation: "published_company_scores"
+            referencedColumns: ["score_id"]
+          },
+        ]
+      }
       sources: {
         Row: {
           access_method: string
@@ -2716,6 +3670,55 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      published_company_scores: {
+        Row: {
+          category: string | null
+          company_id: string | null
+          confidence: number | null
+          fetched_at: string | null
+          grade: string | null
+          method: string | null
+          method_version: string | null
+          model: string | null
+          rating: string | null
+          rationale: string | null
+          reviewed_at: string | null
+          rubric_id: string | null
+          rubric_version: string | null
+          score: number | null
+          score_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["owner_company_id"]
+          },
+          {
+            foreignKeyName: "company_scores_rubric_id_fkey"
+            columns: ["rubric_id"]
+            isOneToOne: false
+            referencedRelation: "rubrics"
             referencedColumns: ["id"]
           },
         ]
