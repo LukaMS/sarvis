@@ -4,6 +4,39 @@ Newest entry first.
 
 ---
 
+## 2026-10-29 — P2.10 Core: record schemas, slugs and GTIN
+
+**What changed**
+- `@sarvis/core` now has:
+  - `records/`: zod schemas for 11 record kinds (company, brand, both ownership edges, product, product identifier, store, store listing, price observation, reference price, document). Each one embeds the shared provenance block. `RECORD_SCHEMAS` maps each kind to its schema.
+  - Records link to other rows by natural key (`brand_slug`, a `{gtin}` product ref, an OSM store ref …), never by id. The P2.16 writers resolve the keys.
+  - The schemas are strict, and their limits mirror the SQL checks. Prices must be > 0 and ≤ 10,000, currency must be `CAD` or `USD`, URLs must be http(s), and datetimes must be ISO with an offset.
+  - `slug.ts`: `slugify()` and `uniqueSlug()` (`base` → `base-ca` → `base-ca-2` …).
+  - `gtin.ts`: TS twins of the three SQL GTIN functions, plus `normalizeGtin()`, which returns `gtin`, `restricted`, `plu` or `invalid` with a reason.
+  - `runs.ts`: run modes, statuses and triggers, and a `RunCountsSchema`.
+- `zod` ^4.6.7 is a runtime dependency of core. D-040 records it with the record design choices.
+- DATA_MODEL §1.4 now points at `gtin.ts`.
+
+**Verification**
+- Core tests: **85 pass**. All tests: **111 pass** (`npm test`). They cover:
+  - the slug examples ("Ben's Original" → `bens-original`, accents, `&`, the 64-character cap, collisions);
+  - GTIN cases (UPC-A, EAN-13, EAN-8, GTIN-14, a bad check digit, 02/20–29 prefixes, PLUs);
+  - all 27 SQL vectors from `supabase/tests/products.sql`, run through the twins, with `normalizeGtin()` agreeing with them;
+  - the 13 legacy barcodes;
+  - one valid and one invalid sample per record kind, with the error checked at the expected field;
+  - defaults, unknown fields, provenance, prices and currency, restricted GTINs and datetime offsets.
+- The 13 legacy barcodes also ran through the SQL `gtin_is_valid` on dev, and the results are the same as in TS.
+- `npm run typecheck`, `lint` and `format:check` pass.
+- `npm run web` loads `/` (it redirects to `/auth`) with **0 console errors**, so Metro bundles zod from core. The first load showed a 400 from a stale refresh token left in the browser; a reload on clean storage had no errors. Screenshot: `.screenshots/p2-10-web-root.png`.
+
+**Notes for you**
+- **One legacy barcode is invalid.** Patagonia Provisions Soup `0850034340016` has a bad check digit (dev SQL agrees). The other 12 normalize cleanly. I added a line to P2.18: import that product with a null GTIN and put the barcode in its review reason.
+- **Non-CAD/USD prices are rejected.** If Open Prices has useful EUR or other rows for Canadian stores, that's a one-line change to the enum.
+
+**Next:** P2.11 Core: validation library and safeguards.
+
+---
+
 ## 2026-10-29 — P2.9 Schema: editorial
 
 **What changed**

@@ -651,7 +651,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `supabase/migrations/*_catalog_editorial.sql`, `supabase/tests/editorial.sql`, `supabase/README.md`, types.
 - **Verification:** the schema-task rules. Also, a future-dated story is hidden from `anon`.
 
-### [ ] P2.10 Core: record schemas, slugs and GTIN
+### [x] P2.10 Core: record schemas, slugs and GTIN
 - **Slice:** core-records.
 - **Goal:** the typed, validated shapes that every source parser produces, plus the two key builders that every import needs.
 - **Deps:** P1.1. Can run before the schema tasks; field names must match DATA_MODEL §3.
@@ -836,7 +836,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - brands (slugs generated) plus `brand_ownership`;
     - `ethical_scores` → `company_scores` under a `legacy` rubric row (`approved_by_owner_at` null, D-030);
     - certifications, and boycotts/controversies → `company_events`;
-    - products (barcode → GTIN via P2.10, with the brand link inferred from the name where a brand matches exactly; others left null and queued);
+    - products (barcode → GTIN via P2.10, with the brand link inferred from the name where a brand matches exactly; others left null and queued). The Patagonia Provisions Soup barcode `0850034340016` fails the check digit (found in P2.10): import it with a null `gtin` and put the bad barcode in its queue `reason`;
     - product features, transparency steps (mapped to the four steps by title, not `step_number`, per D-039), and stories (no body, cover image dropped until a licence check).
   - Every reviewable fact is `pending` with a `review_queue` row (`legacy_fact`). The P0.2 quality notes (Kashi, Ben's Original, Bolthouse, Sun-Brite) become the queue `reason` where they apply.
 - **Out:** fixing the flagged errors (that's admin review, Phase 5); legacy product-level scores (dropped per §8).

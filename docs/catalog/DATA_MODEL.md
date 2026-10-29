@@ -70,7 +70,7 @@ Admin edits to a field that an import also writes add the field name to the row'
 - A bad check digit is a validation failure; it is never stored as a GTIN.
 - Restricted-circulation prefixes are stored in `product_identifiers` with scheme `store_internal` (banner-scoped), not as a GTIN. That covers GS1 prefixes 02 and 20–29 (variable-weight and in-store codes).
 - PLU codes (4–5 digits) use scheme `plu`.
-- The function lives in `packages/core` (Phase 4) and is mirrored as an immutable SQL function for lookups.
+- The function lives in `packages/core/src/gtin.ts` (moved forward to P2.10, D-030) and is mirrored as an immutable SQL function for lookups.
 
 ### 1.5 Review status
 
