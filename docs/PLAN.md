@@ -881,7 +881,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/http/client.test.ts` (and `client.ts` only if needed).
 - **Verification:** the test passes 20 runs in a row with `npm test` running alongside; typecheck, lint and test pass.
 
-### [ ] P2.22 Hide unreviewed companies, brands and products from users (added after P2.18)
+### [x] P2.22 Hide unreviewed companies, brands and products from users (added after P2.18)
 - **Slice:** schema.
 - **Goal:** users see no company, brand or product until it has been reviewed or has passed a written auto-approve rule. P2.18 left the 11 legacy companies, 49 brands and 13 products visible to `anon`, because those tables had no review block. The legacy details aren't reliable (wrong owners, outdated CEOs, non-grocery companies) and must not be shown.
 - **Deps:** P2.18.
@@ -934,6 +934,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Retailer catalog sources: **none** for now. All Ontario grocers, Walmart, Costco and Flipp are avoided (D-013). Revisit only if the owner gets written permission.
   - ✅ User-Agent contact (D-015): the repo URL only, `Sarvis/<version> (+https://github.com/LukaMS/sarvis)`. If SEC EDGAR rejects it without an email, stop and ask the owner.
   - A budget check after each scale-up task.
+  - Before any non-legacy source writes companies or brands that need review (Wikidata, AI): add `company` and `brand` to `review_queue.item_type`, so their `review_reason` is queued (found in P2.22, D-052). Also code the D-050 OFF auto-approve in the OFF writer path.
 
 ## Phase 4 — Normalization and matching (outline)
 

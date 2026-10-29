@@ -63,4 +63,4 @@ Editorial content from the legacy app's Supabase project (`chaidwvlizbayyugnphw`
 
 ## Re-import (P2.18)
 
-`npm run pipeline -- run legacy-import` maps these files into the new schema as `pending` facts with `legacy-import` provenance, and queues each one as a `legacy_fact` with the notes above as its reason (D-049). It's idempotent: on the dev project, run 2 inserted 0 of 271 records.
+`npm run pipeline -- run legacy-import` maps these files into the new schema as `pending` facts with `legacy-import` provenance, and queues each one as a `legacy_fact` with the notes above as its reason (D-049). It's idempotent: on the dev project, run 2 inserted 0 of 271 records. Since P2.22 the companies, brands and products are queued too, and users see none of them until an admin approves each one (D-050, D-052).

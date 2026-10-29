@@ -79,13 +79,15 @@ Facts that need review carry:
 - `reviewed_by` uuid null → `profiles`, and `reviewed_at`;
 - `decision_method`: `admin` | `auto` | `legacy`.
 
-Public RLS shows only `approved` rows. `auto` means the row passed a rule written in PLAN or DECISIONS (for example the P4 auto-accept threshold, or a future D-006 score rule). Legacy-imported facts arrive as `pending` (P0.2 quality notes).
+Public RLS shows only `approved` rows. `auto` means the row passed a rule written in PLAN or DECISIONS (for example the P4 auto-accept threshold, a future D-006 score rule, or the D-050 rule that OFF products passing validation are approved). Legacy-imported facts arrive as `pending` (P0.2 quality notes).
+
+Companies, brands and products carry the block too (P2.22, D-050, D-052): users see none of them until approved. Imports never change `review_status` (apart from the D-050 OFF auto-approve); legacy and AI-sourced entities are never auto-approved.
 
 ### 1.6 RLS levels (every table has RLS enabled)
 
 | Level | Read | Write |
 |---|---|---|
-| **public** | `anon` + `authenticated`, filtered to `approved` / active rows where the table has a status | admin only (`is_admin()`) |
+| **public** | `anon` + `authenticated`, filtered to `approved` / active rows where the table has a status. Tables with a `+review` block always need `approved`, plus their status filter where they have one (companies, brands and products: both). | admin only (`is_admin()`) |
 | **owner** | the row's `user_id = auth.uid()` | the owner (insert/update/delete as listed) |
 | **admin** | `is_admin()` only | `is_admin()` only |
 
@@ -199,7 +201,7 @@ bigint id · `run_id` · `raw_object_id` · `record_key` (e.g. the GTIN) · `rul
 
 ### 3.2 Ownership
 
-**`companies`**: RLS **public** (`status <> 'rejected'`).
+**`companies`**: RLS **public** (`review_status = 'approved'` and `status <> 'rejected'`).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -218,6 +220,7 @@ bigint id · `run_id` · `raw_object_id` · `record_key` (e.g. the GTIN) · `rul
 | `status` | text | `active`, `defunct`, `merged`, `rejected`. |
 | `merged_into_id` | uuid null | |
 | `locked_fields` | text[] | §1.2. |
+| +review | | §1.5. Users see the company only when approved (D-050). |
 | +prov | | |
 
 **`company_ownership`**: parent → child edges between companies. RLS **public** (`approved` only).
@@ -226,9 +229,9 @@ bigint id · `run_id` · `raw_object_id` · `record_key` (e.g. the GTIN) · `rul
 
 Unique on `(parent_company_id, child_company_id, relation, coalesce(valid_from, '-infinity'))`. Cycles are rejected by a trigger (recursive check).
 
-**`brands`**: RLS **public**.
+**`brands`**: RLS **public** (`review_status = 'approved'` and `status <> 'rejected'`).
 
-`id` uuid · `slug` unique · `name` · `aliases` text[] · `wikidata_qid` unique null · `website` · `logo_url` · `description` · `is_private_label` bool (e.g. President's Choice) · `status` · `merged_into_id` · `locked_fields` · +prov.
+`id` uuid · `slug` unique · `name` · `aliases` text[] · `wikidata_qid` unique null · `website` · `logo_url` · `description` · `is_private_label` bool (e.g. President's Choice) · `status` · `merged_into_id` · `locked_fields` · +review · +prov.
 
 Trigram GIN expression index on `normalize_match_text(name)`.
 
@@ -240,7 +243,7 @@ Unique on `(brand_id, company_id, relation, coalesce(valid_from,'-infinity'))`. 
 
 ### 3.3 Products
 
-**`products`**: the one product table (D-008). RLS **public** (`status = 'active'`).
+**`products`**: the one product table (D-008). RLS **public** (`review_status = 'approved'` and `status = 'active'`).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -264,6 +267,7 @@ Unique on `(brand_id, company_id, relation, coalesce(valid_from,'-infinity'))`. 
 | `status` | text | `active`, `discontinued`, `merged`, `rejected`. |
 | `merged_into_id` | uuid null | |
 | `locked_fields` | text[] | |
+| +review | | §1.5. OFF products that pass validation are auto-approved (D-050); legacy and AI ones never are. |
 | +prov | | |
 
 Indexes: `gtin` unique; `(source_id, external_id)` unique; `brand_id`; `category_id`; trigram GIN on `normalize_match_text(name)` (expression index; no stored normalized column).

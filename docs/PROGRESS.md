@@ -2,6 +2,39 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.22 Hide unreviewed companies, brands and products from users
+
+**What changed**
+- **Migration `20261029194905_catalog_entity_review`:** the §1.5 review block on `companies`, `brands` and `products` (existing rows → `pending`), indexed `reviewed_by`, and public read policies that need `review_status = 'approved'` plus the old status filter. Admins still see all rows. Types regenerated.
+- **Core:** company and brand records take `review_reason`.
+- **Writers:** the company and brand writers use the shared `writeRecords` path, so a reason is queued once. No writer sends `review_status`, so new rows arrive `pending` and re-imports leave it alone.
+- **Legacy import:** every company, brand and product gets a `legacy_fact` queue row ("hidden from users until approved", plus the P0.2 note: Nestlé/Unilever CEOs, Patagonia not grocery, Bolthouse empty row, the brand notes).
+- **RLS scripts:** new `supabase/tests/entity_review.sql`. `ownership.sql` and `products.sql` now approve their fixtures, so their visibility checks still test what they did before.
+- DATA_MODEL §1.5, §1.6, §3.2, §3.3, `supabase/README.md`, `docs/legacy/data/README.md`, D-052.
+
+**Verification**
+- `entity_review.sql`: **22/22 ok**. Key rows:
+  - `anon sees 0 dev companies, brands and products | true | 0 / 0 / 0`
+  - `user sees 0 dev companies, brands and products | true | 0 / 0 / 0`
+  - `admin sees 11 / 49 / 13 dev companies, brands and products | true | 11 / 49 / 13`
+  - `anon gets no brand for a product whose brand is pending | true | brand null`; approved/rejected/discontinued fixtures filter correctly; anon and users can't approve; an admin approval shows up for anon.
+- Re-run with the changed fixtures: `ownership.sql` 40/40, `products.sql` 49/49. No other domain's views or policies read these three tables (grep), so the other scripts are unaffected.
+- `relrowsecurity` true on all three tables, 2 select policies each. Advisors: security unchanged (only the existing leaked-password warning). Performance: only 3 new INFO "unused index" rows for the new `reviewed_by` indexes, the same kind already accepted for every other review table.
+- **Legacy re-import, run twice:** both runs `inserted 0, updated 0, unchanged 271`. All 73 rows `pending`. The queue has 11 / 49 / 13 rows for companies / brands / products, one per row (`count = count(distinct item_id)`), and none unqueued. Examples:
+  - `companies nestle pending legacy_fact` "…hidden from users until approved… P0.2 note: the legacy CEO (Laurent Freixe) looks out of date."
+  - `brands tin-shed-ventures pending legacy_fact` "…P0.2 note: Tin Shed Ventures is an investment fund…"
+  - `products KitKat Original pending legacy_fact` "Legacy import: hidden from users until approved…"
+- `check:writers` passes, the fixture e2e passes. `typecheck`, `lint`, `format:check` pass; `npm test` 355 passed (e2e included, `.env` loaded).
+
+**Notes for you**
+- **Nothing legacy is user-visible now.** The app shows no catalog yet, so no screen changed.
+- **Approved rows still take import updates** to fields an admin hasn't locked (D-052). If you'd rather an approved product go back to `pending` when its source changes it, that's a later decision.
+- **Added to Phase 3 (P3.0 must cover it):** `review_queue.item_type` has no `company`/`brand` value, so a non-legacy company or brand with a review reason isn't queued yet. Nothing writes one today. The OFF auto-approve is also still to be coded there.
+
+**Next:** P2.19 Phase 2 exit check.
+
+---
+
 ## 2026-10-29 — P2.21 Make the HTTP rate-limit test immune to timing jitter
 
 **What changed**
