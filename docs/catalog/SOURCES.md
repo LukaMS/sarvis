@@ -628,9 +628,9 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | D6 | **Manual** citation per company for B Corp, Fairtrade and KnowTheChain. |
 | D7 | **Yes**: receipts are the main store-price source, and consenting users' prices may go to Open Prices. The consent wording is still a Phase 8 task. |
 
-**Still open:**
-- the project contact for pipeline User-Agent headers (required by OFF, Wikimedia and SEC; needed before the first Phase 3 run);
-- whether Sarvis is a commercial product (it affects whether any retailer permission request is worth making later).
+**Answered 2026-10-27, amended 2026-10-29** (DECISIONS.md D-015):
+- **User-Agent contact:** the repo URL. Sources that ask for an email (OFF, SEC EDGAR) get the owner's email from `.env` (`PIPELINE_CONTACT_EMAIL`), never committed.
+- **Commercial status:** non-commercial for now and probably for a year or more, but it may become commercial. Prefer licences that allow commercial use; keep non-commercial-only data separable.
 
 ### Original questions
 

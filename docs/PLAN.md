@@ -942,7 +942,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - SEC EDGAR Exhibit 21 (S20) → `pending` company ownership edges.
   - Corporations Canada (S21, low priority): an identity check only.
   - Retailer catalog sources: **none** for now. All Ontario grocers, Walmart, Costco and Flipp are avoided (D-013). Revisit only if the owner gets written permission.
-  - ✅ User-Agent contact (D-015): the repo URL only, `Sarvis/<version> (+https://github.com/LukaMS/sarvis)`. If SEC EDGAR rejects it without an email, stop and ask the owner.
+  - ✅ User-Agent contact (D-015, amended 2026-10-29): the repo URL, `Sarvis/<version> (+https://github.com/LukaMS/sarvis)`. Sources that ask for an email (OFF, SEC EDGAR) add the owner's email from `PIPELINE_CONTACT_EMAIL` in `.env` (add it to `.env.example` as a placeholder and to the env loader; refuse those sources when it's unset).
   - A budget check after each scale-up task.
   - Before any non-legacy source writes companies or brands that need review (Wikidata, AI): add `company` and `brand` to `review_queue.item_type`, so their `review_reason` is queued (found in P2.22, D-052). Also code the D-050 OFF auto-approve in the OFF writer path.
 

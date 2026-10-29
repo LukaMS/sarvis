@@ -15,7 +15,7 @@ Newest entry first.
 - The other exit items (fixture run twice, provenance, advisors, DB size, storage) are in the earlier P2.19 entry below, measured on `bf422c7`. P2.23 changed only the HTTP limiter and re-ran the fixture e2e (`inserted 17`, then `inserted 0, unchanged 17`).
 
 **Notes for you**
-- Phase 3 starts with **P3.0 Refine Phase 3**. SOURCES.md §7 still has two open questions for you: the project contact for the pipeline User-Agent (OFF, Wikimedia and SEC require one before the first Phase 3 run), and whether Sarvis is a commercial product.
+- Phase 3 starts with **P3.0 Refine Phase 3**. The two SOURCES.md §7 questions (User-Agent contact, commercial status) were already answered in D-015; §7 was stale and is now fixed. The owner added an email contact for sources that ask for one (D-015 amended; kept in `.env`, not the repo).
 
 **Next:** P3.0 Refine Phase 3 into session-sized tasks.
 
