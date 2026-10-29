@@ -61,6 +61,7 @@ Fill these in during Phase 1 and keep them current.
 | Check the raw store | `npm run check:raw --workspace @sarvis/pipeline` (dev project; stores a 3-record fixture under a throwaway run, reads it back, deletes it; leaves nothing behind) |
 | Check the writers | `npm run check:writers --workspace @sarvis/pipeline` (dev project; writes 2 brands, 5 products and 3 prices twice, plus the other writers, under the `fixture` source, checks the counts and provenance, then deletes everything) |
 | Run a scraper on a sample | `npm run pipeline -- run <source> --sample N` (dev project; add `--dry-run` to fetch, parse and validate without writing catalog rows or raw files; without `--sample`, `--mode full\|delta`). `npm run pipeline -- --help` lists the sources. Exit code 0 completed, 2 completed with errors, 1 failed, 130 cancelled |
+| Re-import legacy content | `npm run pipeline -- run legacy-import` (dev project; maps `docs/legacy/data/*.json` to pending facts with review-queue rows; idempotent, so a re-run inserts nothing) |
 | Pipeline e2e (run twice) | `npm run e2e --workspace @sarvis/pipeline` (dev project; runs `pipeline run fixture` twice through a local HTTP server, checks run 2 inserts nothing, provenance, raw files and validation failures, then deletes everything; skipped in `npm test` without the dev key) |
 
 ## Verifying your work

@@ -60,3 +60,7 @@ Editorial content from the legacy app's Supabase project (`chaidwvlizbayyugnphw`
 
 **Text**
 - Some strings contain non-ASCII punctuation (U+2011 non-breaking hyphen, U+2019 apostrophe, em dash). The files are UTF-8; keep that encoding on import.
+
+## Re-import (P2.18)
+
+`npm run pipeline -- run legacy-import` maps these files into the new schema as `pending` facts with `legacy-import` provenance, and queues each one as a `legacy_fact` with the notes above as its reason (D-049). It's idempotent: on the dev project, run 2 inserted 0 of 271 records.

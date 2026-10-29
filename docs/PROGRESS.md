@@ -2,6 +2,66 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.18 Legacy re-import
+
+**What changed**
+- A new `legacy-import` source (`pipeline/src/sources/legacy-import/`) reads the 10 P0.2 export files, one step and one raw object each, and maps them per DATA_MODEL §8 (D-049).
+- The run driver can now write several record kinds from one step (`ParseResult.batches` plus `RunDeps.writerFor`). The CLI wires every writer.
+- 6 new core record kinds, each with a writer: `company_score`, `certification`, `company_event`, `product_feature`, `transparency_step`, `story`.
+- Records can carry a `review_reason`. The writer then adds one `review_queue` row for the fact, and never a second.
+- Tests: 11 mapping tests over the real export, 2 driver tests for batches, and record-schema cases for the 6 new kinds.
+
+**Verification**
+- **Before:** every catalog table on dev had 0 rows.
+- **Run 1:** `npm run pipeline -- run legacy-import` finished `completed`: fetched 271, valid 271, invalid 0, **inserted 271**.
+- **Run 2:** finished `completed`: fetched 271, **inserted 0**, updated 0, **unchanged 271**.
+- **Row counts vs the README:**
+
+  | Table | Rows | Note |
+  |---|---|---|
+  | companies | 11 | |
+  | brands | 49 | |
+  | brand_ownership | 49 | |
+  | company_scores | 66 | 55 categories + 11 overall |
+  | certifications | 20 | 6 company + 14 product labels |
+  | company_events | 7 | 2 boycotts + 5 controversies |
+  | products | 13 | 11 brand-linked; 1 without a GTIN |
+  | product_features | 30 | |
+  | transparency_steps | 20 | |
+  | stories | 6 | all drafts |
+  | raw_objects | 20 | 10 per run |
+
+  The intentional drops are listed in D-049: product scores, product category text, one image URL, story covers, and `app_settings`.
+- **Review queue:** 201 open `legacy_fact` rows, unchanged after run 2.
+  - 49 brand ownership, 66 company scores, 20 certifications, 7 company events, 30 features, 20 steps, 6 stories.
+  - 3 products:
+    - Green Goodness and Kashi Bars, which have no brand link (Kashi also has the General Mills note);
+    - Patagonia Provisions Soup, for its bad barcode.
+- **anon:** sees 0 rows in brand_ownership, company_scores, certifications, company_events, product_features, transparency_steps and stories (checked with `set local role anon`, rolled back).
+- **Provenance:** a query found 0 rows missing their method, run or raw object.
+- **3 example rows:**
+  - `bolthouse-farms overall Good pending`: `legacy-import@1.0.0`, fetched 2026-10-26, run f94489f2, raw object 672f6af6. Its queue reason includes the P0.2 Bolthouse note.
+  - `Patagonia Provisions Soup gtin=null brand=patagonia`: same run, raw object 55ddf478. Its reason reads "barcode 0850034340016 is not a valid GTIN (check_digit)…".
+  - `uncle-bens > mars pending`: raw object 55d0b830. Its reason includes the Ben's Original note.
+- **Step mapping:** Evian's "Carbon Offset Shipping" → distribution and "Bottling at Source" → production.
+- **Checks:**
+  - `typecheck`, `lint`, `format:check` and `npm test` pass (352 pass, 1 skipped, the e2e).
+  - `check:writers` (2 tests) and the fixture e2e (1 test) pass. Both left the legacy rows and the queue untouched.
+
+**Notes for you**
+- **Companies, brands and products are visible to `anon`** (11 / 49 / 13).
+  - They have no review block in DATA_MODEL; only their facts (ownership, scores, events and so on) are pending.
+  - Some legacy company fields are doubtful: the Nestlé and Unilever CEOs, and Patagonia not being grocery.
+  - Companies can't carry a review reason, so only the Patagonia and Tin Shed Ventures brand edges got that note.
+  - Say if you want companies hidden until they're reviewed. That would be a schema change.
+- **The legacy data now stays on dev.** P2.19 measures the database with it in place.
+- **One manual fix on dev:** a doubled word in the soup's queue reason, corrected with a one-row `update`. The code is fixed too.
+- The dry-run row from before run 1 (`ea8ef1f0`) is also left on dev.
+
+**Next:** P2.19 Phase 2 exit check.
+
+---
+
 ## 2026-10-29 — P2.17 Pipeline: CLI, fixture source and run-twice e2e test
 
 **What changed**

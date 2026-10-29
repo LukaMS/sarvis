@@ -410,6 +410,27 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-049 Legacy re-import and multi-kind sources — Accepted (P2.18)
+- **A step can feed several tables.** `ParseResult.batches` lists record batches of any kind, validated and written in order after `records`. `RunDeps.writerFor(kind)` supplies their writers, and the CLI passes `writerFor(db, kind)`. A batch with no writer fails the run (configuration error). So each legacy file is one step and one raw object, even when it maps to two tables (companies → companies + overall scores; brands → brands + ownership; products → products + label certifications).
+- **New record kinds and writers:** `company_score`, `certification`, `company_event`, `product_feature`, `transparency_step`, `story` (core `records/scoring.ts`, `records/editorial.ts`; pipeline `db/writers/scoring.ts`, `editorial.ts`). They use the D-046 read-diff-write rule. Reviewed rows are frozen, and so is a published story (publishing is its review step). A legacy score keys on (company, category); AI and manual scores are append-only and always inserted.
+- **Review queue via `review_reason`:** a record may carry `review_reason` (product, both ownership edges, and the six new kinds). It is never a column. The writer gives each written row with a reason one `review_queue` row, unless the fact already has a queue row of any status, so re-runs don't duplicate work or reopen dismissed items. Legacy rows are `legacy_fact`; others use the table's type. Records without a reason behave exactly as before.
+- **Legacy mapping:**
+  - Company slugs are kept; brand slugs are generated (unique).
+  - `overall_ethical_rating` → an `overall` score with a rating only. `politics_and_tax` → `politics_tax`.
+  - **No `legacy` rubric row:** D-038 lets legacy scores have a null `rubric_id`, and the `v[0-9]+` version check wouldn't allow such a row anyway. This supersedes the D-030 note.
+  - Certification names → scheme by keyword, with the legacy text kept as `scheme_name`. Product `certifications[]` become pending product-level certifications.
+  - Boycotts and controversies → `company_events`.
+  - Steps map by title keyword, with production words checked before sourcing words (so "Bottling at Source" is production), falling back to `step_number`.
+  - A product links to a brand by its legacy `brand_id`. Failing that, it links to the longest brand name the product name starts with as whole words, but only when that brand's legacy company matches the product's.
+- **Provenance:**
+  - `method = legacy-import`, `legacy-import@1.0.0`, `fetched_at` = the P0.2 export date (2026-10-26), and `source_url` null (legacy has none).
+  - The raw `request_url` is the repo path (`docs/legacy/data/<file>`), which is how `parse` tells the files apart.
+  - The source reads companies and brands once to turn legacy uuids into slugs. The files are fixed by their README hashes, so re-parsing from Storage gives the same records.
+- **Stories import as drafts** (`published_at` null): they have no body, and their Unsplash covers are dropped. The legacy publish date goes in the queue reason.
+- **Intentional drops:** legacy product `ethical_score`/`grade` (§8), product `category` text (P4 taxonomy), product `image_url` (one OFF URL; Phase 3 brings OFF images), story covers, `companies.brands[]`, `app_settings`.
+- **Not deactivated:** the source doesn't support deactivation, because a fact missing from the export says nothing.
+**Why:** each file stays one raw object, the existing sources and writers are unchanged, and every legacy fact reaches admin review with its known problems attached.
+
 ## D-048 Pipeline CLI and fixture source — Accepted (P2.17)
 - **CLI:** `pipeline/src/cli.ts`, with `node:util` `parseArgs` and no new dependency. `run <source>` maps to a run mode: `--dry-run` → `dry_run` (with `--sample N` as its cap), else `--sample N` → `sample`, else `--mode full|delta` (default `full`). `--mode` with `--sample` or `--dry-run` is refused rather than guessed. Runs record `triggered_by = cli`, plus `GITHUB_SHA` and the Actions run URL when those env vars are set.
 - **Exit codes:** 0 `completed`, 2 `completed_with_errors`, 1 `failed` or a refused command (unknown source, bad verdict, bad env), 130 `cancelled`. Actions can then tell "ran with problems" from "didn't run".

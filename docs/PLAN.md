@@ -825,7 +825,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The e2e test passes locally; paste the summary into PROGRESS.
   - `npm test` in CI stays green, with the e2e test skipped.
 
-### [ ] P2.18 Legacy re-import
+### [x] P2.18 Legacy re-import
 - **Slice:** legacy-import.
 - **Goal:** bring the P0.2 legacy content into the new schema as `pending` facts with `legacy-import` provenance (DATA_MODEL §8).
 - **Deps:** P2.8, P2.9, P2.17.
