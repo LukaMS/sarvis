@@ -2,6 +2,39 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.17 Pipeline: CLI, fixture source and run-twice e2e test
+
+**What changed**
+- `pipeline/src/cli.ts`: `npm run pipeline -- run <source> [--sample N] [--dry-run] [--mode full|delta]` (root script). It prints a counts summary and exits 0 / 2 / 1 / 130 (D-048).
+- `pipeline/src/sources/fixture/`: 20 synthetic OFF-shaped products (17 valid, 3 invalid on purpose), a local HTTP server with `robots.txt` and OFF-style paged search, and the `fixture` source that maps them to product records. It's registered in `sources/index.ts`.
+- `pipeline/test/e2e/fixture-run-twice.test.ts`: the run-twice e2e. `npm run e2e --workspace @sarvis/pipeline` runs it, and `npm test` skips it without the dev key.
+- Unit tests: 15 for CLI arguments, and 5 for the fixture data, server and driver runs (sample and dry run through the real polite client, with no DB).
+- The pipeline's Vitest config and tsconfig now include `test/`.
+
+**Verification**
+- **Dry run:** `npm run pipeline -- run fixture --sample 10 --dry-run` printed `fetched 10, valid 9, invalid 1, inserted 0` and status `completed`.
+  - Dev row counts before and after were all **0**: products, brands, companies, product_sources, identifiers, listings, prices, candidates, raw_objects and raw files.
+  - The run left only its own bookkeeping: 1 `ingestion_runs` row (`dry_run/completed/cli/10`), 3 events and 1 validation failure. I left that run row on dev.
+- **e2e:** passed on the first try (1 test, 19.3 s).
+  - Run 1: `fetched 20, valid 17, invalid 3, inserted 17`, with 17 product rows.
+  - Run 2: `inserted 0, updated 0, unchanged 17`, with 17 product rows.
+  - Provenance was checked on all 17 rows: source, canonical `source_url`, `fetched_at`, method `api`, `fixture-import@1.0.0`, run 1's id and a run-1 raw object.
+  - Each run had 4 `raw_objects` rows (one per page), and every stored file re-parsed to the same records.
+  - The failures were `duplicate`, `gtin_check_digit` and `required_field`, each tied to its page.
+  - Cleanup left 0 products, 0 runs and 0 files.
+  - Example rows: `00629999000015 Rolled Oats / Fixture Farms / 1 kg → 1000 g`, `00629999000022 Steel Cut Oats / 900 g`, `00629999000039 Maple Granola / 750 g`.
+- **`npm test`:** 325 pass and 1 skipped (the e2e). One earlier full run had **1 failure**: the HTTP rate-limit test (`client.test.ts`, "spaces 5 requests ... 1 s apart"), after 5014 ms. Two reruns passed. This is the flake noted in P2.16; it's now task **P2.21**.
+- `typecheck`, `lint` and `format:check` pass.
+
+**Notes for you**
+- **New task P2.21:** make that rate-limit test reliable. I didn't capture which assertion fails. My best guess is that it measures from server receive times, which drift under load.
+- **The dry run warned about duplicates:** "Duplicate rate 20% is above 5%" on page 1, and 10% for the 10-record sample. That's expected, because one record is a deliberate duplicate. It's a warning only. A full run is at 5%, which doesn't trigger it.
+- **Fixture products have no brand link** (`brand_id` null). They keep `brand_text`, as the D-046 soft-reference rule says. Matching brands is P4's job.
+
+**Next:** P2.18 Legacy re-import.
+
+---
+
 ## 2026-10-29 — P2.20 Make `@sarvis/core` loadable by Node strip-types
 
 **What changed**

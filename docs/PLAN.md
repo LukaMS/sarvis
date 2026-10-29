@@ -802,7 +802,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - test rows are deleted afterwards.
   - Paste the counts.
 
-### [ ] P2.17 Pipeline: CLI, fixture source and run-twice e2e test
+### [x] P2.17 Pipeline: CLI, fixture source and run-twice e2e test
 - **Slice:** pipeline-cli.
 - **Goal:** meet the Phase 2 exit end to end.
 - **Deps:** P2.16, P2.20.
@@ -871,6 +871,15 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `node --experimental-strip-types -e "import('@sarvis/core')"` from `pipeline/` loads and lists the exports.
   - Metro still bundles: `npm run web` loads `/` with no console errors.
   - typecheck, lint and test pass.
+
+### [ ] P2.21 Make the HTTP rate-limit test immune to timing jitter (added in P2.17)
+- **Slice:** pipeline-http.
+- **Goal:** `npm test` is reliably green. `src/http/client.test.ts` "spaces 5 requests to one host at least 1 s apart" failed in about 1 of 5 full runs (P2.16, and once in P2.17 after 5014 ms) and passed on rerun. It most likely measures the gaps from the server's receive times, which can drift under CPU load even when the client spaced its sends correctly.
+- **Deps:** none.
+- **In:** capture which assertion fails (loop the test under load), then measure the spacing where the limiter acts (e.g. a send-time hook or an injected clock) or allow for the jitter; the same check for the two-host interleave test.
+- **Out:** changing the limiter itself, unless the capture shows a real bug.
+- **Files:** `pipeline/src/http/client.test.ts` (and `client.ts` only if needed).
+- **Verification:** the test passes 20 runs in a row with `npm test` running alongside; typecheck, lint and test pass.
 
 ### Phase 2 milestone coverage
 
