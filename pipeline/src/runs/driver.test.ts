@@ -313,6 +313,23 @@ describe('runSource: lifecycle', () => {
     expect(store.events.map((e) => e.event_type)).toContain('expected_total_mismatch');
   });
 
+  it('records the writer could not store give completed_with_errors and no deactivation', async () => {
+    const { store, deps, deactivations } = setup();
+    deps.writer.upsert = async (records) => ({
+      inserted: records.length - 1,
+      updated: 0,
+      unchanged: 0,
+      skipped_locked: 0,
+      rejected: [{ key: 'b', message: 'Unknown brand x; the record was not written.' }],
+    });
+    const result = await runSource(fakeSource({ pages: [[good('a'), good('b')]] }), full, deps);
+    expect(result.status).toBe('completed_with_errors');
+    expect(result.counts.inserted).toBe(1);
+    expect(deactivations).toHaveLength(0);
+    const event = store.events.find((e) => e.event_type === 'records_not_written');
+    expect(event?.details).toMatchObject({ examples: [{ key: 'b' }] });
+  });
+
   it('a dry run parses everything but writes no raw files and no records', async () => {
     const { store, deps, rawStored, upserted, deactivations } = setup();
     const src = fakeSource({ pages: [[good('a')], [good('b')]] });

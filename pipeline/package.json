@@ -6,7 +6,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "smoke:db": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/db/smoke.ts",
-    "check:raw": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/raw/check.ts"
+    "check:raw": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/raw/check.ts",
+    "check:writers": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run --config vitest.devdb.config.ts src/db/writers.devdb.ts"
   },
   "dependencies": {
     "@sarvis/core": "*",

@@ -74,9 +74,18 @@ export interface WriteContext {
   rawObjectId: string | null;
 }
 
-/** The domain writes for one record kind. P2.16 supplies the real ones. */
+/** A valid record the writer couldn't store (an unknown reference, or a row the DB refused). */
+export interface RejectedRecord {
+  key: string;
+  message: string;
+}
+
+/** The domain writes for one record kind (src/db/writers). */
 export interface RecordWriter<K extends RecordKind> {
-  upsert(records: RecordOf<K>[], ctx: WriteContext): Promise<UpsertCounts>;
+  upsert(
+    records: RecordOf<K>[],
+    ctx: WriteContext,
+  ): Promise<UpsertCounts & { rejected?: RejectedRecord[] }>;
   /**
    * Marks the source's rows that this run did not see as inactive. Only called after a clean,
    * full, uncancelled run of a source that supports it. Returns how many rows changed.
@@ -341,6 +350,21 @@ export async function runSource<K extends RecordKind>(
       } else if (!dryRun && batch.valid.length > 0) {
         const written = await deps.writer.upsert(batch.valid, { runId, source: row, rawObjectId });
         counts = addCounts(counts, written);
+        const rejected = written.rejected ?? [];
+        if (rejected.length > 0) {
+          // Valid but unwritten: the run can't end clean, and the first few say why.
+          hadErrors = true;
+          await event(
+            'warn',
+            'records_not_written',
+            `${rejected.length} valid records were not written.`,
+            {
+              seq,
+              rawObjectId,
+              examples: rejected.slice(0, 5),
+            },
+          );
+        }
       }
       await store.updateRun(runId, { counts, expected_total: expectedTotal });
     }
