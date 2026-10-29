@@ -670,7 +670,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `npm run typecheck`, `lint` and `test` pass.
   - Metro still bundles the app with zod in core: `npm run web` loads `/` with no console errors.
 
-### [ ] P2.11 Core: validation library and safeguards
+### [x] P2.11 Core: validation library and safeguards
 - **Slice:** core-validation.
 - **Goal:** one function that turns a batch of parsed records into valid and invalid sets, with failure rows shaped for `validation_failures`.
 - **Deps:** P2.10.

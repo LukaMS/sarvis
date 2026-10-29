@@ -4,6 +4,36 @@ Newest entry first.
 
 ---
 
+## 2026-10-29 — P2.11 Core: validation library and safeguards
+
+**What changed**
+- New in `@sarvis/core`:
+  - `validation/`:
+    - `validateBatch(kind, records, opts)`, with the six `validation_failures` rules. Failure rows have the table's shape; the run driver adds `run_id` and `raw_object_id`.
+    - Per-kind stable keys for the in-batch duplicate check.
+    - Payload trimming to fit the 1 KB jsonb check.
+    - `contentHash()`, using a pure-TS SHA-256.
+    - Safeguards (`computeQuality`, `qualityOf`, `evaluateBatch`) with the duplicate-rate and unit-parse thresholds added.
+  - `text.ts` (`cleanText`, `stripHtml`, `normalizeMatchText`) and `price.ts` (`parsePrice`, which now rejects negatives), ported from legacy.
+- D-041 records the rule priority, the duplicate keys, the hook, the thresholds and the hash.
+- The code went out in `d7a4e2e`, and CI was green. A docs script failed during that commit, so these doc updates follow in a second commit.
+
+**Verification**
+- Core tests: **134 pass**. All tests: **160 pass** (`npm test`).
+  - Every rule has a passing and a failing case: `schema`, `required_field`, `gtin_check_digit` (in products, product refs and `gtin_alt`), `price_sanity` (hard bounds and per-category bounds), `unit_parse` (fill, throw, an inconsistent result, the pass-through) and `duplicate` (a shared GTIN, a shared source id, normalized listing names).
+  - Payloads stay within 1 KB, measured the way Postgres prints jsonb.
+  - `contentHash` is identical for keys reordered at every level, and changes when a field changes. SHA-256 matches the FIPS vectors and two Node `crypto` hashes.
+  - The legacy `cleanText`, `stripHtml` and `parsePrice` cases pass.
+- `npm run typecheck`, `lint` and `format:check` pass.
+
+**Notes for you**
+- **The ported safeguards tests aren't changed "only in their imports".** Legacy built `NormalizedRetailerProduct` fixtures, which the rebuild doesn't have, so the fixtures now pass the same batches as counts. All four legacy assertions are unchanged and pass, and the thresholds are the same.
+- **New thresholds to check:** warn above 5% duplicates, fail above 50%, and warn when fewer than 80% of sizes parse. The unit-parse warning stays off until P4 adds a real parser.
+
+**Next:** P2.12 Pipeline runtime: env, logger, errors, retry, shutdown, DB client.
+
+---
+
 ## 2026-10-29 — P2.10 Core: record schemas, slugs and GTIN
 
 **What changed**
