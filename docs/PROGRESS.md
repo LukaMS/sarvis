@@ -2,6 +2,39 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.15 Pipeline: source interface and run driver
+
+**What changed**
+- `pipeline/src/sources/`:
+  - `source.ts`: the `Source` interface (plan → fetch → parse, with capability flags and `verifyContext`).
+  - `registry.ts`: the legacy factory map, ported.
+  - `index.ts`: `registerAllSources()`. Nothing is registered yet; the fixture source comes in P2.17.
+- `pipeline/src/runs/`:
+  - `driver.ts`: `runSource(source, opts, deps)`, the whole lifecycle (D-045), plus `storageRawWriter(db)`.
+  - `progress.ts`: `computeFinalStatus` and `addCounts`, ported, with a `failed` input added.
+  - `store.ts`: the `RunStore` interface, with a Supabase adapter and an in-memory adapter.
+- `raw/store.ts`: a sync `envelopeOf()` split out of `encodeRaw`, so dry runs parse exactly what would be stored.
+
+**Verification**
+- Driver tests (fake source, in-memory store), **18 pass**:
+  - An `avoid` source is refused, and so are `manual_only`, disabled and unknown ones. None creates a run.
+  - A stale run (7 h) is swept to `failed`, and a recent one is left.
+  - 60 invalid records store 50 failures and give `counts.invalid = 60`.
+  - A batch that is 60 % invalid isn't upserted and the run is `failed`. A bad batch inside a mostly valid run gives `completed_with_errors`.
+  - A cancel mid-run, or during the politeness delay, gives `cancelled` with no deactivation.
+  - `expected_total` 5 ≠ fetched 2 gives `completed_with_errors`.
+  - Also covered: dry run (no raw writes, no upserts), sample cap, a 403 failing the run with an alert, a recoverable fetch error, a failed `verifyContext`, a 40 → 0 drop, and the 50-event cap.
+- Ported progress tests (6) and registry tests (4) pass. All tests: **287 pass**. `typecheck`, `lint` and `format:check` pass.
+
+**Notes for you**
+- **The Supabase `RunStore` adapter hasn't run against the dev DB yet.** It typechecks against the generated types, and the P2.17 run-twice e2e will exercise it.
+- **The driver imports `@sarvis/core` at runtime**, so it runs under Vitest but not plain Node until P2.20. P2.17 already depends on P2.20.
+- **The stale sweep covers every source, not only the one being run.** Any `running` row older than 6 h is dead, since Actions kills a job at 6 h.
+
+**Next:** P2.16 Pipeline: idempotent upsert helpers.
+
+---
+
 ## 2026-10-29 — P2.14 Pipeline: raw store
 
 **What changed**

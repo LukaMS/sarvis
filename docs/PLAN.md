@@ -747,7 +747,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A dev-DB check script uploads a 3-record fixture, reads it back byte-equal, shows the `raw_objects` row, then deletes the file and the row. Paste the output.
   - Storage usage before and after is unchanged.
 
-### [ ] P2.15 Pipeline: source interface and run driver
+### [x] P2.15 Pipeline: source interface and run driver
 - **Slice:** pipeline-runs.
 - **Goal:** the generic run lifecycle that every source plugs into, with bookkeeping in `ingestion_runs`.
 - **Deps:** P2.2, P2.11, P2.13, P2.14.

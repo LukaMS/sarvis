@@ -396,3 +396,16 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
   - Anything else gets the general rule: the last 3 runs and 30 days.
 - **Big extracts:** the envelope is parsed whole, so the OFF Canada extract (P3) should be split into several `seq` files (for example 10k records each) rather than one very large one.
 - **`deleteRawFile(id)`** removes the file and sets `deleted_at`, keeping the row as provenance. The Phase 6 cleanup job reuses it.
+
+## D-045 Source interface and run driver — Accepted (P2.15)
+- **Source shape:** a source declares `key`, `job`, `version`, one `recordKind` and capability flags (`supportsDelta`, `supportsDeactivation`, `storeSpecificPricing`). It implements `plan()` (the first steps), `fetch(step)` (returns a `RawInput` plus any `next` steps, which is how pagination works), and `parse(rawPayload)`. `verifyContext`, `validateOptions` and `dispose` are optional. `parse` gets the same redacted envelope whether the response came from a fetch or from Storage. A dry run builds it with `envelopeOf()` and doesn't store it.
+- **Injection:** the driver talks to a `RunStore` (Supabase or memory), a `RawWriter` factory (`storageRawWriter(db)` by default) and a `RecordWriter` (`upsert`, plus optional `deactivateUnseen`, which P2.16 supplies). The tests use none of the network or the database.
+- **Refusal:** a missing source row, `verdict ≠ 'use'` or `enabled = false` throws `SourceRefusedError` **before** a run row exists. The mode is checked against the `ingestion_runs` constraint: `sample` needs a sample size, `full`/`delta` can't have one, `dry_run` may. `delta` also needs the capability.
+- **Stale sweep:** at start-up, every `running` run (any source) older than 6 h (the Actions job limit) becomes `failed`, with `finished_at` and an `error_summary`.
+- **Errors:** blocked (403/429), cancelled, database and configuration errors end the run. Any other fetch or parse error skips that step, writes an event, and makes the run `completed_with_errors`. A failed `verifyContext` fails the run before anything is fetched.
+- **Safeguards:** `evaluateBatch` runs per step. A failing batch (> 50 % invalid, or > 50 % duplicates) is **not upserted**, and the run can't end clean. It runs again over the whole run with the previous clean full run's `counts.fetched`. A failure there (mostly invalid, or N → 0) makes the run `failed`. Warnings become events.
+- **Final status:** cancelled > failed > completed_with_errors > completed. An `expected_total` (the latest value a page reported) that differs from `fetched` on a non-sample run gives `completed_with_errors`.
+- **Deactivation:** only when the status is `completed`, the mode is `full` (so never a sample or dry run), the source supports it, and the writer provides it. If it throws, the run becomes `completed_with_errors`.
+- **Caps:** 49 events during the run plus the `run_finished` event, which carries `eventsDropped`. 50 `validation_failures` rows, with `counts.invalid` holding the full number. Counts are written after every step so a crash leaves progress visible.
+- **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
+- **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
