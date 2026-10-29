@@ -150,9 +150,9 @@ describe('rate limiting', () => {
     const limiter = new HostLimiter();
     const started = Date.now();
     await Promise.all([
-      limiter.acquire('h', 100),
-      limiter.acquire('h', 100),
-      limiter.acquire('h', 100),
+      limiter.run('h', 100, () => {}),
+      limiter.run('h', 100, () => {}),
+      limiter.run('h', 100, () => {}),
     ]);
     expect(Date.now() - started).toBeGreaterThanOrEqual(200);
   });
@@ -160,7 +160,7 @@ describe('rate limiting', () => {
   it('HostLimiter spaces from the previous actual turn, so a late wake-up never makes the next early', async () => {
     const limiter = new HostLimiter();
     const times: number[] = [];
-    const take = () => limiter.acquire('h', 100).then(() => times.push(Date.now()));
+    const take = () => limiter.run('h', 100, () => times.push(Date.now()));
     const first = take();
     const rest = [take(), take()];
     await first;
@@ -170,6 +170,22 @@ describe('rate limiting', () => {
     await Promise.all(rest);
     expect(times[1]! - times[0]!).toBeGreaterThanOrEqual(150);
     expect(times[2]! - times[1]!).toBeGreaterThanOrEqual(100);
+  });
+
+  it('HostLimiter spaces from the send itself, so setup before the send never makes the next early', async () => {
+    const limiter = new HostLimiter();
+    const sentAt: number[] = [];
+    // send() does some setup before fetch (P2.23). Here the first send's setup takes 30 ms and
+    // the others' none, so a turn stamped before the setup lets the second go out 70 ms later.
+    const send = (setupMs: number) =>
+      limiter.run('h', 100, () => {
+        const until = Date.now() + setupMs;
+        while (Date.now() < until);
+        sentAt.push(Date.now());
+      });
+    await Promise.all([send(30), send(0), send(0)]);
+    expect(sentAt[1]! - sentAt[0]!).toBeGreaterThanOrEqual(100);
+    expect(sentAt[2]! - sentAt[1]!).toBeGreaterThanOrEqual(100);
   });
 });
 

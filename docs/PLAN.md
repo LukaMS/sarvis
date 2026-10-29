@@ -901,7 +901,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The legacy re-import run again gives `inserted = 0`, leaves every row `pending`, and the queue has one row per company, brand and product with no duplicates.
   - `check:writers` and the fixture e2e still pass.
 
-### [ ] P2.23 Host limiter: stamp the turn at the send, not when `acquire` returns (added in P2.19)
+### [x] P2.23 Host limiter: stamp the turn at the send, not when `acquire` returns (added in P2.19)
 - **Slice:** pipeline-http.
 - **Goal:** consecutive sends to a host are never less than the interval apart, as D-051 promises. CI on `bf422c7` failed `client.test.ts:100` "spaces 5 requests to one host at least 1 s apart" with `expected 999 to be greater than or equal to 1000` (https://github.com/LukaMS/sarvis/actions/runs/40944884023). `HostLimiter.acquire` records the turn time (`done(Date.now())`) in its `finally`, but `send()` then builds `AbortSignal.timeout`/`AbortSignal.any` before `fetch`. If the millisecond ticks in between, the first send is stamped 1 ms after its turn. The next send can then go out exactly one interval after that turn, which is 999 ms after the first send.
 - **Deps:** P2.21.

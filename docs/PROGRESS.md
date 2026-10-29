@@ -2,6 +2,28 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.23 Host limiter: stamp the turn at the send
+
+**What changed**
+- **`HostLimiter.run(host, interval, start, signal)`** (`pipeline/src/http/client.ts`) replaces `acquire()`. It waits for the host's turn, calls `start` and only then records the turn time.
+  - `send()` passes a `start` that builds the abort signals and calls `fetch`, so the next request to the host waits a full interval from the actual send.
+  - A failed `start` or a cancelled wait still counts as a turn.
+  - With `acquire()` gone, nothing can send without stamping a turn.
+- **Tests** (`client.test.ts`): a new deterministic test where only the first send has 30 ms of setup. It **fails on the old stamping** (`expected 80 to be greater than or equal to 100`, run with `run()` stamping before `start`) and passes now. The two existing `HostLimiter` tests use `run()`.
+- D-051 amended (P2.23 bullet).
+
+**Verification**
+- **20 runs in a row:** `client.test.ts` passed **20/20** (22 tests each), while `npm test` looped alongside the whole time. All **21/21** background `npm test` runs passed (355 passed, 1 skipped).
+- `typecheck`, `lint`, `format:check` pass. The fixture e2e passes: run 1 `inserted 17`, run 2 `inserted 0, unchanged 17`, cleanup left nothing.
+- CI: checked after the push (see the next entry, P2.19).
+
+**Notes for you**
+- The real-world effect is at most a few milliseconds per request. The point is that the 1 req/s rule now holds exactly, so the test only fails on a real regression.
+
+**Next:** P2.19 Phase 2 exit check: confirm CI is green on this commit, then tick it.
+
+---
+
 ## 2026-10-29 — P2.19 Phase 2 exit check (not ticked: CI red, P2.23 added)
 
 **What changed**

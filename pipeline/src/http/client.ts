@@ -83,14 +83,24 @@ export interface HttpClient {
 /**
  * Per-host spacing: a token bucket of capacity 1, so there are no bursts. Each call joins the
  * host's queue synchronously, so concurrent callers queue up and different hosts don't wait on
- * each other. A caller waits `intervalMs` from when the previous one actually got through, not
+ * each other. A caller waits `intervalMs` from when the previous one actually went out, not
  * from a booked slot, so a late wake-up never makes the next request early (P2.21).
  */
 export class HostLimiter {
-  /** Per host: resolves with the time the last queued caller got through. */
+  /** Per host: resolves with the time the last queued caller's request went out. */
   private readonly last = new Map<string, Promise<number>>();
 
-  async acquire(host: string, intervalMs: number, signal?: AbortSignal): Promise<void> {
+  /**
+   * Waits for the host's turn, then calls `start` (which issues the request) and returns its
+   * result. The turn is stamped after `start` returns, so any setup before the send never makes
+   * the next request early (P2.23).
+   */
+  async run<T>(
+    host: string,
+    intervalMs: number,
+    start: () => T,
+    signal?: AbortSignal,
+  ): Promise<Awaited<T>> {
     const previous = this.last.get(host);
     let done!: (at: number) => void;
     this.last.set(
@@ -99,16 +109,19 @@ export class HostLimiter {
         done = resolve;
       }),
     );
+    let sent: T;
     try {
       const after = (previous ? await previous : -Infinity) + intervalMs;
       // Re-check after waking: a timer can fire a millisecond early.
       for (let wait = after - Date.now(); wait > 0; wait = after - Date.now()) {
         await sleep(wait, signal);
       }
+      sent = start();
     } finally {
-      // A cancelled caller still holds its turn, so the next one keeps the spacing.
+      // A cancelled or failed caller still holds its turn, so the next one keeps the spacing.
       done(Date.now());
     }
+    return await sent;
   }
 }
 
@@ -141,11 +154,13 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
 
   /** One HTTP request, after waiting for the host's slot. Network failures become NetworkError. */
   async function send(url: URL, init: RequestInit, crawlDelayMs: number): Promise<Response> {
-    await limiter.acquire(url.hostname, Math.max(intervalMs, crawlDelayMs), outer);
-    const timeout = AbortSignal.timeout(timeoutMs);
-    const signal = outer ? AbortSignal.any([outer, timeout]) : timeout;
+    const start = () => {
+      const timeout = AbortSignal.timeout(timeoutMs);
+      const signal = outer ? AbortSignal.any([outer, timeout]) : timeout;
+      return fetch(url, { ...init, signal });
+    };
     try {
-      return await fetch(url, { ...init, signal });
+      return await limiter.run(url.hostname, Math.max(intervalMs, crawlDelayMs), start, outer);
     } catch (err) {
       if (outer?.aborted) throw new CancelledError();
       if (classifyError(err).type === 'network_error') {
