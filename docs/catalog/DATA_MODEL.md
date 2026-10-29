@@ -438,6 +438,8 @@ bigint id · `document_id` · `company_id` null · `brand_id` null (check: exact
 
 **`stories`** (legacy `impact_stories`): `id` uuid · `slug` · `title` · `subtitle` · `category` · `body` · `cover_image_path` (Storage, after a licence check) · `company_id` null · `featured` · `published_at` · +prov. RLS **public** where `published_at <= now()`.
 
+As built (D-039): `icon` is required, from a 24-name allow-list. Features are keyed on `(product_id, sort_order)`. Steps also get a generated `step_number` (1–4) for ordering. `cover_image_path` rejects URLs.
+
 ### 3.8 AI and audit
 
 **`ai_calls`**: one row per OpenRouter call (D-009; CLAUDE.md "Log tokens and cost per call"). RLS **admin**.

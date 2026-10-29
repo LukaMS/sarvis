@@ -2400,6 +2400,122 @@ export type Database = {
           },
         ]
       }
+      product_features: {
+        Row: {
+          created_at: string
+          decision_method: string | null
+          description: string | null
+          fetched_at: string
+          icon: string
+          id: string
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          product_id: string
+          raw_object_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sort_order: number
+          source_id: string
+          source_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decision_method?: string | null
+          description?: string | null
+          fetched_at: string
+          icon: string
+          id?: string
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          product_id: string
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_order?: number
+          source_id: string
+          source_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decision_method?: string | null
+          description?: string | null
+          fetched_at?: string
+          icon?: string
+          id?: string
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          product_id?: string
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sort_order?: number
+          source_id?: string
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_features_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_features_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_features_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_features_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_source_url"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_features_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_features_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_features_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_identifiers: {
         Row: {
           banner_id: string | null
@@ -3361,6 +3477,231 @@ export type Database = {
           },
           {
             foreignKeyName: "stores_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stories: {
+        Row: {
+          body: string | null
+          category: string | null
+          company_id: string | null
+          cover_image_path: string | null
+          created_at: string
+          featured: boolean
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          published_at: string | null
+          raw_object_id: string | null
+          slug: string
+          source_id: string
+          source_url: string | null
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string | null
+          company_id?: string | null
+          cover_image_path?: string | null
+          created_at?: string
+          featured?: boolean
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          published_at?: string | null
+          raw_object_id?: string | null
+          slug: string
+          source_id: string
+          source_url?: string | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          category?: string | null
+          company_id?: string | null
+          cover_image_path?: string | null
+          created_at?: string
+          featured?: boolean
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          published_at?: string | null
+          raw_object_id?: string | null
+          slug?: string
+          source_id?: string
+          source_url?: string | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "stories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["owner_company_id"]
+          },
+          {
+            foreignKeyName: "stories_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stories_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stories_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transparency_steps: {
+        Row: {
+          created_at: string
+          decision_method: string | null
+          description: string | null
+          fetched_at: string
+          id: string
+          ingestion_run_id: string | null
+          method: string
+          method_version: string
+          product_id: string
+          raw_object_id: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string
+          source_url: string | null
+          step: string
+          step_number: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decision_method?: string | null
+          description?: string | null
+          fetched_at: string
+          id?: string
+          ingestion_run_id?: string | null
+          method: string
+          method_version: string
+          product_id: string
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id: string
+          source_url?: string | null
+          step: string
+          step_number?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decision_method?: string | null
+          description?: string | null
+          fetched_at?: string
+          id?: string
+          ingestion_run_id?: string | null
+          method?: string
+          method_version?: string
+          product_id?: string
+          raw_object_id?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string
+          source_url?: string | null
+          step?: string
+          step_number?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transparency_steps_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transparency_steps_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "transparency_steps_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transparency_steps_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_source_url"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transparency_steps_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transparency_steps_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transparency_steps_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "sources"

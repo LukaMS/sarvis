@@ -639,7 +639,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `anon` sees only approved, non-superseded scores;
   - a document with no visible link is hidden from `anon`.
 
-### [ ] P2.9 Schema: editorial
+### [x] P2.9 Schema: editorial
 - **Slice:** schema.
 - **Goal:** `product_features`, `transparency_steps` and `stories` (§3.7).
 - **Deps:** P2.5.
@@ -837,7 +837,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - `ethical_scores` → `company_scores` under a `legacy` rubric row (`approved_by_owner_at` null, D-030);
     - certifications, and boycotts/controversies → `company_events`;
     - products (barcode → GTIN via P2.10, with the brand link inferred from the name where a brand matches exactly; others left null and queued);
-    - product features, transparency steps, and stories (no body, cover image dropped until a licence check).
+    - product features, transparency steps (mapped to the four steps by title, not `step_number`, per D-039), and stories (no body, cover image dropped until a licence check).
   - Every reviewable fact is `pending` with a `review_queue` row (`legacy_fact`). The P0.2 quality notes (Kashi, Ben's Original, Bolthouse, Sun-Brite) become the queue `reason` where they apply.
 - **Out:** fixing the flagged errors (that's admin review, Phase 5); legacy product-level scores (dropped per §8).
 - **Files:** `pipeline/src/sources/legacy-import/**`, tests, `docs/legacy/data/README.md` (a line on the re-import).
@@ -966,6 +966,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Receipt scan: rebuilt `process-receipt` on the shared AI module and the P4 matcher, with user confirmation of matches.
   - History and spending tracking: by month, store and company.
   - Stories/articles.
+  - Story covers: a public Storage bucket for `stories.cover_image_path`, plus a licence check for each cover. Legacy Unsplash URLs aren't carried over (P2.9, D-039). Check the storage budget first.
   - Profile, settings, about, help, privacy. Offline cache.
   - Receipt prices feed the shared price catalog, and consenting users' prices may be contributed to Open Prices (D-013). 🟡 The owner approves the consent and privacy wording, and the k-anonymity rule for `price_points_weekly` (placeholder: ≥ 2 receipts; DATA_MODEL §9).
   - Receipt scan is the main source of store prices (D-013 D7), so build it early in this phase.

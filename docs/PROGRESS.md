@@ -4,6 +4,43 @@ Newest entry first.
 
 ---
 
+## 2026-10-29 — P2.9 Schema: editorial
+
+**What changed**
+- The migration `20261029002156_catalog_editorial` is applied to dev. It adds:
+  - `product_features` (an icon allow-list of 24 names, taken from legacy's admin and `enrich-content`; upsert key `(product_id, sort_order)`);
+  - `transparency_steps` (four fixed steps, at most one of each per product, plus a generated `step_number` 1–4 for ordering);
+  - `stories` (slug key; `cover_image_path` must be a Storage path, not a URL; the company link is set null when the company is deleted; public once `published_at <= now()`).
+  - Features and steps carry +review and +prov, and anon sees only approved ones. Stories carry +prov. Only admins can write.
+- `supabase/tests/editorial.sql` holds the checks. The README row and a DATA_MODEL §3.7 "as built" note are added. The types are regenerated (341 lines added, 0 removed). D-039 records the design choices.
+- PLAN: P2.18 now says to map legacy steps **by title**. A Phase 8 bullet is added for the story-cover bucket and licence check.
+
+**Verification**
+- RLS script: **33/33 ok**.
+  - `step_number` follows `step` and can't be written (`428C9`).
+  - Rejected with `23514`: an icon outside the allow-list, an unknown step, an approved feature with no `reviewed_at`, a story slug `Bad Slug`, and an external cover URL.
+  - Rejected with `23502`: a null icon.
+  - Rejected with `23505`: a duplicate `(product, sort_order)`, a second step of the same kind for a product, and a duplicate story slug.
+  - An upsert on the key keeps the same row id. A Storage path cover is accepted. Deleting the company keeps its story.
+  - anon: sees only the approved feature and the two approved steps, in step order. Sees only the past story: **the future-dated story is hidden** and so is the draft. Gets `42501` on insert and update.
+  - Non-admin user: sees 3 approved features and steps, and no future or draft story. Gets `42501` on insert, and updates or deletes 0 rows.
+  - Admin: sees all 3 stories and all 5 features and steps. Approves a feature, inserts and publishes stories, and deletes a step. Afterwards anon sees the newly approved feature and the newly published story.
+- Afterwards: 0 rows in the new tables, 0 test users and 0 `rls-*` fixtures.
+- `relrowsecurity` is true on all 39 public tables.
+- Advisors:
+  - Security: only the existing leaked-password warning.
+  - Performance: only INFO "unused index" notices.
+- `npm run typecheck`, `lint` and `test` (27 tests) pass, and Prettier is clean.
+
+**Notes for you**
+- **Legacy steps need mapping by title.** Two legacy products have three steps, with shipping in slot 3 ("Carbon Offset Shipping", "Global Distribution"). Mapping by number would label those as packaging, so P2.18 maps by title.
+- **Story covers aren't planned in detail yet.** I added a Phase 8 milestone for a public bucket and a licence check per cover. Until then, stories show without a cover image.
+- One `execute_sql` call failed with a transient "Invalid or expired requestState" MCP error. I checked that it left nothing behind, then re-ran it, and it passed.
+
+**Next:** P2.10 Core: record schemas, slugs and GTIN.
+
+---
+
 ## 2026-10-29 — P2.8 Schema: scoring and evidence
 
 **What changed**
