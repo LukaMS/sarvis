@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { userAgent } from './index';
+import { userAgent } from './index.ts';
 
 describe('pipeline', () => {
   it('builds the User-Agent from the shared app name (D-015)', () => {
