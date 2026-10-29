@@ -410,6 +410,11 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-050 Who can see companies, brands and products — Accepted by owner (2026-10-29, for P2.22)
+- **Users see no company, brand or product until it is approved.** Legacy details are unreliable, so nothing from the legacy import is user-visible until an admin reviews it.
+- **Auto-approve rule:** Open Food Facts products that pass validation are approved automatically (`decision_method = 'auto'`), because about 95k rows can't be reviewed by hand. Legacy and AI-sourced companies, brands and products are never auto-approved.
+**Why:** shown data must be accurate, but OFF coverage can't wait on manual review.
+
 ## D-049 Legacy re-import and multi-kind sources — Accepted (P2.18)
 - **A step can feed several tables.** `ParseResult.batches` lists record batches of any kind, validated and written in order after `records`. `RunDeps.writerFor(kind)` supplies their writers, and the CLI passes `writerFor(db, kind)`. A batch with no writer fails the run (configuration error). So each legacy file is one step and one raw object, even when it maps to two tables (companies → companies + overall scores; brands → brands + ownership; products → products + label certifications).
 - **New record kinds and writers:** `company_score`, `certification`, `company_event`, `product_feature`, `transparency_step`, `story` (core `records/scoring.ts`, `records/editorial.ts`; pipeline `db/writers/scoring.ts`, `editorial.ts`). They use the D-046 read-diff-write rule. Reviewed rows are frozen, and so is a published story (publishing is its review step). A legacy score keys on (company, category); AI and manual scores are append-only and always inserted.

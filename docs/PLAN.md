@@ -890,7 +890,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Public RLS on all three becomes `review_status = 'approved'` plus the current status filter. Admins still see everything.
   - Writers: new rows arrive `pending`, and an import never changes `review_status`. A reviewed row stays frozen to the fields an admin locked, as today.
   - Legacy companies, brands and products each get a `legacy_fact` queue row. The company reasons carry the P0.2 notes (outdated Nestlé/Unilever CEOs; Patagonia not grocery). This makes `company_review_reason` possible on the company and brand records.
-  - **Proposed rule for bulk sources (owner to confirm in this task):** OFF products may be auto-approved (`decision_method = 'auto'`) once they pass validation, because reviewing about 95k rows by hand isn't possible. Legacy and AI-sourced entities are never auto-approved. This goes into DECISIONS.
+  - **Auto-approve rule (owner confirmed 2026-10-29, D-050):** OFF products that pass validation are auto-approved (`decision_method = 'auto'`). Legacy and AI-sourced entities are never auto-approved.
   - DATA_MODEL §1.6 and §3.2–3.3 are updated to match.
 - **Out:** the admin review UI (Phase 5); the auto-approve code for OFF (Phase 3, using the rule recorded here).
 - **Files:** `supabase/migrations/`, `supabase/tests/`, `packages/core` (records and types), `pipeline/src/db/writers/**`, `pipeline/src/sources/legacy-import/**`, `docs/catalog/DATA_MODEL.md`.
