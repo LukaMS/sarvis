@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { jsonbBytes } from './payload';
-import { passThroughUnitParser, type UnitParser, validateBatch } from './batch';
+import { jsonbBytes } from './payload.ts';
+import { passThroughUnitParser, type UnitParser, validateBatch } from './batch.ts';
 
 const prov = {
   source_key: 'fixture',

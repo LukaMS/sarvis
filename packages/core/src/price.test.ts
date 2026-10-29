@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parsePrice } from './price';
+import { parsePrice } from './price.ts';
 
 describe('parsePrice', () => {
   // Legacy cases from catalog-worker providers/fortinos/normalizer.test.ts.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { RECORD_KINDS, RECORD_SCHEMAS, type RecordInputOf, type RecordKind } from './index';
+import { RECORD_KINDS, RECORD_SCHEMAS, type RecordInputOf, type RecordKind } from './index.ts';
 
 const prov = {
   source_key: 'fixture',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isSlug, SLUG_MAX_LENGTH, slugify, uniqueSlug } from './slug';
+import { isSlug, SLUG_MAX_LENGTH, slugify, uniqueSlug } from './slug.ts';
 
 describe('slugify', () => {
   it.each([

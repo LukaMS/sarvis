@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { jsonbBytes, jsonbText, PAYLOAD_MAX_BYTES, trimPayload } from './payload';
+import { jsonbBytes, jsonbText, PAYLOAD_MAX_BYTES, trimPayload } from './payload.ts';
 
 describe('trimPayload', () => {
   it('keeps a small payload as is', () => {

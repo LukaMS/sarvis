@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 
-import { gtinIsRestricted, gtinIsValid } from '../gtin';
+import { gtinIsRestricted, gtinIsValid } from '../gtin.ts';
 import {
   CategorySlugSchema,
   DateTimeSchema,
@@ -12,7 +12,7 @@ import {
   provenanceShape,
   SlugSchema,
   textField,
-} from './common';
+} from './common.ts';
 
 export const NET_UNITS = ['g', 'ml', 'ct'] as const;
 

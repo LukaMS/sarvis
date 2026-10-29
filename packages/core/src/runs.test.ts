@@ -6,7 +6,7 @@ import {
   RUN_STATUSES,
   RunCountsSchema,
   TERMINAL_RUN_STATUSES,
-} from './runs';
+} from './runs.ts';
 
 describe('runs', () => {
   it('treats every status but running as terminal', () => {

@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": []
+    "types": [],
+    // The pipeline runs core with Node --experimental-strip-types: relative imports name the .ts file,
+    // and only erasable TypeScript syntax is allowed.
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
   },
   "include": ["src"]
 }

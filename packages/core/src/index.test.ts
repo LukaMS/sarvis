@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { APP_NAME } from './index';
+import { APP_NAME } from './index.ts';
 
 describe('core', () => {
   it('exports the app name', () => {

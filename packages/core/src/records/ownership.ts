@@ -13,7 +13,7 @@ import {
   SlugSchema,
   textField,
   validRangeOk,
-} from './common';
+} from './common.ts';
 
 const WikidataQidSchema = z.string().regex(/^Q[1-9][0-9]*$/, 'Wikidata QID');
 

@@ -2,7 +2,9 @@
   "extends": ["../tsconfig.base.json", "expo/tsconfig.base"],
   "compilerOptions": {
     "strict": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    // @sarvis/core's relative imports name the .ts file (for Node strip-types), and tsc follows them.
+    "allowImportingTsExtensions": true
   },
   "include": ["src", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeQuality, DEFAULT_SAFEGUARDS, evaluateBatch } from './safeguards';
+import { computeQuality, DEFAULT_SAFEGUARDS, evaluateBatch } from './safeguards.ts';
 
 // Ported from legacy catalog-worker jobs/safeguards.test.ts. Legacy built NormalizedRetailerProduct
 // arrays, which the rebuild doesn't have, so the fixtures pass the same batches as counts

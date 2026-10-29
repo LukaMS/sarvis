@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { sha256Hex } from './sha256';
+import { sha256Hex } from './sha256.ts';
 
 // FIPS 180-4 examples, plus two checked against Node's crypto.createHash('sha256').
 describe('sha256Hex', () => {

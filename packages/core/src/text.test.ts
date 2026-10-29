@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cleanText, normalizeMatchText, stripHtml } from './text';
+import { cleanText, normalizeMatchText, stripHtml } from './text.ts';
 
 // Legacy cases from catalog-worker providers/fortinos/normalizer.test.ts.
 describe('stripHtml', () => {

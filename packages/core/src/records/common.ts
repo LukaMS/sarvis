@@ -7,8 +7,8 @@
 
 import { z } from 'zod';
 
-import { gtinIsRestricted, gtinIsValid } from '../gtin';
-import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '../slug';
+import { gtinIsRestricted, gtinIsValid } from '../gtin.ts';
+import { SLUG_MAX_LENGTH, SLUG_PATTERN } from '../slug.ts';
 
 export const textField = (max: number) => z.string().min(1).max(max);
 

@@ -4,16 +4,16 @@
 
 import type { z } from 'zod';
 
-import { gtinIsValid } from '../gtin';
+import { gtinIsValid } from '../gtin.ts';
 import {
   type PriceObservationRecord,
   type ProductRecord,
   RECORD_SCHEMAS,
   type RecordKind,
   type RecordOf,
-} from '../records';
-import { rawRecordKey, recordKeys } from './keys';
-import { trimPayload } from './payload';
+} from '../records/index.ts';
+import { rawRecordKey, recordKeys } from './keys.ts';
+import { trimPayload } from './payload.ts';
 
 export const VALIDATION_RULES = [
   'required_field',

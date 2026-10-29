@@ -2,7 +2,7 @@
 // Ported from legacy catalog-worker jobs/safeguards.ts; extended with duplicate-rate and unit-parse
 // thresholds. Pure, so the run driver (P2.15) decides what a failed verdict does.
 
-import type { BatchStats } from './batch';
+import type { BatchStats } from './batch.ts';
 
 export const MAX_INVALID_RATE = 0.5;
 export const DRAMATIC_DROP_RATIO = 0.5;

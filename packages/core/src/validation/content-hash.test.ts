@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { canonicalJson, contentHash } from './content-hash';
+import { canonicalJson, contentHash } from './content-hash.ts';
 
 describe('contentHash', () => {
   const base = {

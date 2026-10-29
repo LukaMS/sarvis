@@ -14,7 +14,7 @@ import {
   SlugSchema,
   StoreRefSchema,
   textField,
-} from './common';
+} from './common.ts';
 
 export const StoreRecordSchema = z
   .strictObject({

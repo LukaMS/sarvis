@@ -2,8 +2,8 @@
 // validation_failures.record_key. A record can have several keys (a product has its source id and
 // its GTIN); two records clash when they share any key.
 
-import type { ListingRef, ProductRef, RecordKind, RecordOf, StoreRef } from '../records';
-import { normalizeMatchText } from '../text';
+import type { ListingRef, ProductRef, RecordKind, RecordOf, StoreRef } from '../records/index.ts';
+import { normalizeMatchText } from '../text.ts';
 
 const productRefKey = (r: ProductRef) =>
   'gtin' in r ? `gtin:${r.gtin}` : `src:${r.source_key}:${r.external_id}`;

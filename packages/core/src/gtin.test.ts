@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import legacyProducts from '../../../docs/legacy/data/products.json';
-import { gtinIsRestricted, gtinIsValid, gtinNormalize, normalizeGtin } from './gtin';
+import { gtinIsRestricted, gtinIsValid, gtinNormalize, normalizeGtin } from './gtin.ts';
 
 // The same vectors as supabase/tests/products.sql (P2.5). Keep the two lists in step.
 const SQL_IS_VALID: [string, boolean][] = [

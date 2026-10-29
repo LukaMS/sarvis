@@ -2,26 +2,26 @@
 
 import type { z } from 'zod';
 
-import { DocumentRecordSchema } from './documents';
+import { DocumentRecordSchema } from './documents.ts';
 import {
   BrandOwnershipEdgeRecordSchema,
   BrandRecordSchema,
   CompanyOwnershipEdgeRecordSchema,
   CompanyRecordSchema,
-} from './ownership';
-import { ProductIdentifierRecordSchema, ProductRecordSchema } from './products';
+} from './ownership.ts';
+import { ProductIdentifierRecordSchema, ProductRecordSchema } from './products.ts';
 import {
   PriceObservationRecordSchema,
   ReferencePriceRecordSchema,
   StoreListingRecordSchema,
   StoreRecordSchema,
-} from './stores';
+} from './stores.ts';
 
-export * from './common';
-export * from './documents';
-export * from './ownership';
-export * from './products';
-export * from './stores';
+export * from './common.ts';
+export * from './documents.ts';
+export * from './ownership.ts';
+export * from './products.ts';
+export * from './stores.ts';
 
 export const RECORD_SCHEMAS = {
   company: CompanyRecordSchema,

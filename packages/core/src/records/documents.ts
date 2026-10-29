@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-import { DateSchema, DateTimeSchema, HttpUrlSchema, provenanceShape } from './common';
+import { DateSchema, DateTimeSchema, HttpUrlSchema, provenanceShape } from './common.ts';
 
 export const DOCUMENT_KINDS = [
   'news',

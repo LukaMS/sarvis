@@ -1,7 +1,7 @@
 // Change detection: a hash over a record's imported fields (adapted from legacy fingerprintMetadata,
 // with SHA-256 and a canonical key order instead of a hand-listed field order).
 
-import { sha256Hex } from './sha256';
+import { sha256Hex } from './sha256.ts';
 
 /** Fields that change on every run without the fact changing. They never enter the hash. */
 export const CONTENT_HASH_IGNORED: readonly string[] = [
