@@ -55,21 +55,24 @@ export function sha256Hex(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
-/** Redacts and gzips a response. Pure apart from the CPU work. */
-export async function encodeRaw(input: RawInput): Promise<EncodedRaw> {
+/** The redacted envelope a response is stored as. A dry run parses this without storing it. */
+export function envelopeOf(input: RawInput): RawEnvelope {
   const headers = redactHeaders(input.headers ?? {});
   const contentType = input.contentType ?? headers['content-type'] ?? DEFAULT_BODY_TYPE;
-  const fetchedAt =
-    input.fetchedAt instanceof Date ? input.fetchedAt.toISOString() : input.fetchedAt;
-  const envelope: RawEnvelope = {
+  return {
     format: RAW_FORMAT,
     request_url: input.url == null ? null : redactUrl(input.url),
     http_status: input.status ?? null,
     content_type: contentType,
-    fetched_at: fetchedAt,
+    fetched_at: input.fetchedAt instanceof Date ? input.fetchedAt.toISOString() : input.fetchedAt,
     headers,
     body: redactBody(input.body, contentType),
   };
+}
+
+/** Redacts and gzips a response. Pure apart from the CPU work. */
+export async function encodeRaw(input: RawInput): Promise<EncodedRaw> {
+  const envelope = envelopeOf(input);
   const gz = await gzipAsync(Buffer.from(JSON.stringify(envelope), 'utf8'), {
     level: constants.Z_BEST_COMPRESSION,
   });
