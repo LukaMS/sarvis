@@ -3,8 +3,11 @@
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './db/database.types';
 
 export * from './gtin';
+export * from './price';
 export * from './records';
 export * from './runs';
 export * from './slug';
+export * from './text';
+export * from './validation';
 
 export const APP_NAME = 'Sarvis';
