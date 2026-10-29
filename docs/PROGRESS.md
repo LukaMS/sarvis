@@ -2,6 +2,45 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.19 Phase 2 exit check (not ticked: CI red, P2.23 added)
+
+**What changed**
+- No code. BUDGET.md has a new "Actuals after Phase 2" note under §3.
+- **New P2.23** (PLAN). CI on `bf422c7` failed: `client.test.ts:100` "spaces 5 requests to one host at least 1 s apart" got `expected 999 to be greater than or equal to 1000` (https://github.com/LukaMS/sarvis/actions/runs/40944884023).
+  - The cause: `HostLimiter.acquire` stamps a turn when it returns, but `send()` builds the abort signals before it calls `fetch`. If the clock ticks in between, the first send is 1 ms late against its turn, and the next send can go out 999 ms after it.
+  - This is a 1 ms shortfall against D-051's guarantee, not a politeness problem, but it turns CI red. P2.19 now depends on P2.23.
+
+**Exit checklist (commit `bf422c7`)**
+- [x] **Clean checkout:** fresh `git clone` from GitHub into the scratchpad, then `npm ci`. `typecheck`, `lint` and `format:check` exit 0. `npm test`: **354 passed, 1 skipped** (the dev-DB e2e skips without `.env`).
+- [x] **Fixture source goes raw → stored → parsed → validated → upserted; running it twice creates no duplicates.** `npm run e2e --workspace @sarvis/pipeline`, run twice from the main checkout (it has the `.env`), passed both times (19.4 s, 17.1 s). Each run:
+  - run 1 `fetched 20, valid 17, invalid 3, inserted 17`; run 2 `inserted 0, updated 0, unchanged 17`; 17 product rows;
+  - 3 validation failures recorded with their raw object: `duplicate`, `gtin_check_digit`, `required_field`;
+  - cleanup `left: products 0, runs 0, files 0`.
+- [x] **Every row carries provenance:** SQL over every `public` table with `source_id`, `fetched_at` and `method` (26 tables and views). Rows / rows missing any of the three: `products 13/0`, `brands 49/0`, `companies 11/0`, `brand_ownership 49/0`, `company_scores 66/0`, `certifications 20/0`, `company_events 7/0`, `product_features 30/0`, `transparency_steps 20/0`, `stories 6/0`, the rest 0/0.
+- [x] **`get_advisors`:** security shows only the existing project-wide "Leaked password protection disabled" WARN. Performance shows only INFO `unused_index` (58), expected with near-empty tables. No ERROR, and no WARN from the schema.
+- [x] **DB size vs BUDGET §3** (details in BUDGET.md "Actuals after Phase 2"):
+
+  | Measure | Actual | Budget |
+  |---|---:|---:|
+  | `pg_database_size` | 18.1 MB | alarm 400 MB |
+  | Catalog tables (38) | 4.88 MB | 350 MB |
+  | … 21 empty tables | 2.25 MB | — |
+  | … 17 tables with rows | 2.63 MB | — |
+  | `auth` / `storage` / other | 1.6 / 0.45 / 0.2 MB | ≈ 30 MB assumed |
+
+  Largest: `products` 288 KB (13 rows), `brands` and `company_scores` 248 KB each. Row widths match §3 except `products` (556 B against 348 B). Without the legacy `description` it's 336 B, so the Phase 3 OFF sample must measure it before scaling (BUDGET §8 already plans that).
+- [x] **Storage:** one bucket, `raw` (private, gzip only). It holds 40 objects, **70 KB** (budget 700 MB).
+- [ ] **Latest CI run is green:** **failed** on `bf422c7` (above). The run before, `73a218d` (P2.21), was green: https://github.com/LukaMS/sarvis/actions/runs/40939757560. The local clean-clone `npm test` passed, so this flake is CI-timing only.
+
+**Notes for you**
+- **Phase 2 is done apart from the CI flake.** All the exit criteria hold on dev, and the budget is nowhere near its limits.
+- **npm audit:** 14 issues (6 low, 3 moderate, 5 high), up from 8 at P1.2. The highs are `image-size`, `postcss` and `decode-uri-component` (as before), plus `query-string` and `expo-router`, which are flagged only because `expo-router@6.0.24` uses `query-string@7` and that uses `decode-uri-component`. The only fix is the major upgrade `expo-router@58`, which breaks the SDK 54 pin. So this is the same advisory as before, and no task was added. It's worth another look at the next Expo SDK upgrade.
+- P2.21's fix was incomplete: it stamped the turn in the limiter, not at the send. P2.23 moves the stamp to the send.
+
+**Next:** P2.23 Host limiter send-time stamp, then finish P2.19 (re-check CI, tick).
+
+---
+
 ## 2026-10-29 — P2.22 Hide unreviewed companies, brands and products from users
 
 **What changed**

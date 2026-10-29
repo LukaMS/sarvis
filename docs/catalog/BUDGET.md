@@ -86,6 +86,36 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `receipt_lines` | 120,000 | 138 | 100 | 31.0 | 25 lines per receipt |
 | **Subtotal** | | | | **44** | |
 
+### Actuals after Phase 2 (P2.19, 2026-10-29, dev project)
+
+Measured with `pg_total_relation_size`, `pg_database_size` and `pg_column_size(row)`, after the sources seed, the legacy re-import and the fixture e2e (which cleans up after itself).
+
+| Measure | Actual | Budget |
+|---|---:|---:|
+| Whole DB (`pg_database_size`) | 18.1 MB | alarm 400 MB |
+| Catalog tables (38, all of `public` except `profiles`) | 4.88 MB | 350 MB |
+| … of which 21 empty tables (fixed pages: 1 heap + ≥ 2 per index) | 2.25 MB | — |
+| … of which 17 tables with rows (legacy, sources seed, run bookkeeping) | 2.63 MB | — |
+| Other schemas (`auth` 1.6 MB, `storage` 0.45 MB, migrations, realtime, vault) | 2.3 MB | ≈ 30 MB assumed |
+| Storage (`raw` bucket, 40 objects) | 70 KB | 700 MB |
+
+**Empty-table baseline:** an empty catalog table costs 48–180 KB (one heap page plus at least two pages per index). Even the tables with rows are still close to that minimum, so the whole catalog (4.88 MB) is ~1.4% of its budget. §3 has no line for this fixed cost, and none is needed.
+
+**Row widths vs §3** (average `pg_column_size` of a row, which includes the tuple header):
+
+| Table | Rows | Measured B/row | §3 B/row | Note |
+|---|---:|---:|---:|---|
+| `products` | 13 | 556 | 348 | 336 without `description` (220 B average, legacy text). OFF rows have no long description, so ≈ budget. **Phase 3 OFF sample: measure the real width before scaling** (as §8 already says). |
+| `companies` | 11 | 481 | 478 | ✅ |
+| `brands` | 49 | 223 | 228 | ✅ |
+| `brand_ownership` | 49 | 208 | 178 | +17%, ≈ +0.7 MB at 22k rows |
+| `company_scores` | 66 | 250 | 528 | under (legacy scores have no rationale text yet; AI scores will) |
+| `review_queue` | 271 | 232 | 148 | long legacy reasons; ≈ +1.4 MB at 15k rows |
+| `raw_objects` | 40 | 302 | 248 | +22%, ≈ +0.3 MB |
+| `sources` | 35 | 280 | 628 | under |
+
+Row counts are far too small for the index or heap sizes to say anything beyond this. The per-row widths are within the §1 headroom (~56 MB), and the only one to watch is `products`.
+
 ## 4. Cuts designed in (first pass ≈ 425 MB → 267 MB)
 
 | Cut | Saves | Where |

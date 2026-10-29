@@ -849,7 +849,8 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 ### [ ] P2.19 Phase 2 exit check
 - **Slice:** release-check.
 - **Goal:** prove the exit criteria together, and measure the DB against the budget.
-- **Deps:** P2.1–P2.18, P2.22.
+- **Deps:** P2.1–P2.18, P2.22, P2.23.
+- **Status (2026-10-29):** every check passed except "latest CI run is green" (CI on `bf422c7` failed on the limiter, see P2.23). After P2.23, re-check CI and tick. The evidence is in PROGRESS.
 - **In:**
   - Clean clone, `npm ci`, typecheck/lint/test, and the fixture e2e test (run twice).
   - `get_advisors` is clean.
@@ -900,6 +901,15 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The legacy re-import run again gives `inserted = 0`, leaves every row `pending`, and the queue has one row per company, brand and product with no duplicates.
   - `check:writers` and the fixture e2e still pass.
 
+### [ ] P2.23 Host limiter: stamp the turn at the send, not when `acquire` returns (added in P2.19)
+- **Slice:** pipeline-http.
+- **Goal:** consecutive sends to a host are never less than the interval apart, as D-051 promises. CI on `bf422c7` failed `client.test.ts:100` "spaces 5 requests to one host at least 1 s apart" with `expected 999 to be greater than or equal to 1000` (https://github.com/LukaMS/sarvis/actions/runs/40944884023). `HostLimiter.acquire` records the turn time (`done(Date.now())`) in its `finally`, but `send()` then builds `AbortSignal.timeout`/`AbortSignal.any` before `fetch`. If the millisecond ticks in between, the first send is stamped 1 ms after its turn. The next send can then go out exactly one interval after that turn, which is 999 ms after the first send.
+- **Deps:** P2.21.
+- **In:** the turn is stamped right before `fetch` is called (e.g. `acquire` hands back a `sent()` callback, or the signal setup moves before `acquire`). A cancelled caller still counts as a turn. Add a deterministic test that delays the gap between acquire and send, so it fails on the current code.
+- **Out:** changing the 1 req/s rule or other client behaviour.
+- **Files:** `pipeline/src/http/client.ts`, `pipeline/src/http/client.test.ts`, D-051 (amend).
+- **Verification:** the new test fails before the fix and passes after; `client.test.ts` passes 20 runs in a row with `npm test` looping alongside; typecheck, lint and test pass; the CI run for the commit is green.
+
 ### Phase 2 milestone coverage
 
 | Milestone | Tasks |
@@ -907,7 +917,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M1 Schema (8 domains) | P2.1 bookkeeping, P2.3 matching and review, P2.4 ownership, P2.5 products, P2.6 stores and prices, P2.7 AI and audit, P2.8 scoring and evidence, P2.9 editorial |
 | M2 Sources seed and verdict refusal | P2.2 (seed), P2.15 (refusal) |
 | M3 Core records and validation | P2.10 (schemas, slug, GTIN), P2.11 (validation, safeguards) |
-| M4 Pipeline framework | P2.12 (env, logger, errors, retry, shutdown), P2.13 (HTTP client), P2.14 (raw store), P2.15 (driver, expected vs fetched), P2.16 (upserts, change detection), P2.17 (CLI) |
+| M4 Pipeline framework | P2.12 (env, logger, errors, retry, shutdown), P2.13 (HTTP client; limiter fixes P2.21, P2.23), P2.14 (raw store), P2.15 (driver, expected vs fetched), P2.16 (upserts, change detection), P2.17 (CLI) |
 | M5 Legacy re-import | P2.18, P2.22 (nothing legacy is user-visible) |
 | M6 Tests | Unit tests in P2.10–P2.16; run-twice e2e in P2.17 and P2.18 |
 | M7 Budget check | P2.19 |
