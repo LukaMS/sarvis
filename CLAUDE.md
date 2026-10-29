@@ -58,6 +58,7 @@ Fill these in during Phase 1 and keep them current.
 | Password-reset link for a dev user | `npm run dev:recovery-link -- --email <email> [--redirect <url>]` (dev project only; prints the link the reset email would contain, no email sent; default redirect `http://localhost:8081/`, Expo Go: `exp://127.0.0.1:8081/--/`) |
 | Generate Supabase types | `supabase-dev` MCP `generate_typescript_types` → save verbatim to `packages/core/src/db/database.types.ts` (`npm run db:types` prints the steps; see `supabase/README.md`) |
 | Check pipeline DB access | `npm run smoke:db --workspace @sarvis/pipeline` (service role on the **dev** project; prints the `sources` row count only) |
+| Check the raw store | `npm run check:raw --workspace @sarvis/pipeline` (dev project; stores a 3-record fixture under a throwaway run, reads it back, deletes it; leaves nothing behind) |
 | Run a scraper on a sample | TBD (Phase 2) |
 
 ## Verifying your work

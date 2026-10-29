@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "smoke:db": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/db/smoke.ts"
+    "smoke:db": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/db/smoke.ts",
+    "check:raw": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/raw/check.ts"
   },
   "dependencies": {
     "@sarvis/core": "*",
