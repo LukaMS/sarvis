@@ -731,7 +731,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - a second fetch is served from cache (304 or a TTL hit).
   - The pagination tests pass. typecheck, lint and test pass.
 
-### [ ] P2.14 Pipeline: raw store
+### [x] P2.14 Pipeline: raw store
 - **Slice:** pipeline-raw.
 - **Goal:** save every raw response, gzipped, before parsing, and read it back for re-parsing (CLAUDE.md "Raw data"; D-010).
 - **Deps:** P2.1, P2.12.
@@ -947,7 +947,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Cron workflows per source with `workflow_dispatch`, concurrency groups, and `actions/cache` for the HTTP cache.
   - Supabase keep-alive.
   - Freshness policy: per-source refresh intervals and stale-price thresholds.
-  - Raw-retention cleanup job (retention per DATA_MODEL §5), plus the row-retention purges (events, validation failures, candidates, queue).
+  - Raw-retention cleanup job (retention per DATA_MODEL §5, using `retentionFor()` and `deleteRawFile()` from P2.14; the per-subject limit for Wikipedia and EDGAR needs a subject derived from `request_url`, D-044), plus the row-retention purges (events, validation failures, candidates, queue).
   - A budget monitor (DB size, storage size, OpenRouter spend, egress) that warns at the thresholds in BUDGET §6.
   - Failure notification by opening a GitHub issue.
 

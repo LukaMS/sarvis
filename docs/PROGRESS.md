@@ -2,6 +2,40 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.14 Pipeline: raw store
+
+**What changed**
+- New in `pipeline/src/raw/`:
+  - `store.ts`: `storeRaw(ctx, seq, response)` redacts the response, wraps it in a `sarvis-raw/1` JSON envelope, gzips it and uploads it to `raw/{source}/{run}/{seq}.json.gz`, then inserts the `raw_objects` row (sha-256 of the body, gz size, URL, status, `fetched_at`, `expires_at`). `readRaw(db, id)` downloads the file, checks it against the sha-256 and returns the body. It throws `NotFoundError` if the row is marked deleted or the file is missing. `deleteRawFile` is there for the Phase 6 cleanup.
+  - `redact.ts`: a header allow-list, JSON/NDJSON body-secret redaction (generalised from legacy `sanitize.ts`), and URL credential redaction.
+  - `retention.ts`: `retentionFor(sourceKey, {delta})` follows the DATA_MODEL §5 table, and `expiresAt()` turns a policy into a date.
+  - `check.ts`, run with `npm run check:raw --workspace @sarvis/pipeline`: the dev-project round trip. Added to the Commands table in CLAUDE.md.
+- D-044 records the format, hash and retention readings. The P6 outline now names the helpers the cleanup job reuses.
+
+**Verification**
+- Raw unit tests: **27 pass** (redaction 11, retention 8, codec and paths 8). All tests: **259 pass**. `typecheck`, `lint` and `format:check` pass.
+- `check:raw` on dev (output trimmed):
+  ```
+  stored          storagePath raw/fixture/8af5077d-…/000001.json.gz  sha256 449aaacd…  byteSize 349  expiresAt 2026-10-30T14:45:53Z
+  raw_objects row source_id 3ac5529c-… (fixture)  run_id 8af5077d-…  content_type application/json
+                  request_url https://example.test/fixture/products?page=1  http_status 200  deleted_at null
+  read back       byteEqual true  bodyBytes 307  records 3  headers {"content-type":"application/json"}  (set-cookie dropped)
+  file deleted    filesLeftInRunFolder 0
+  readRaw after delete fails as expected: "Raw object … was deleted at … (retention)."
+  readRaw with the file missing fails as expected: "Raw file raw/fixture/…/000002.json.gz could not be downloaded."
+  cleaned up      runDeleted true  rawRowsLeft 0
+  ```
+- Storage usage (`storage.objects`) was **0 files / 0 bytes before and after**. Afterwards there were 0 `raw_objects` rows and 0 check runs.
+
+**Notes for you**
+- **`content_sha256` hashes the redacted body, not the gz file.** The same response therefore always gets the same hash, which the "write only when changed" sources (GDELT, RSS, Wikipedia) need.
+- **The OFF Canada extract should be split into several files in P3** (for example 10k records each), because a whole envelope is parsed in memory.
+- **The check script reads the version from `package.json` instead of importing `index.ts`.** Importing it still fails under Node strip-types because of `@sarvis/core` (that's P2.20).
+
+**Next:** P2.15 Pipeline: source interface and run driver.
+
+---
+
 ---
 
 ## 2026-10-29 — P2.13 Pipeline: polite HTTP client
