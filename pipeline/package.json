@@ -7,7 +7,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "smoke:db": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/db/smoke.ts",
     "check:raw": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/raw/check.ts",
-    "check:writers": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run --config vitest.devdb.config.ts src/db/writers.devdb.ts"
+    "check:writers": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run --config vitest.devdb.config.ts src/db/writers.devdb.ts",
+    "pipeline": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/cli.ts",
+    "e2e": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run test/e2e"
   },
   "dependencies": {
     "@sarvis/core": "*",
