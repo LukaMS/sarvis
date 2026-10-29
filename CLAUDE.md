@@ -59,6 +59,7 @@ Fill these in during Phase 1 and keep them current.
 | Generate Supabase types | `supabase-dev` MCP `generate_typescript_types` → save verbatim to `packages/core/src/db/database.types.ts` (`npm run db:types` prints the steps; see `supabase/README.md`) |
 | Check pipeline DB access | `npm run smoke:db --workspace @sarvis/pipeline` (service role on the **dev** project; prints the `sources` row count only) |
 | Check the raw store | `npm run check:raw --workspace @sarvis/pipeline` (dev project; stores a 3-record fixture under a throwaway run, reads it back, deletes it; leaves nothing behind) |
+| Check the writers | `npm run check:writers --workspace @sarvis/pipeline` (dev project; writes 2 brands, 5 products and 3 prices twice, plus the other writers, under the `fixture` source, checks the counts and provenance, then deletes everything) |
 | Run a scraper on a sample | TBD (Phase 2) |
 
 ## Verifying your work

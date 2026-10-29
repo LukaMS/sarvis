@@ -778,7 +778,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - `expected_total` ≠ fetched gives `completed_with_errors`.
   - The ported progress and registry tests pass.
 
-### [ ] P2.16 Pipeline: idempotent upsert helpers
+### [x] P2.16 Pipeline: idempotent upsert helpers
 - **Slice:** pipeline-db.
 - **Goal:** per-domain writers that upsert on stable keys, skip unchanged and locked rows, and always carry provenance.
 - **Deps:** P2.6, P2.10, P2.15.

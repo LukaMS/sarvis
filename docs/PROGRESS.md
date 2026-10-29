@@ -2,6 +2,41 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.16 Pipeline: idempotent upsert helpers
+
+**What changed**
+- `pipeline/src/db/`:
+  - `change.ts`: change detection ported from legacy `db/upsert.ts` (`priceFieldsChanged` with the 0.005 epsilon, and `listingStateChanged`), plus a column diff that copes with how PostgREST returns values, and the `listing_key` twin.
+  - `query.ts`: chunked `.in()` reads (300, paged past the 1,000-row cap), chunked inserts (500) that retry row by row on an integrity error, and updates by id.
+  - `keyed.ts`: the shared write rule (D-046). It matches on stable keys, then inserts, or counts the row as unchanged or skipped_locked, or updates only the unlocked columns that changed.
+  - `refs.ts`: bulk lookup from slugs, GTINs and refs to ids.
+  - `writers/`: one writer each for companies, brands, both ownership edges, products (plus `product_sources` when a GTIN already belongs to another source), product identifiers, stores, store listings and price observations. Look one up with `writerFor(db, kind)`.
+- Unmatched listings never create products. When a source names the product, the writer creates one pending `listing_product` match candidate instead.
+- Driver: when the writer returns `rejected` records, the driver writes a `records_not_written` event and the run ends `completed_with_errors`. One new driver test covers this.
+- `npm run check:writers --workspace @sarvis/pipeline` runs a dev-DB check (`*.devdb.ts`, with its own Vitest config, not part of `npm test`).
+
+**Verification**
+- The ported change-detection tests pass (5 price, 4 listing state, 1 key normalisation), plus 7 tests for the diff, the accent-stripping key, the hash and rounding.
+- Dev-DB check under the `fixture` source and one throwaway run. It passed on the first try:
+  - run 1: brands 2 inserted, products 5 inserted, prices 3 inserted;
+  - run 2 (same input): `inserted = 0`, with **unchanged 2 / 5 / 3**;
+  - run 3: product 1's admin-locked name survived (`skipped_locked = 1`), and product 2's changed size text gave `updated = 1`. Price 1 changed and appended 1 row. Price 2 was equal a day later, so it only moved `last_confirmed_on` to 2026-10-29 (`unchanged`). Price 3 stayed `unchanged`. That leaves 4 price rows in total;
+  - provenance: 11 rows checked, 0 with a null `source_id`, `fetched_at`, `method` or `method_version`;
+  - other writers, run twice. Company, brand edge (`pending`), 2 listings and 1 identifier: run 2 had `inserted = 0` and everything `unchanged`. There was exactly 1 pending `gtin_exact` candidate, linked to the SKU listing;
+  - cleanup: a SQL count afterwards found 0 test companies, brands, products, identifiers, listings, candidates, stores, banners and runs.
+- All tests: **305 pass**. `typecheck`, `lint` and `format:check` pass.
+
+**Notes for you**
+- **One test failure I couldn't reproduce:** the first full `npm test` after the change had 1 failure, and 3 reruns passed. I didn't capture which test it was. It's most likely one of the timing tests (the HTTP rate limit, or the driver's politeness delay) under load. Look out for it in CI.
+- **The `RunStore` Supabase adapter has now run against dev.** The check creates its run with `createRun`.
+- **Banners have no writer yet,** because there's no banner record kind. The check inserts its test banner directly. Phase 3 store sources will need one.
+- **Price writer scale (D-046):** it reads a store's whole history for the source. That's fine for samples. Watch it in the Open Prices scale-up.
+- `deactivateUnseen` isn't implemented on any writer. No current source needs it. The driver skips it when it's absent.
+
+**Next:** P2.20 Make `@sarvis/core` loadable by Node strip-types (P2.17 depends on it).
+
+---
+
 ## 2026-10-29 — P2.15 Pipeline: source interface and run driver
 
 **What changed**
