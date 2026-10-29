@@ -849,7 +849,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 ### [ ] P2.19 Phase 2 exit check
 - **Slice:** release-check.
 - **Goal:** prove the exit criteria together, and measure the DB against the budget.
-- **Deps:** P2.1–P2.18.
+- **Deps:** P2.1–P2.18, P2.22.
 - **In:**
   - Clean clone, `npm ci`, typecheck/lint/test, and the fixture e2e test (run twice).
   - `get_advisors` is clean.
@@ -881,6 +881,25 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/http/client.test.ts` (and `client.ts` only if needed).
 - **Verification:** the test passes 20 runs in a row with `npm test` running alongside; typecheck, lint and test pass.
 
+### [ ] P2.22 Hide unreviewed companies, brands and products from users (added after P2.18)
+- **Slice:** schema.
+- **Goal:** users see no company, brand or product until it has been reviewed or has passed a written auto-approve rule. P2.18 left the 11 legacy companies, 49 brands and 13 products visible to `anon`, because those tables had no review block. The legacy details aren't reliable (wrong owners, outdated CEOs, non-grocery companies) and must not be shown.
+- **Deps:** P2.18.
+- **In:**
+  - Add the §1.5 `+review` block (`review_status`, `reviewed_by`, `reviewed_at`, `decision_method`) to `companies`, `brands` and `products`, in one migration. Existing rows become `pending`.
+  - Public RLS on all three becomes `review_status = 'approved'` plus the current status filter. Admins still see everything.
+  - Writers: new rows arrive `pending`, and an import never changes `review_status`. A reviewed row stays frozen to the fields an admin locked, as today.
+  - Legacy companies, brands and products each get a `legacy_fact` queue row. The company reasons carry the P0.2 notes (outdated Nestlé/Unilever CEOs; Patagonia not grocery). This makes `company_review_reason` possible on the company and brand records.
+  - **Proposed rule for bulk sources (owner to confirm in this task):** OFF products may be auto-approved (`decision_method = 'auto'`) once they pass validation, because reviewing about 95k rows by hand isn't possible. Legacy and AI-sourced entities are never auto-approved. This goes into DECISIONS.
+  - DATA_MODEL §1.6 and §3.2–3.3 are updated to match.
+- **Out:** the admin review UI (Phase 5); the auto-approve code for OFF (Phase 3, using the rule recorded here).
+- **Files:** `supabase/migrations/`, `supabase/tests/`, `packages/core` (records and types), `pipeline/src/db/writers/**`, `pipeline/src/sources/legacy-import/**`, `docs/catalog/DATA_MODEL.md`.
+- **Verification:**
+  - The schema-task checks: the RLS script, advisors, `relrowsecurity`, typecheck/lint/test.
+  - `anon` and a non-admin user see 0 companies, brands and products on dev; an admin sees 11 / 49 / 13.
+  - The legacy re-import run again gives `inserted = 0`, leaves every row `pending`, and the queue has one row per company, brand and product with no duplicates.
+  - `check:writers` and the fixture e2e still pass.
+
 ### Phase 2 milestone coverage
 
 | Milestone | Tasks |
@@ -889,7 +908,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M2 Sources seed and verdict refusal | P2.2 (seed), P2.15 (refusal) |
 | M3 Core records and validation | P2.10 (schemas, slug, GTIN), P2.11 (validation, safeguards) |
 | M4 Pipeline framework | P2.12 (env, logger, errors, retry, shutdown), P2.13 (HTTP client), P2.14 (raw store), P2.15 (driver, expected vs fetched), P2.16 (upserts, change detection), P2.17 (CLI) |
-| M5 Legacy re-import | P2.18 |
+| M5 Legacy re-import | P2.18, P2.22 (nothing legacy is user-visible) |
 | M6 Tests | Unit tests in P2.10–P2.16; run-twice e2e in P2.17 and P2.18 |
 | M7 Budget check | P2.19 |
 | Exit criteria | P2.17 (proof), P2.19 (checked together) |
