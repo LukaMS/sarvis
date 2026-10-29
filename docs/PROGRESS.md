@@ -2,6 +2,25 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.19 Phase 2 exit check (done)
+
+**What changed**
+- No code. P2.19 ticked; Phase 2 is complete.
+
+**Verification**
+- The last open item, **latest CI run is green**, now passes:
+  - `fdda6a8` (P2.23 fix): https://github.com/LukaMS/sarvis/actions/runs/40948601027
+  - `881c058` (latest, P2.23 docs): https://github.com/LukaMS/sarvis/actions/runs/40948822974
+  - CI runs `npm ci`, typecheck, lint, format check and `npm test` on a clean runner, so it also re-covers the clean-checkout item after P2.23's code change.
+- The other exit items (fixture run twice, provenance, advisors, DB size, storage) are in the earlier P2.19 entry below, measured on `bf422c7`. P2.23 changed only the HTTP limiter and re-ran the fixture e2e (`inserted 17`, then `inserted 0, unchanged 17`).
+
+**Notes for you**
+- Phase 3 starts with **P3.0 Refine Phase 3**. SOURCES.md §7 still has two open questions for you: the project contact for the pipeline User-Agent (OFF, Wikimedia and SEC require one before the first Phase 3 run), and whether Sarvis is a commercial product.
+
+**Next:** P3.0 Refine Phase 3 into session-sized tasks.
+
+---
+
 ## 2026-10-29 — P2.23 Host limiter: stamp the turn at the send
 
 **What changed**

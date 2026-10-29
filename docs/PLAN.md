@@ -846,11 +846,11 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Row counts per table match the README (11 companies, 49 brands, 55 scores, 13 products, …), with any intentional drops listed.
   - `anon` sees none of the pending facts. Show 3 example rows with provenance.
 
-### [ ] P2.19 Phase 2 exit check
+### [x] P2.19 Phase 2 exit check
 - **Slice:** release-check.
 - **Goal:** prove the exit criteria together, and measure the DB against the budget.
 - **Deps:** P2.1–P2.18, P2.22, P2.23.
-- **Status (2026-10-29):** every check passed except "latest CI run is green" (CI on `bf422c7` failed on the limiter, see P2.23). After P2.23, re-check CI and tick. The evidence is in PROGRESS.
+- **Status:** done 2026-10-29. Every check passed on `bf422c7`; CI, red there on the limiter, is green from `fdda6a8` (P2.23). The evidence is in PROGRESS.
 - **In:**
   - Clean clone, `npm ci`, typecheck/lint/test, and the fixture e2e test (run twice).
   - `get_advisors` is clean.
