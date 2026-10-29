@@ -860,7 +860,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/PROGRESS.md`, `docs/catalog/BUDGET.md` (an "Actuals" note).
 - **Verification:** a checklist in PROGRESS with evidence for each exit bullet: test output, the size table, advisors output and the CI run URL.
 
-### [ ] P2.20 Make `@sarvis/core` loadable by Node strip-types (added in P2.12)
+### [x] P2.20 Make `@sarvis/core` loadable by Node strip-types (added in P2.12)
 - **Slice:** core-records.
 - **Goal:** the pipeline CLI can import core at runtime. Today `node --experimental-strip-types` fails with `ERR_MODULE_NOT_FOUND` on core's extensionless relative imports (`./gtin`); Vitest and Metro resolve them, Node doesn't. P2.12 only needed type imports from core, which Node erases.
 - **Deps:** P2.11.

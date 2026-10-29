@@ -2,6 +2,25 @@
 
 Newest entry first.
 
+## 2026-10-29 — P2.20 Make `@sarvis/core` loadable by Node strip-types
+
+**What changed**
+- 24 files in `packages/core/src/**`: relative imports now name the `.ts` file, or `index.ts` for directory imports (`./records`, `./validation`, `../records`). No behaviour change.
+- `packages/core/tsconfig.json`: `allowImportingTsExtensions` and `erasableSyntaxOnly`. Core had no non-erasable syntax to fix.
+- `app/tsconfig.json`: `allowImportingTsExtensions` too. This file wasn't in the task's list, but without it the app's typecheck fails with TS5097 on every core import, because `tsc` follows core's sources (D-047).
+
+**Verification**
+- From `pipeline/`: `node --experimental-strip-types -e "import('@sarvis/core')"` loads and lists **77 exports** (`APP_NAME`, the record schemas, `normalizeGtin`, `validateBatch`, `contentHash`, ...).
+- Metro: `npm run web --clear`, then `/` (which redirects to `/auth`) loads with **0 console errors and 0 warnings**. The auth screen renders `APP_NAME` from core at runtime, so Metro bundled the new `.ts` specifiers. Screenshot: `.screenshots/p2-20-web-home.png`.
+- `typecheck`, `lint` and `format:check` pass. All tests: **305 pass**.
+
+**Notes for you**
+- Pipeline code can now import core at runtime under plain Node. That unblocks P2.17.
+
+**Next:** P2.17 Pipeline: CLI, fixture source and run-twice e2e test.
+
+---
+
 ## 2026-10-29 — P2.16 Pipeline: idempotent upsert helpers
 
 **What changed**

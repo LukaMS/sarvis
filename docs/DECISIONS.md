@@ -369,7 +369,7 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 
 ## D-042 Pipeline runtime details — Accepted (P2.12)
 - **New pipeline runtime dependencies: `@supabase/supabase-js` ^2.118.0 and `zod` ^4.6.7.** Both are already in the tree (supabase-js as a root dev dependency for `scripts/`, zod in core), so nothing new is downloaded. supabase-js is the service-role client; zod validates the env, as legacy did.
-- **Node strip-types:** pipeline files import each other with `.ts` extensions, and `pipeline/tsconfig.json` sets `allowImportingTsExtensions` and `erasableSyntaxOnly`, so Node 22 runs them with no build step. Imports from `@sarvis/core` must stay type-only until P2.20 adds extensions there too.
+- **Node strip-types:** pipeline files import each other with `.ts` extensions, and `pipeline/tsconfig.json` sets `allowImportingTsExtensions` and `erasableSyntaxOnly`, so Node 22 runs them with no build step. Imports from `@sarvis/core` had to stay type-only until P2.20 added extensions there too (D-047).
 - **No new env variables.** The pipeline reads `EXPO_PUBLIC_SUPABASE_URL` and `SUPABASE_DEV_SERVICE_ROLE_KEY`, and refuses any URL that isn't the bare dev project URL. Phase 6 adds the production key as an Actions secret and relaxes this deliberately.
 - **Errors:** classification goes by class, `name` (`AbortError`, `TimeoutError`), a numeric `status`, and Node/undici `code` on the error or its `cause` chain. Message text is never read, so a page that says "network" isn't a network error. 403 and 429 are `SourceBlockedError` (`retryable: false`, `alert: true`; a 429 carries `retryAfterMs` for P2.13). 408 and 5xx are retryable; 404 and other 4xx are not (legacy retried 404 for Fortinos' stale Next.js build ids). `RobotsDisallowedError` is defined now for P2.13.
 - **`withRetry`** defaults `isRetryable` to the error's `retryable` flag, and never retries a `CancelledError` or `SourceBlockedError`, even if a caller's `isRetryable` says yes.
@@ -409,6 +409,12 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Caps:** 49 events during the run plus the `run_finished` event, which carries `eventsDropped`. 50 `validation_failures` rows, with `counts.invalid` holding the full number. Counts are written after every step so a crash leaves progress visible.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
+
+## D-047 Core runs under Node strip-types — Accepted (P2.20)
+- **Relative imports in `packages/core/src/**` name the `.ts` file**, and directory imports name `index.ts` (`./records/index.ts`), because Node resolves neither extensionless nor directory specifiers in ESM. `packages/core/tsconfig.json` sets `allowImportingTsExtensions` and `erasableSyntaxOnly`, as `pipeline/` does. Core had no non-erasable syntax (no enums, namespaces or parameter properties), so no code changed.
+- **`app/tsconfig.json` also sets `allowImportingTsExtensions`.** The app's `tsc` follows `@sarvis/core` into its sources and reports TS5097 on every `.ts` import otherwise. It's `noEmit`, so the flag is safe. Metro resolves `.ts` specifiers as-is.
+- **The JSON import in `gtin.test.ts` is left alone.** Only Vitest runs tests, and Node would need an import attribute.
+- **Pipeline code may now import `@sarvis/core` at runtime** under plain Node (the D-042 "type-only" limit is lifted). The dev-DB checks (D-046) can stay on Vitest.
 
 ## D-046 Idempotent upsert helpers — Accepted (P2.16)
 - **Shape:** `pipeline/src/db/writers/` has one writer per record kind (company, brand, both ownership edges, product, product identifier, store, store listing, price observation), looked up with `writerFor(db, kind)`. Each resolves natural keys to ids in bulk (`refs.ts`), builds `TablesInsert` payloads, and returns `inserted / updated / unchanged / skipped_locked` plus `rejected` (records it couldn't write, with a reason).
