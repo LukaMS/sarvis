@@ -81,18 +81,34 @@ export interface HttpClient {
 }
 
 /**
- * Per-host spacing: a token bucket of capacity 1, so there are no bursts. Each call reserves the
- * host's next free slot synchronously, so concurrent callers queue up and different hosts don't
- * wait on each other.
+ * Per-host spacing: a token bucket of capacity 1, so there are no bursts. Each call joins the
+ * host's queue synchronously, so concurrent callers queue up and different hosts don't wait on
+ * each other. A caller waits `intervalMs` from when the previous one actually got through, not
+ * from a booked slot, so a late wake-up never makes the next request early (P2.21).
  */
 export class HostLimiter {
-  private readonly nextSlot = new Map<string, number>();
+  /** Per host: resolves with the time the last queued caller got through. */
+  private readonly last = new Map<string, Promise<number>>();
 
   async acquire(host: string, intervalMs: number, signal?: AbortSignal): Promise<void> {
-    const now = Date.now();
-    const slot = Math.max(now, this.nextSlot.get(host) ?? 0);
-    this.nextSlot.set(host, slot + intervalMs);
-    if (slot > now) await sleep(slot - now, signal);
+    const previous = this.last.get(host);
+    let done!: (at: number) => void;
+    this.last.set(
+      host,
+      new Promise((resolve) => {
+        done = resolve;
+      }),
+    );
+    try {
+      const after = (previous ? await previous : -Infinity) + intervalMs;
+      // Re-check after waking: a timer can fire a millisecond early.
+      for (let wait = after - Date.now(); wait > 0; wait = after - Date.now()) {
+        await sleep(wait, signal);
+      }
+    } finally {
+      // A cancelled caller still holds its turn, so the next one keeps the spacing.
+      done(Date.now());
+    }
   }
 }
 

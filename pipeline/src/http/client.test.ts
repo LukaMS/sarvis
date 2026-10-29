@@ -5,7 +5,7 @@ import { createServer, type IncomingMessage, type ServerResponse, type Server } 
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NetworkError, RobotsDisallowedError, SourceBlockedError } from '../errors.ts';
 import { createLogger } from '../log.ts';
@@ -30,6 +30,11 @@ type Handler = (req: IncomingMessage, res: ServerResponse, count: number) => voi
 let server: Server;
 let port: number;
 let hits: Hit[] = [];
+/**
+ * When the client called fetch, per request. Spacing is checked here, where the limiter acts:
+ * server receive times add connection jitter that says nothing about the client (P2.21).
+ */
+let sends: { host: string; path: string; at: number }[] = [];
 let robotsTxt: string | null = 'User-agent: *\nDisallow: /private\n';
 const routes = new Map<string, Handler>();
 let cacheDir: string;
@@ -58,15 +63,23 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => server.listen(0, resolve));
   port = (server.address() as AddressInfo).port;
   cacheDir = await mkdtemp(join(tmpdir(), 'sarvis-http-'));
+  const realFetch = globalThis.fetch;
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    sends.push({ host: url.hostname, path: url.pathname, at: Date.now() });
+    return realFetch(input, init);
+  });
 });
 
 afterAll(async () => {
+  vi.restoreAllMocks();
   await new Promise((resolve) => server.close(resolve));
   await rm(cacheDir, { recursive: true, force: true });
 });
 
 beforeEach(() => {
   hits = [];
+  sends = [];
   robotsTxt = 'User-agent: *\nDisallow: /private\n';
   routes.clear();
 });
@@ -79,12 +92,12 @@ describe('rate limiting', () => {
     const http = client();
     const started = Date.now();
     for (let i = 0; i < 5; i++) await http.get(at('127.0.0.1', `/item/${i}`));
-    const items = hits.filter((h) => h.path.startsWith('/item/'));
+    expect(hits.filter((h) => h.path.startsWith('/item/'))).toHaveLength(5);
+    const items = sends.filter((s) => s.path.startsWith('/item/'));
     expect(items).toHaveLength(5);
-    expect(items[4]!.at - items[0]!.at).toBeGreaterThanOrEqual(3990);
     expect(Date.now() - started).toBeGreaterThanOrEqual(4000);
     for (let i = 1; i < items.length; i++) {
-      expect(items[i]!.at - items[i - 1]!.at).toBeGreaterThanOrEqual(990);
+      expect(items[i]!.at - items[i - 1]!.at).toBeGreaterThanOrEqual(1000);
     }
   }, 20_000);
 
@@ -103,11 +116,17 @@ describe('rate limiting', () => {
     // Each host: robots.txt + 3 requests = 3 s of spacing. Queued behind each other it would be 7 s.
     expect(elapsed).toBeGreaterThanOrEqual(2990);
     expect(elapsed).toBeLessThan(5000);
-    const order = hits
-      .filter((h) => h.path !== '/robots.txt')
-      .map((h) => (h.path.startsWith('/a/') ? 'a' : 'b'))
+    const order = sends
+      .filter((s) => s.path !== '/robots.txt')
+      .map((s) => (s.path.startsWith('/a/') ? 'a' : 'b'))
       .join('');
     expect(order).not.toMatch(/aaa|bbb/);
+    for (const host of ['127.0.0.1', 'localhost']) {
+      const times = sends.filter((s) => s.host === host).map((s) => s.at);
+      expect(times).toHaveLength(4);
+      for (let i = 1; i < times.length; i++)
+        expect(times[i]! - times[i - 1]!).toBeGreaterThanOrEqual(1000);
+    }
   }, 20_000);
 
   it('never goes faster than 1 req/s or the source limit', () => {
@@ -123,8 +142,8 @@ describe('rate limiting', () => {
     const http = client();
     await http.get(at('127.0.0.1', '/slow/1'));
     await http.get(at('127.0.0.1', '/slow/2'));
-    const [first, second] = hits.filter((h) => h.path.startsWith('/slow/'));
-    expect(second!.at - first!.at).toBeGreaterThanOrEqual(1990);
+    const [first, second] = sends.filter((s) => s.path.startsWith('/slow/'));
+    expect(second!.at - first!.at).toBeGreaterThanOrEqual(2000);
   }, 20_000);
 
   it('HostLimiter reserves slots synchronously per host', async () => {
@@ -135,7 +154,22 @@ describe('rate limiting', () => {
       limiter.acquire('h', 100),
       limiter.acquire('h', 100),
     ]);
-    expect(Date.now() - started).toBeGreaterThanOrEqual(195);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(200);
+  });
+
+  it('HostLimiter spaces from the previous actual turn, so a late wake-up never makes the next early', async () => {
+    const limiter = new HostLimiter();
+    const times: number[] = [];
+    const take = () => limiter.acquire('h', 100).then(() => times.push(Date.now()));
+    const first = take();
+    const rest = [take(), take()];
+    await first;
+    // Block the event loop past the second turn's due time, so it wakes 150 ms in, not 100.
+    const until = Date.now() + 150;
+    while (Date.now() < until);
+    await Promise.all(rest);
+    expect(times[1]! - times[0]!).toBeGreaterThanOrEqual(150);
+    expect(times[2]! - times[1]!).toBeGreaterThanOrEqual(100);
   });
 });
 
