@@ -4,6 +4,37 @@ Newest entry first.
 
 ---
 
+## 2026-10-29 — P2.12 Pipeline runtime: env, logger, errors, retry, shutdown, DB client
+
+**What changed**
+- New in `pipeline/src/`, ported from legacy `catalog-worker`:
+  - `env.ts`: zod-validated, with `emptyToUndefined`. Errors name each variable and never include values. It refuses any project but dev. No Fortinos variables and no new variables.
+  - `log.ts`: single-line JSON. Secrets print `[redacted]` and user-table data prints `[user-data]`, at any depth. Errors are serialized, and the sink can be injected.
+  - `errors.ts`: the typed taxonomy with `retryable` and `alert` flags. 403 and 429 give `SourceBlockedError`. `errorFromStatus()` maps statuses, and `classifyError()` goes by class, status and code, never message text.
+  - `http/retry.ts`: `sleep` with abort, jitter and `withRetry`, which never retries a cancel or a block.
+  - `shutdown.ts`: SIGINT/SIGTERM to an AbortSignal, with an injectable `exit`.
+  - `db/client.ts`: a typed (`Database`) service-role client.
+  - `db/smoke.ts`: run with `npm run smoke:db -w @sarvis/pipeline`.
+- `pipeline/package.json` adds `@supabase/supabase-js` and `zod` (both already in the tree). `tsconfig` adds `allowImportingTsExtensions` and `erasableSyntaxOnly`, so Node 22 strip-types runs the files directly.
+- D-042 records the details.
+
+**Verification**
+- Pipeline tests: **37 pass** (errors 12, retry 11, log 6, env 5, shutdown 3, plus the existing 1). All tests: **196 pass** (`npm test`).
+  - The legacy `errors.test.ts` cases are ported. The message-sniffing cases now use status and code, and a new test checks that message text is ignored.
+  - A redaction test checks that `service_role_key`, `Authorization`, `set-cookie`, `password` and `SUPABASE_DEV_SERVICE_ROLE_KEY` print `[redacted]`, and that no secret appears in the line.
+- Smoke script against dev: `{"level":"info","message":"db smoke ok","table":"sources","count":35}`. This matches `select count(*) from sources` (35) via the `supabase-dev` MCP.
+- `npm run typecheck`, `lint` and `format:check` pass.
+
+**Notes for you**
+- **Legacy had no async tests,** although the plan said to port them. I wrote new ones for `sleep`, jitter, abort and `withRetry`, including the backoff bands and the cap.
+- **New task P2.20** (before P2.17): `@sarvis/core` can't be imported by Node strip-types because of its extensionless imports (`ERR_MODULE_NOT_FOUND`). The pipeline only needed type imports from core in this task, but the CLI will need core at runtime.
+- **404 is no longer retried.** Legacy retried it because of Fortinos' Next.js build ids. Rebuild sources that need that can opt in.
+- I couldn't read `.env.example` (a permission deny rule), but no new variables were added, so it needs no change.
+
+**Next:** P2.13 Pipeline: polite HTTP client.
+
+---
+
 ## 2026-10-29 — P2.11 Core: validation library and safeguards
 
 **What changed**

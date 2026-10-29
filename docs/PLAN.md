@@ -688,7 +688,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `contentHash` is identical for reordered keys.
   - typecheck, lint and test pass.
 
-### [ ] P2.12 Pipeline runtime: env, logger, errors, retry, shutdown, DB client
+### [x] P2.12 Pipeline runtime: env, logger, errors, retry, shutdown, DB client
 - **Slice:** pipeline-runtime.
 - **Goal:** the pipeline process basics, ported from legacy `catalog-worker` rather than rewritten.
 - **Deps:** P1.5.
@@ -805,7 +805,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 ### [ ] P2.17 Pipeline: CLI, fixture source and run-twice e2e test
 - **Slice:** pipeline-cli.
 - **Goal:** meet the Phase 2 exit end to end.
-- **Deps:** P2.16.
+- **Deps:** P2.16, P2.20.
 - **In:**
   - `pipeline/src/cli.ts`, using `node:util` `parseArgs` with no dependency: `pipeline run <source> [--sample N] [--dry-run] [--mode full|delta]`. The run row records `triggered_by = cli`.
   - The root script is `npm run pipeline -- run <source> …`.
@@ -859,6 +859,18 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** new features. Gaps become PLAN tasks.
 - **Files:** `docs/PROGRESS.md`, `docs/catalog/BUDGET.md` (an "Actuals" note).
 - **Verification:** a checklist in PROGRESS with evidence for each exit bullet: test output, the size table, advisors output and the CI run URL.
+
+### [ ] P2.20 Make `@sarvis/core` loadable by Node strip-types (added in P2.12)
+- **Slice:** core-records.
+- **Goal:** the pipeline CLI can import core at runtime. Today `node --experimental-strip-types` fails with `ERR_MODULE_NOT_FOUND` on core's extensionless relative imports (`./gtin`); Vitest and Metro resolve them, Node doesn't. P2.12 only needed type imports from core, which Node erases.
+- **Deps:** P2.11.
+- **In:** relative imports in `packages/core/src/**` name the `.ts` file; core's tsconfig gets `allowImportingTsExtensions` and `erasableSyntaxOnly` (as `pipeline/` has); fix any non-erasable syntax.
+- **Out:** any behaviour change.
+- **Files:** `packages/core/src/**`, `packages/core/tsconfig.json`.
+- **Verification:**
+  - `node --experimental-strip-types -e "import('@sarvis/core')"` from `pipeline/` loads and lists the exports.
+  - Metro still bundles: `npm run web` loads `/` with no console errors.
+  - typecheck, lint and test pass.
 
 ### Phase 2 milestone coverage
 
