@@ -1,17 +1,18 @@
-// The writer for each record kind the pipeline imports (PLAN P2.16, P2.18). Document writers
-// come in Phase 7; reference prices with the StatCan source.
+// The writer for each record kind the pipeline imports (PLAN P2.16, P2.18, P3.4).
 import type { RecordKind } from '@sarvis/core';
 
 import type { ServiceClient } from '../client.ts';
 import type { DomainWriter } from './common.ts';
+import { documentWriter } from './documents.ts';
 import { productFeatureWriter, storyWriter, transparencyStepWriter } from './editorial.ts';
 import {
   brandOwnershipWriter,
   brandWriter,
+  companyEnrichmentWriter,
   companyOwnershipWriter,
   companyWriter,
 } from './ownership.ts';
-import { priceObservationWriter } from './prices.ts';
+import { priceObservationWriter, referencePriceWriter } from './prices.ts';
 import { productIdentifierWriter, productWriter } from './products.ts';
 import { certificationWriter, companyEventWriter, companyScoreWriter } from './scoring.ts';
 import { storeListingWriter, storeWriter } from './stores.ts';
@@ -25,11 +26,14 @@ const WRITERS: WriterFactories = {
   brand: brandWriter,
   brand_ownership: brandOwnershipWriter,
   company_ownership: companyOwnershipWriter,
+  company_enrichment: companyEnrichmentWriter,
   product: productWriter,
   product_identifier: productIdentifierWriter,
   store: storeWriter,
   store_listing: storeListingWriter,
   price_observation: priceObservationWriter,
+  reference_price: referencePriceWriter,
+  document: documentWriter,
   company_score: companyScoreWriter,
   certification: certificationWriter,
   company_event: companyEventWriter,

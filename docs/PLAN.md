@@ -1016,7 +1016,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Unit tests against a local `node:http` server serving a gzipped file: the sha-256 matches; a second call with an unchanged ETag gets a 304 and no new body; a robots disallow refuses; a 503 retries; stopping the line iterator after 10 lines closes the socket.
   - `npm run typecheck`, `lint` and `test` pass.
 
-### [ ] P3.4 Writers: reference prices, documents and company enrichment
+### [x] P3.4 Writers: reference prices, documents and company enrichment
 - **Slice:** pipeline-db.
 - **Goal:** writers for the two record kinds that core already validates (P2.10) but nothing writes yet, plus a way for a second source to fill in company fields.
 - **Deps:** P3.2.

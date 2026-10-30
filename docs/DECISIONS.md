@@ -412,6 +412,17 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-056 Reference price, document and enrichment writers — Accepted (P3.4)
+- **Reference prices** key on `(vector_id, ref_month)` through the shared keyed upsert (D-046). A revised value for a month updates the row in place. `value` is rounded to cents. An unknown `category_slug` becomes null rather than rejecting the row.
+- **Documents** key on `url_normalized`. A change to `summary` or `wikipedia_revision_id` updates the row in place (same id). Fields a record leaves out are left alone. Core's `DocumentRecordSchema` gains `summary` (1–2,000 characters, Wikipedia only), matching the P3.2 check.
+- **Company enrichment** is a new record kind, `company_enrichment`: `match` (any of `wikidata_qid`, `slug`, `sec_cik`, `corp_canada_number`), `external_id`, and `fields`. `fields` is a closed list: `legal_name`, `headquarters`, `founded_year`, `website`, `wikipedia_title`, `wikipedia_revision_id`, `sec_cik`, `corp_canada_number`, `opencorporates_id`, and `wikipedia_document_url`, which resolves to `wikipedia_document_id` and must name a stored `wikipedia` document. The writer:
+  - never creates a company. An unknown company is rejected. So is a record whose keys point at two companies, or whose key the company already holds with another value (a QID mismatch means a different company, not a gap);
+  - patches only the field columns, never the company's +prov block;
+  - skips a locked column whose value differs. A merged or rejected company is `skipped_locked`;
+  - upserts one `company_sources` row per (company, source), hashed, with `last_seen_at` as the touch column. `fields` lists the columns holding this source's value: written now or already equal. A locked, different column isn't listed.
+  - **Counts:** `updated` when the company or its `company_sources` row changed, otherwise `unchanged`. `inserted` is always 0.
+**Why:** the second source's provenance must not overwrite the creating source's (D-053). Matching only existing companies keeps the ~5k-company budget, and admin locks win (D-046).
+
 ## D-055 Streaming downloads and line reading — Accepted (P3.3)
 - **One request path.** `request`, the new `stream` and `download` share one internal `open()`: robots check, manual redirects, host limiter, one Retry-After wait. Retries (D-043) wrap `stream` up to the headers only.
 - **Timeout:** for `stream` and `download`, `timeoutMs` (30 s) is an **idle** timeout: it restarts when the request goes out and on every chunk, so a 0.9 GB file isn't cut off at 30 s but a stalled one is. `request` keeps its whole-request timeout.

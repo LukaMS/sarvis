@@ -30,6 +30,10 @@ const KEYS: { [K in RecordKind]: (r: RecordOf<K>) => (string | false | null | un
   company_ownership: (r) => [
     `${r.parent_company_slug}>${r.child_company_slug}:${r.relation}@${r.valid_from ?? ''}`,
   ],
+  // One enrichment per company per source in a batch; the first match key names the company.
+  company_enrichment: (r) => [
+    `${r.source_key}>${r.match.wikidata_qid ?? r.match.slug ?? r.match.sec_cik ?? r.match.corp_canada_number}`,
+  ],
   product: (r) => [`src:${r.source_key}:${r.external_id}`, r.gtin && `gtin:${r.gtin}`],
   product_identifier: (r) => [`${r.scheme}:${r.value}@${r.banner_slug ?? ''}`],
   store: (r) => [

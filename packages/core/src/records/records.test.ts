@@ -66,6 +66,19 @@ const CASES: { [K in RecordKind]: Case<K> } = {
       'child_company_slug',
     ],
   },
+  company_enrichment: {
+    valid: {
+      match: { wikidata_qid: 'Q19870588' },
+      external_id: 'Kraft_Heinz',
+      fields: {
+        wikipedia_title: 'Kraft Heinz',
+        wikipedia_revision_id: 1250000000,
+        wikipedia_document_url: 'https://en.wikipedia.org/wiki/Kraft_Heinz',
+      },
+      ...prov,
+    },
+    invalid: [{ match: {}, external_id: 'x', fields: { sec_cik: '0001637459' }, ...prov }, 'match'],
+  },
   product: {
     valid: {
       gtin: '00036000291452',
@@ -368,5 +381,34 @@ describe('shared rules', () => {
         rubric_version: 'v1',
       }),
     ).toBe(false);
+  });
+});
+
+describe('document summary and company enrichment', () => {
+  const doc = {
+    url: 'https://en.wikipedia.org/wiki/Mars_Inc.',
+    url_normalized: 'https://en.wikipedia.org/wiki/Mars_Inc.',
+    kind: 'wikipedia',
+    summary: 'Mars, Incorporated is an American multinational manufacturer.',
+    ...prov,
+  } as const;
+
+  it('allows a summary of up to 2,000 characters on a wikipedia document only', () => {
+    expect(RECORD_SCHEMAS.document.safeParse(doc).success).toBe(true);
+    const news = RECORD_SCHEMAS.document.safeParse({ ...doc, kind: 'news' });
+    expect(news.error?.issues.map((i) => i.path[0])).toEqual(['summary']);
+    const long = RECORD_SCHEMAS.document.safeParse({ ...doc, summary: 'x'.repeat(2001) });
+    expect(long.error?.issues.map((i) => i.path[0])).toEqual(['summary']);
+  });
+
+  it('needs at least one enrichment field and rejects unknown ones', () => {
+    const base = { match: { slug: 'mars' }, external_id: 'Mars_Inc.', ...prov };
+    const empty = RECORD_SCHEMAS.company_enrichment.safeParse({ ...base, fields: {} });
+    expect(empty.error?.issues.map((i) => i.path[0])).toEqual(['fields']);
+    const unknown = RECORD_SCHEMAS.company_enrichment.safeParse({
+      ...base,
+      fields: { name: 'Mars' },
+    });
+    expect(unknown.success).toBe(false);
   });
 });

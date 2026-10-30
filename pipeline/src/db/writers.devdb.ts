@@ -1,7 +1,8 @@
 // Dev-project check for the writers (P2.16). Under the `fixture` source and one throwaway run, it
 // writes 2 brands, 5 products, 1 store and 3 prices twice, then once more with a changed price,
-// an equal later price, a locked name and a changed product. Prints the counts, checks provenance
-// on every row, and deletes everything it wrote, even when a step fails.
+// an equal later price, a locked name and a changed product. P3.4 adds reference prices, documents
+// and a company enrichment, written twice. Prints the counts, checks provenance on every row, and
+// deletes everything it wrote, even when a step fails.
 //
 //   npm run check:writers --workspace @sarvis/pipeline
 //
@@ -27,6 +28,11 @@ const COMPANY = `${TAG}-company`;
 /** A company and a brand that arrive with a review_reason from a non-legacy source (P3.2). */
 const QUEUED_COMPANY = `${TAG}-queued-company`;
 const QUEUED_BRAND = `${TAG}-queued-brand`;
+/** P3.4: a company that fixture creates and wikipedia enriches, its page, and two StatCan-style vectors. */
+const ENRICHED = `${TAG}-enriched-company`;
+const WIKI_URL = `https://en.wikipedia.org/wiki/${TAG}-company`;
+const NEWS_URL = `https://example.test/news/${TAG}`;
+const VECTORS = ['v999000001', 'v999000002'];
 
 /** GTIN-14 with a GS1 mod-10 check digit, under an unrestricted 06 prefix. */
 function gtin(n: number): string {
@@ -152,6 +158,10 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       ...((await db.from('brands').select('id').eq('slug', QUEUED_BRAND)).data ?? []),
     ].map((r) => r.id);
     const steps = [
+      // The enriched company first: it points at its Wikipedia document. company_sources cascades.
+      await db.from('companies').delete().eq('slug', ENRICHED),
+      await db.from('documents').delete().in('url_normalized', [WIKI_URL, NEWS_URL]),
+      await db.from('reference_prices').delete().in('vector_id', VECTORS),
       await db.from('review_queue').delete().in('item_id', queued),
       await db.from('companies').delete().eq('slug', QUEUED_COMPANY),
       await db.from('brands').delete().eq('slug', QUEUED_BRAND),
@@ -182,6 +192,24 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       ).count,
       banners: (
         await db.from('banners').select('id', { count: 'exact', head: true }).eq('slug', BANNER)
+      ).count,
+      p34: (
+        await db
+          .from('company_sources')
+          .select('id', { count: 'exact', head: true })
+          .eq('ingestion_run_id', ctx.runId)
+      ).count,
+      documents: (
+        await db
+          .from('documents')
+          .select('id', { count: 'exact', head: true })
+          .in('url_normalized', [WIKI_URL, NEWS_URL])
+      ).count,
+      referencePrices: (
+        await db
+          .from('reference_prices')
+          .select('id', { count: 'exact', head: true })
+          .in('vector_id', VECTORS)
       ).count,
       queued: (
         await db
@@ -413,5 +441,179 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       { item_type: 'brand', item_table: 'brands', item_id: brand, reason, status: 'open' },
       { item_type: 'company', item_table: 'companies', item_id: company, reason, status: 'open' },
     ]);
+  });
+  it('writes reference prices, documents and a company enrichment idempotently (P3.4)', async () => {
+    const wiki = (version = 'wikipedia@0.0.0-check') => ({
+      ...prov(version),
+      source_key: 'wikipedia',
+      source_url: WIKI_URL,
+      method: 'api' as const,
+    });
+    const referencePrices = () =>
+      VECTORS.map((vector_id, i) =>
+        parse('reference_price', {
+          vector_id,
+          product_label: `P34 reference ${i + 1}, per kilogram`,
+          unit: 'per kilogram',
+          geography: 'Canada',
+          ref_month: '2026-08-01',
+          value: [12.49, 13.5][i] as number,
+          ...prov(),
+        }),
+      );
+    const documents = (summary = 'P34 Company is a test company.', revision = 1001) => [
+      parse('document', {
+        url: WIKI_URL,
+        url_normalized: WIKI_URL,
+        kind: 'wikipedia',
+        title: 'P34 Company',
+        language: 'en',
+        wikipedia_revision_id: revision,
+        summary,
+        ...wiki(),
+      }),
+      parse('document', {
+        url: `${NEWS_URL}?utm_source=x`,
+        url_normalized: NEWS_URL,
+        kind: 'news',
+        title: 'P34 news story',
+        domain: 'example.test',
+        ...prov(),
+      }),
+    ];
+    const enrichment = () => [
+      parse('company_enrichment', {
+        match: { slug: ENRICHED },
+        external_id: 'P34_Company',
+        fields: {
+          wikipedia_title: 'P34 Company',
+          wikipedia_revision_id: 1001,
+          wikipedia_document_url: WIKI_URL,
+          // Locked below: must stay as the creating source wrote it.
+          website: 'https://changed.example.test/',
+        },
+        ...wiki(),
+      }),
+    ];
+
+    // The company another source (fixture) created, with its website locked by an admin.
+    const made = await write('company', [
+      parse('company', {
+        slug: ENRICHED,
+        name: 'P34 Company',
+        website: 'https://p34.example.test/',
+        ...prov(),
+      }),
+    ]);
+    expect(made).toMatchObject({ inserted: 1, rejected: [] });
+    const locked = await db
+      .from('companies')
+      .update({ locked_fields: ['website'] })
+      .eq('slug', ENRICHED);
+    expect(locked.error).toBeNull();
+
+    const once = async (label: string) => {
+      const out = {
+        reference_price: counts(await write('reference_price', referencePrices())),
+        document: counts(await write('document', documents())),
+        company_enrichment: counts(await write('company_enrichment', enrichment())),
+      };
+      logger.info(label, out);
+      return out;
+    };
+    const first = await once('P3.4 writers, pass 1');
+    expect(first.reference_price).toMatchObject({ inserted: 2, updated: 0, rejected: 0 });
+    expect(first.document).toMatchObject({ inserted: 2, updated: 0, rejected: 0 });
+    expect(first.company_enrichment).toMatchObject({ inserted: 0, updated: 1, rejected: 0 });
+    const second = await once('P3.4 writers, pass 2');
+    for (const c of Object.values(second))
+      expect(c).toMatchObject({ inserted: 0, updated: 0, skipped_locked: 0, rejected: 0 });
+    expect(second.reference_price.unchanged).toBe(2);
+    expect(second.document.unchanged).toBe(2);
+    expect(second.company_enrichment.unchanged).toBe(1);
+
+    // Provenance on every new row.
+    const fixtureId = ctx.source.id;
+    const wikipediaId = (await db.from('sources').select('id').eq('key', 'wikipedia').single()).data
+      ?.id as string;
+    const refs = await db
+      .from('reference_prices')
+      .select('vector_id, value, source_id, source_url, method, method_version, ingestion_run_id')
+      .in('vector_id', VECTORS)
+      .order('vector_id');
+    logger.info('reference_prices', { rows: refs.data });
+    expect(refs.data).toEqual(
+      VECTORS.map((vector_id, i) => ({
+        vector_id,
+        value: [12.49, 13.5][i],
+        source_id: fixtureId,
+        source_url: 'https://example.test/fixture',
+        method: 'import',
+        method_version: 'p216-check@1.0.0',
+        ingestion_run_id: ctx.runId,
+      })),
+    );
+    const docs = await db
+      .from('documents')
+      .select('id, url_normalized, kind, summary, wikipedia_revision_id, source_id, method')
+      .in('url_normalized', [WIKI_URL, NEWS_URL])
+      .order('kind');
+    logger.info('documents', { rows: docs.data });
+    expect(docs.data?.map((d) => [d.kind, d.source_id, d.summary !== null])).toEqual([
+      ['news', fixtureId, false],
+      ['wikipedia', wikipediaId, true],
+    ]);
+    const wikiDoc = docs.data?.find((d) => d.kind === 'wikipedia');
+
+    // The enrichment filled in the unlocked fields and left the company's own +prov alone.
+    const company = await db
+      .from('companies')
+      .select(
+        'id, website, wikipedia_title, wikipedia_revision_id, wikipedia_document_id, source_id, method, method_version',
+      )
+      .eq('slug', ENRICHED)
+      .single();
+    logger.info('enriched company', { row: company.data });
+    expect(company.data).toMatchObject({
+      website: 'https://p34.example.test/',
+      wikipedia_title: 'P34 Company',
+      wikipedia_revision_id: 1001,
+      wikipedia_document_id: wikiDoc?.id,
+      source_id: fixtureId,
+      method: 'import',
+      method_version: 'p216-check@1.0.0',
+    });
+    const companySources = await db
+      .from('company_sources')
+      .select(
+        'source_id, external_id, source_url, method, method_version, fields, ingestion_run_id',
+      )
+      .eq('company_id', company.data?.id as string);
+    logger.info('company_sources', { rows: companySources.data });
+    expect(companySources.data).toEqual([
+      {
+        source_id: wikipediaId,
+        external_id: 'P34_Company',
+        source_url: WIKI_URL,
+        method: 'api',
+        method_version: 'wikipedia@0.0.0-check',
+        fields: ['wikipedia_document_id', 'wikipedia_revision_id', 'wikipedia_title'],
+        ingestion_run_id: ctx.runId,
+      },
+    ]);
+
+    // A new revision updates the page's summary in place, and the enrichment follows it.
+    const revised = counts(await write('document', documents('P34 Company, revised.', 1002)));
+    expect(revised).toMatchObject({ inserted: 0, updated: 1, unchanged: 1, rejected: 0 });
+    const after = await db
+      .from('documents')
+      .select('id, summary, wikipedia_revision_id')
+      .eq('url_normalized', WIKI_URL)
+      .single();
+    expect(after.data).toEqual({
+      id: wikiDoc?.id,
+      summary: 'P34 Company, revised.',
+      wikipedia_revision_id: 1002,
+    });
   });
 });

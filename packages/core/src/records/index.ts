@@ -11,6 +11,7 @@ import {
 import {
   BrandOwnershipEdgeRecordSchema,
   BrandRecordSchema,
+  CompanyEnrichmentRecordSchema,
   CompanyOwnershipEdgeRecordSchema,
   CompanyRecordSchema,
 } from './ownership.ts';
@@ -40,6 +41,7 @@ export const RECORD_SCHEMAS = {
   brand: BrandRecordSchema,
   brand_ownership: BrandOwnershipEdgeRecordSchema,
   company_ownership: CompanyOwnershipEdgeRecordSchema,
+  company_enrichment: CompanyEnrichmentRecordSchema,
   product: ProductRecordSchema,
   product_identifier: ProductIdentifierRecordSchema,
   store: StoreRecordSchema,

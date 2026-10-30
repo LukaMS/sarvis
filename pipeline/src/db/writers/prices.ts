@@ -1,4 +1,6 @@
-// Price observations (DATA_MODEL §3.4): append on change. A reading that equals the one in effect
+// Price observations and reference prices (DATA_MODEL §3.4).
+//
+// Price observations append on change. A reading that equals the one in effect
 // on its date, for the same source, store, product (or listing) and price kind, only moves that
 // row's last_confirmed_on; any other reading is a new row. A reading with a source id that was
 // already stored is compared with that row instead.
@@ -6,7 +8,7 @@ import type { TablesInsert } from '@sarvis/core';
 
 import { type PriceFields, priceFieldsChanged, roundTo, sameValue } from '../change.ts';
 import type { ServiceClient } from '../client.ts';
-import { emptyWriteResult } from '../keyed.ts';
+import { type KeyedSpec, emptyWriteResult } from '../keyed.ts';
 import {
   type AnyRow,
   type LooseQuery,
@@ -22,6 +24,7 @@ import {
   provOf,
   resolverFor,
   unknownRef,
+  writeRecords,
 } from './common.ts';
 
 type PricePayload = TablesInsert<'price_observations'> & PriceFields & { observed_on: string };
@@ -174,6 +177,59 @@ export function priceObservationWriter(db: ServiceClient): DomainWriter<'price_o
         await updateMany(db, 'price_observations', ids, { last_confirmed_on: date });
 
       return result;
+    },
+  };
+}
+
+// Reference prices (StatCan average retail prices) are one row per (vector, month): read, diff,
+// write (D-046). A re-published month with a revised value updates in place.
+type ReferencePricePayload = TablesInsert<'reference_prices'>;
+
+const REFERENCE_COLUMNS =
+  'id, vector_id, product_label, unit, geography, ref_month, value, category_id, source_id, ' +
+  'source_url, method';
+
+export const referencePriceSpec: KeyedSpec<ReferencePricePayload> = {
+  table: 'reference_prices',
+  columns: REFERENCE_COLUMNS,
+  load: (db, payloads) =>
+    selectIn(
+      db,
+      'reference_prices',
+      REFERENCE_COLUMNS,
+      'vector_id',
+      payloads.map((p) => p.vector_id),
+      (q) => q.in('ref_month', [...new Set(payloads.map((p) => p.ref_month))]),
+    ),
+  keys: (r) => [`${r.vector_id as string}@${r.ref_month as string}`],
+  label: (p) => `${p.vector_id}@${p.ref_month}`,
+  keep: ['vector_id', 'ref_month'],
+};
+
+export function referencePriceWriter(db: ServiceClient): DomainWriter<'reference_price'> {
+  return {
+    async upsert(records, ctx) {
+      const refs = resolverFor(db, ctx);
+      await loadSources(refs, records);
+      await refs.loadSlugs(
+        'categories',
+        records.map((r) => r.category_slug),
+      );
+      return writeRecords({
+        db,
+        kind: 'reference_price',
+        spec: referencePriceSpec,
+        records,
+        refs,
+        ctx,
+        // An unknown category isn't fatal: the reference stays usable by its label.
+        build: ({ source_key: _s, category_slug, value, ...fields }, prov) => ({
+          ...fields,
+          value: roundTo(value, 2) as number,
+          category_id: refs.slug('categories', category_slug) ?? null,
+          ...prov,
+        }),
+      });
     },
   };
 }

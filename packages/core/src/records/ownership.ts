@@ -18,6 +18,12 @@ import {
 } from './common.ts';
 
 const WikidataQidSchema = z.string().regex(/^Q[1-9][0-9]*$/, 'Wikidata QID');
+const SecCikSchema = z.string().regex(/^[0-9]{10}$/, 'SEC CIK, 10 digits');
+const CorpCanadaNumberSchema = z.string().regex(/^[0-9]{1,12}$/);
+const OpenCorporatesIdSchema = z
+  .string()
+  .regex(/^[a-z]{2}(_[a-z0-9]+)?\/.+$/, 'jurisdiction/number');
+const FoundedYearSchema = z.number().int().min(1000).max(2100);
 
 export const CompanyRecordSchema = z.strictObject({
   slug: SlugSchema,
@@ -29,7 +35,7 @@ export const CompanyRecordSchema = z.strictObject({
     .default('company'),
   country: CountrySchema.nullish(),
   headquarters: textField(300).nullish(),
-  founded_year: z.number().int().min(1000).max(2100).nullish(),
+  founded_year: FoundedYearSchema.nullish(),
   ownership_type: z.enum(['public', 'private', 'state', 'coop']).nullish(),
   stock_ticker: textField(30).nullish(),
   website: HttpUrlSchema.nullish(),
@@ -40,23 +46,51 @@ export const CompanyRecordSchema = z.strictObject({
   wikidata_qid: WikidataQidSchema.nullish(),
   wikipedia_title: textField(300).nullish(),
   wikipedia_revision_id: z.number().int().positive().nullish(),
-  sec_cik: z
-    .string()
-    .regex(/^[0-9]{10}$/, 'SEC CIK, 10 digits')
-    .nullish(),
-  corp_canada_number: z
-    .string()
-    .regex(/^[0-9]{1,12}$/)
-    .nullish(),
-  opencorporates_id: z
-    .string()
-    .regex(/^[a-z]{2}(_[a-z0-9]+)?\/.+$/, 'jurisdiction/number')
-    .nullish(),
+  sec_cik: SecCikSchema.nullish(),
+  corp_canada_number: CorpCanadaNumberSchema.nullish(),
+  opencorporates_id: OpenCorporatesIdSchema.nullish(),
   status: z.enum(['active', 'defunct']).default('active'),
   ...reviewNoteShape,
   ...provenanceShape,
 });
 export type CompanyRecord = z.infer<typeof CompanyRecordSchema>;
+
+/**
+ * Fields a second source fills in on a company another source created (P3.4): Wikipedia, SEC
+ * EDGAR, Corporations Canada. It never creates a company, and the company keeps its own +prov
+ * block; this source's provenance goes to `company_sources`.
+ */
+export const CompanyEnrichmentRecordSchema = z.strictObject({
+  /** The existing company, by any of these; every key given must point at the same company. */
+  match: z
+    .strictObject({
+      wikidata_qid: WikidataQidSchema.optional(),
+      slug: SlugSchema.optional(),
+      sec_cik: SecCikSchema.optional(),
+      corp_canada_number: CorpCanadaNumberSchema.optional(),
+    })
+    .refine((m) => Object.values(m).some((v) => v !== undefined), 'Name at least one match key'),
+  /** The company's id at this source (page title, CIK, corporation number). */
+  external_id: textField(200),
+  /** Only the fields this source sets; a field left out is left alone. */
+  fields: z
+    .strictObject({
+      legal_name: textField(300).optional(),
+      headquarters: textField(300).optional(),
+      founded_year: FoundedYearSchema.optional(),
+      website: HttpUrlSchema.optional(),
+      wikipedia_title: textField(300).optional(),
+      wikipedia_revision_id: z.number().int().positive().optional(),
+      sec_cik: SecCikSchema.optional(),
+      corp_canada_number: CorpCanadaNumberSchema.optional(),
+      opencorporates_id: OpenCorporatesIdSchema.optional(),
+      /** The `url_normalized` of a stored Wikipedia document; sets `wikipedia_document_id`. */
+      wikipedia_document_url: HttpUrlSchema.optional(),
+    })
+    .refine((f) => Object.values(f).some((v) => v !== undefined), 'Set at least one field'),
+  ...provenanceShape,
+});
+export type CompanyEnrichmentRecord = z.infer<typeof CompanyEnrichmentRecordSchema>;
 
 export const BrandRecordSchema = z.strictObject({
   slug: SlugSchema,

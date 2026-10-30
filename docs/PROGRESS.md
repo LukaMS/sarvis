@@ -2,6 +2,38 @@
 
 Newest entry first.
 
+## 2026-10-30 — P3.4 Writers: reference prices, documents and company enrichment (done)
+
+**What changed**
+- `@sarvis/core`:
+  - `DocumentRecordSchema` gains `summary` (Wikipedia only, ≤ 2,000 characters);
+  - new record kind `company_enrichment` (`match`, `external_id`, closed `fields` list, +prov) with its batch key;
+  - the company schema's CIK, corporation-number, OpenCorporates and founded-year validators are shared constants now.
+- `pipeline/src/db/writers/`:
+  - `prices.ts`: `referencePriceWriter`, keyed `(vector_id, ref_month)`;
+  - `documents.ts` (new): `documentWriter`, keyed `url_normalized`;
+  - `ownership.ts`: `companyEnrichmentWriter` plus the pure helpers `planEnrichment` and `matchCompany`;
+  - `index.ts` registers all three.
+- D-056 records the rules. DATA_MODEL §3.2 notes who writes `company_sources`.
+
+**Verification**
+- `npm run check:writers --workspace @sarvis/pipeline` (dev project): 4/4 pass. The new case is written twice:
+  - pass 1: reference_price inserted 2, document inserted 2, company_enrichment updated 1;
+  - pass 2: unchanged 2 / 2 / 1, with 0 inserted, updated, skipped or rejected.
+  - Provenance: the reference prices carry the fixture source, `import`, `p216-check@1.0.0` and the run id. The Wikipedia document carries the `wikipedia` source and `api`.
+  - The enriched company (created by `fixture`, enriched by `wikipedia`) keeps `source_id` = fixture, `method` `import` and `method_version` `p216-check@1.0.0`. Its admin-locked `website` is unchanged. `wikipedia_title`, `wikipedia_revision_id` 1001 and `wikipedia_document_id` (the page's id) are set.
+  - One `company_sources` row: wikipedia source, `external_id` `P34_Company`, `method` `api`, `fields` `[wikipedia_document_id, wikipedia_revision_id, wikipedia_title]` (no `website`: locked), and the run id.
+  - Revision 1002 with a new summary updates the same document row (updated 1, unchanged 1).
+  - Cleanup left 0 rows, and a SQL count confirms it.
+- Unit tests: `ownership.test.ts` (5: patch/held/locked, second pass empty, match by any or agreeing keys, an unknown company, disagreeing keys including a QID clash). Core: a `company_enrichment` case, summary rules, an empty or unknown enrichment field.
+- `npm test`: 390 passed, 1 skipped. `typecheck`, `lint` and `format:check` pass.
+
+**For you:** nothing to decide. An enrichment that names a company only by a key the company doesn't hold (e.g. a CIK on a company without one) is rejected as unknown. SEC EDGAR (P3.16) must therefore match on QID or slug and *set* the CIK.
+
+**Next:** P3.5 OFF (a): Canadian sample.
+
+---
+
 ## 2026-10-30 — P3.3 Pipeline: streaming dump downloads (done)
 
 **What changed**

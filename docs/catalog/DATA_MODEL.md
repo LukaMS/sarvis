@@ -224,7 +224,7 @@ bigint id · `run_id` · `raw_object_id` · `record_key` (e.g. the GTIN) · `rul
 | +review | | §1.5. Users see the company only when approved (D-050). |
 | +prov | | The creating source. Fields filled in later by other sources are recorded in `company_sources`. |
 
-**`company_sources`**: per-source provenance for company fields a second source fills in (Wikipedia, SEC EDGAR, Corporations Canada; D-053). Mirrors `product_sources`. RLS **admin**.
+**`company_sources`**: per-source provenance for company fields a second source fills in (Wikipedia, SEC EDGAR, Corporations Canada; D-053). Mirrors `product_sources`. RLS **admin**. Written from `company_enrichment` records (P3.4, D-056): `fields` lists the columns that hold this source's value.
 
 bigint id · `company_id` · `source_id` · `external_id` (the company's id at that source: page title, CIK, corporation number) · `source_url` null · `fetched_at` · `last_seen_at` · `content_hash` null · `method` · `method_version` · `fields` text[] (the `companies` columns this source set; 1–50 column names) · `ingestion_run_id` null · `raw_object_id` null. Unique on `(company_id, source_id)`.
 

@@ -32,6 +32,8 @@ export const DocumentRecordSchema = z
       .regex(/^[a-z]{2,3}(-[A-Z]{2})?$/, 'Language tag, e.g. en or fr-CA')
       .nullish(),
     wikipedia_revision_id: z.number().int().positive().nullish(),
+    /** A short extract shown with attribution, never full text (D-014). Wikipedia only. */
+    summary: z.string().min(1).max(2000).nullish(),
     sec_accession: z
       .string()
       .regex(/^[0-9]{10}-[0-9]{2}-[0-9]{6}$/, 'SEC accession number')
@@ -47,5 +49,9 @@ export const DocumentRecordSchema = z
   .refine((r) => r.kind === 'wikipedia' || r.wikipedia_revision_id == null, {
     message: 'wikipedia_revision_id is only for wikipedia documents',
     path: ['wikipedia_revision_id'],
+  })
+  .refine((r) => r.kind === 'wikipedia' || r.summary == null, {
+    message: 'summary is only for wikipedia documents',
+    path: ['summary'],
   });
 export type DocumentRecord = z.infer<typeof DocumentRecordSchema>;

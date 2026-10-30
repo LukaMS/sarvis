@@ -2,12 +2,16 @@
 // Wikidata QID, then the slug; the slug never changes once written. All of them arrive `pending`
 // and no import changes `review_status` (D-052). A reviewed company or brand still takes updates to
 // its unlocked fields; a reviewed edge is left alone.
-import type { TablesInsert } from '@sarvis/core';
+//
+// A second source (Wikipedia, SEC EDGAR, Corporations Canada) fills in fields on a company it
+// didn't create with company_enrichment records. The company keeps its own +prov block, and the
+// enriching source's provenance goes to company_sources (P3.4).
+import type { CompanyEnrichmentRecord, TablesInsert } from '@sarvis/core';
 
 import type { ServiceClient } from '../client.ts';
-import { roundTo } from '../change.ts';
+import { byteaHash, roundTo, sameValue } from '../change.ts';
 import { type KeyedSpec, type WriteResult, emptyWriteResult, upsertKeyed } from '../keyed.ts';
-import { type AnyRow, selectIn } from '../query.ts';
+import { type AnyRow, selectIn, updateById } from '../query.ts';
 import {
   type DomainWriter,
   keyOf,
@@ -251,6 +255,202 @@ export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company
       const out = await upsertKeyed(db, companyEdgeSpec, payloads);
       await queueNotes(db, companyEdgeSpec, notes, out);
       return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
+    },
+  };
+}
+
+/** The keys an enrichment can name its company by, most specific first. */
+const MATCH_KEYS = ['wikidata_qid', 'slug', 'sec_cik', 'corp_canada_number'] as const;
+
+const ENRICH_COLUMNS =
+  'id, slug, wikidata_qid, sec_cik, corp_canada_number, legal_name, headquarters, founded_year, ' +
+  'website, wikipedia_title, wikipedia_revision_id, opencorporates_id, wikipedia_document_id, ' +
+  'status, locked_fields';
+
+export interface EnrichmentPlan {
+  /** Unlocked columns whose value changes. */
+  patch: AnyRow;
+  /** Every column that holds this source's value afterwards (company_sources.fields), sorted. */
+  held: string[];
+  /** Locked columns whose stored value differs and stays. */
+  locked: string[];
+}
+
+/** What an enrichment writes on a stored company: changes to unlocked columns only (D-046). */
+export function planEnrichment(stored: AnyRow, values: AnyRow): EnrichmentPlan {
+  const lockedFields = new Set((stored.locked_fields as string[] | null | undefined) ?? []);
+  const plan: EnrichmentPlan = { patch: {}, held: [], locked: [] };
+  for (const [column, value] of Object.entries(values)) {
+    if (value === undefined) continue;
+    if (sameValue(stored[column], value)) plan.held.push(column);
+    else if (lockedFields.has(column)) plan.locked.push(column);
+    else {
+      plan.patch[column] = value;
+      plan.held.push(column);
+    }
+  }
+  plan.held.sort();
+  return plan;
+}
+
+/** The company an enrichment names, or why it can't be used. */
+export function matchCompany(
+  match: CompanyEnrichmentRecord['match'],
+  byKey: ReadonlyMap<string, AnyRow>,
+): AnyRow | { problem: string } {
+  const found = MATCH_KEYS.flatMap((k) => {
+    const row = match[k] ? byKey.get(`${k}:${match[k]}`) : undefined;
+    return row ? [row] : [];
+  });
+  if (found.length === 0) return { problem: 'Unknown company; the record was not written.' };
+  const company = found[0] as AnyRow;
+  // A key the company already holds with another value is a different company, not a gap.
+  const clash = MATCH_KEYS.some((k) => match[k] && company[k] != null && company[k] !== match[k]);
+  if (clash || new Set(found.map((r) => r.id)).size > 1) {
+    return { problem: 'The match keys point at different companies; the record was not written.' };
+  }
+  return company;
+}
+
+type CompanySourcePayload = TablesInsert<'company_sources'>;
+
+const COMPANY_SOURCE_COLUMNS =
+  'id, company_id, source_id, external_id, source_url, last_seen_at, content_hash, method, fields';
+/** upsertKeyed's hash for a hashed spec whose touch column is `last_seen_at`. */
+const COMPANY_SOURCE_HASH_OMIT = ['content_hash', 'last_seen_at'];
+
+export const companySourceSpec: KeyedSpec<CompanySourcePayload> = {
+  table: 'company_sources',
+  columns: COMPANY_SOURCE_COLUMNS,
+  load: (db, payloads) =>
+    selectIn(
+      db,
+      'company_sources',
+      COMPANY_SOURCE_COLUMNS,
+      'company_id',
+      payloads.map((p) => p.company_id),
+    ),
+  keys: (r) => [`${r.company_id as string}:${r.source_id as string}`],
+  label: (p) => `${p.company_id}:${p.source_id}`,
+  hashed: true,
+  keep: ['company_id', 'source_id'],
+  touch: ['last_seen_at'],
+};
+
+/**
+ * Counts per record: `updated` when the company or this source's company_sources row changed,
+ * `unchanged` when neither did, `skipped_locked` for a merged or rejected company or when every
+ * value differs from a locked field. An enrichment never inserts a company, so `inserted` stays 0.
+ */
+export function companyEnrichmentWriter(db: ServiceClient): DomainWriter<'company_enrichment'> {
+  return {
+    async upsert(records, ctx) {
+      const refs = resolverFor(db, ctx);
+      await loadSources(refs, records);
+      const result = emptyWriteResult();
+
+      const byKey = new Map<string, AnyRow>();
+      for (const k of MATCH_KEYS) {
+        const rows = await selectIn(
+          db,
+          'companies',
+          ENRICH_COLUMNS,
+          k,
+          records.map((r) => r.match[k]),
+        );
+        for (const row of rows) byKey.set(`${k}:${row[k] as string}`, row);
+      }
+      const documents = await selectIn(
+        db,
+        'documents',
+        'id, url_normalized, kind',
+        'url_normalized',
+        records.map((r) => r.fields.wikipedia_document_url),
+      );
+      const documentByUrl = new Map(documents.map((d) => [d.url_normalized as string, d]));
+
+      const planned: {
+        companyId: string;
+        changed: boolean;
+        source: CompanySourcePayload;
+      }[] = [];
+      const patches: { id: string; patch: AnyRow; key: string }[] = [];
+      for (const r of records) {
+        const key = keyOf('company_enrichment', r);
+        const prov = provOf(r, refs, ctx);
+        if (!prov) {
+          result.rejected.push(unknownRef(key, `source ${r.source_key}`));
+          continue;
+        }
+        const company = matchCompany(r.match, byKey);
+        if ('problem' in company) {
+          result.rejected.push({ key, message: company.problem as string });
+          continue;
+        }
+        if (ADMIN_STATUSES.has(company.status as string)) {
+          result.skipped_locked++;
+          continue;
+        }
+        const { wikipedia_document_url: documentUrl, ...values } = r.fields;
+        const columns: AnyRow = { ...values };
+        if (documentUrl) {
+          const doc = documentByUrl.get(documentUrl);
+          if (doc?.kind !== 'wikipedia') {
+            result.rejected.push(unknownRef(key, `wikipedia document ${documentUrl}`));
+            continue;
+          }
+          columns.wikipedia_document_id = doc.id;
+        }
+        const plan = planEnrichment(company, columns);
+        if (plan.held.length === 0) {
+          result.skipped_locked++;
+          continue;
+        }
+        const companyId = company.id as string;
+        const changed = Object.keys(plan.patch).length > 0;
+        // Only the field columns: the company's +prov block stays with the source that made it.
+        if (changed) patches.push({ id: companyId, patch: plan.patch, key });
+        planned.push({
+          companyId,
+          changed,
+          source: {
+            company_id: companyId,
+            source_id: prov.source_id,
+            external_id: r.external_id,
+            source_url: prov.source_url,
+            fetched_at: prov.fetched_at,
+            last_seen_at: prov.fetched_at,
+            method: prov.method,
+            method_version: prov.method_version,
+            fields: plan.held,
+            ingestion_run_id: prov.ingestion_run_id,
+            raw_object_id: prov.raw_object_id,
+          },
+        });
+      }
+
+      const failed = await updateById(db, 'companies', patches);
+      const failedIds = new Set(failed.map((e) => e.row.id));
+      for (const e of failed) result.rejected.push({ key: e.row.key, message: e.message });
+      const live = planned.filter((p) => !failedIds.has(p.companyId));
+
+      const out = await upsertKeyed(
+        db,
+        companySourceSpec,
+        live.map((p) => p.source),
+      );
+      result.rejected.push(...out.result.rejected);
+      const sourceRows = new Map(out.rows.map((row) => [row.payload.company_id, row]));
+      for (const p of live) {
+        const row = sourceRows.get(p.companyId);
+        if (!row) continue; // Rejected by upsertKeyed, already reported.
+        const sourceChanged =
+          row.stored === null ||
+          row.stored.content_hash !== byteaHash(p.source, COMPANY_SOURCE_HASH_OMIT);
+        if (p.changed || sourceChanged) result.updated++;
+        else result.unchanged++;
+      }
+      return result;
     },
   };
 }
