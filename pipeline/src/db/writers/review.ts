@@ -12,6 +12,8 @@ type ItemType = Database['public']['Tables']['review_queue']['Insert']['item_typ
 
 /** The queue's item type per table. Legacy facts are always `legacy_fact`. */
 const ITEM_TYPES: Partial<Record<TableName, ItemType>> = {
+  companies: 'company',
+  brands: 'brand',
   brand_ownership: 'brand_ownership',
   company_ownership: 'company_ownership',
   company_scores: 'company_score',

@@ -984,7 +984,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The fixture e2e still passes (`npm run e2e --workspace @sarvis/pipeline`).
   - `npm run typecheck`, `lint` and `test` pass.
 
-### [ ] P3.2 Schema: Phase 3 additions
+### [x] P3.2 Schema: Phase 3 additions
 - **Slice:** schema.
 - **Goal:** the small schema changes Phase 3 sources need, in one migration.
 - **Deps:** P2.19.

@@ -24,6 +24,9 @@ const BANNER = `${TAG}-banner`;
 const STORE = `${TAG}-store`;
 const BRANDS = [`${TAG}-brand-a`, `${TAG}-brand-b`];
 const COMPANY = `${TAG}-company`;
+/** A company and a brand that arrive with a review_reason from a non-legacy source (P3.2). */
+const QUEUED_COMPANY = `${TAG}-queued-company`;
+const QUEUED_BRAND = `${TAG}-queued-brand`;
 
 /** GTIN-14 with a GS1 mod-10 check digit, under an unrestricted 06 prefix. */
 function gtin(n: number): string {
@@ -144,7 +147,14 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
     if (!ctx) return;
     const ids =
       (await db.from('products').select('id').in('gtin', GTINS)).data?.map((r) => r.id) ?? [];
+    const queued = [
+      ...((await db.from('companies').select('id').eq('slug', QUEUED_COMPANY)).data ?? []),
+      ...((await db.from('brands').select('id').eq('slug', QUEUED_BRAND)).data ?? []),
+    ].map((r) => r.id);
     const steps = [
+      await db.from('review_queue').delete().in('item_id', queued),
+      await db.from('companies').delete().eq('slug', QUEUED_COMPANY),
+      await db.from('brands').delete().eq('slug', QUEUED_BRAND),
       await db.from('price_observations').delete().in('product_id', ids),
       await db.from('products').delete().in('id', ids),
       await db.from('match_candidates').delete().eq('run_id', ctx.runId),
@@ -172,6 +182,12 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       ).count,
       banners: (
         await db.from('banners').select('id', { count: 'exact', head: true }).eq('slug', BANNER)
+      ).count,
+      queued: (
+        await db
+          .from('review_queue')
+          .select('id', { count: 'exact', head: true })
+          .in('item_id', queued)
       ).count,
     };
     logger.info('cleaned up', {
@@ -350,6 +366,52 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
     expect(listings.data?.map((l) => [l.product_id, l.match_candidate_id !== null])).toEqual([
       [null, false],
       [null, true],
+    ]);
+  });
+
+  it('queues a non-legacy company and brand with a review_reason once, under their own types', async () => {
+    const reason = 'P3.2 check: queued from a non-legacy source';
+    const once = async () => ({
+      company: counts(
+        await write('company', [
+          parse('company', {
+            slug: QUEUED_COMPANY,
+            name: 'P32 Queued Company',
+            review_reason: reason,
+            ...prov(),
+          }),
+        ]),
+      ),
+      brand: counts(
+        await write('brand', [
+          parse('brand', {
+            slug: QUEUED_BRAND,
+            name: 'P32 Queued Brand',
+            review_reason: reason,
+            ...prov(),
+          }),
+        ]),
+      ),
+    });
+    const first = await once();
+    const second = await once();
+    logger.info('queued entities', { first, second });
+    expect(first.company).toMatchObject({ inserted: 1, rejected: 0 });
+    expect(second.company).toMatchObject({ inserted: 0, updated: 0, unchanged: 1 });
+
+    const company = (await db.from('companies').select('id').eq('slug', QUEUED_COMPANY).single())
+      .data?.id as string;
+    const brand = (await db.from('brands').select('id').eq('slug', QUEUED_BRAND).single()).data
+      ?.id as string;
+    const queue = await db
+      .from('review_queue')
+      .select('item_type, item_table, item_id, reason, status')
+      .in('item_id', [company, brand])
+      .order('item_table');
+    logger.info('review_queue rows', { rows: queue.data });
+    expect(queue.data).toEqual([
+      { item_type: 'brand', item_table: 'brands', item_id: brand, reason, status: 'open' },
+      { item_type: 'company', item_table: 'companies', item_id: company, reason, status: 'open' },
     ]);
   });
 });

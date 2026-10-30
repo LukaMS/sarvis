@@ -887,6 +887,7 @@ export type Database = {
           updated_at: string
           website: string | null
           wikidata_qid: string | null
+          wikipedia_document_id: string | null
           wikipedia_revision_id: number | null
           wikipedia_title: string | null
         }
@@ -927,6 +928,7 @@ export type Database = {
           updated_at?: string
           website?: string | null
           wikidata_qid?: string | null
+          wikipedia_document_id?: string | null
           wikipedia_revision_id?: number | null
           wikipedia_title?: string | null
         }
@@ -967,6 +969,7 @@ export type Database = {
           updated_at?: string
           website?: string | null
           wikidata_qid?: string | null
+          wikipedia_document_id?: string | null
           wikipedia_revision_id?: number | null
           wikipedia_title?: string | null
         }
@@ -1018,6 +1021,13 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_wikipedia_document_id_fkey"
+            columns: ["wikipedia_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
             referencedColumns: ["id"]
           },
         ]
@@ -1472,6 +1482,103 @@ export type Database = {
           },
         ]
       }
+      company_sources: {
+        Row: {
+          company_id: string
+          content_hash: string | null
+          created_at: string
+          external_id: string
+          fetched_at: string
+          fields: string[]
+          id: number
+          ingestion_run_id: string | null
+          last_seen_at: string
+          method: string
+          method_version: string
+          raw_object_id: string | null
+          source_id: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          content_hash?: string | null
+          created_at?: string
+          external_id: string
+          fetched_at: string
+          fields: string[]
+          id?: never
+          ingestion_run_id?: string | null
+          last_seen_at: string
+          method: string
+          method_version: string
+          raw_object_id?: string | null
+          source_id: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          content_hash?: string | null
+          created_at?: string
+          external_id?: string
+          fetched_at?: string
+          fields?: string[]
+          id?: never
+          ingestion_run_id?: string | null
+          last_seen_at?: string
+          method?: string
+          method_version?: string
+          raw_object_id?: string | null
+          source_id?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_sources_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brand_current_owner"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_sources_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_sources_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "product_ownership_chain"
+            referencedColumns: ["owner_company_id"]
+          },
+          {
+            foreignKeyName: "company_sources_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_sources_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_sources_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_entities: {
         Row: {
           ai_call_id: number | null
@@ -1654,6 +1761,7 @@ export type Database = {
           sec_filed_on: string | null
           source_id: string
           source_url: string | null
+          summary: string | null
           title: string | null
           updated_at: string
           url: string
@@ -1678,6 +1786,7 @@ export type Database = {
           sec_filed_on?: string | null
           source_id: string
           source_url?: string | null
+          summary?: string | null
           title?: string | null
           updated_at?: string
           url: string
@@ -1702,6 +1811,7 @@ export type Database = {
           sec_filed_on?: string | null
           source_id?: string
           source_url?: string | null
+          summary?: string | null
           title?: string | null
           updated_at?: string
           url?: string

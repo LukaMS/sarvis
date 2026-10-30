@@ -214,6 +214,7 @@ bigint id · `run_id` · `raw_object_id` · `record_key` (e.g. the GTIN) · `rul
 | `ceo`, `revenue_range` | text null | Legacy fields. Volatile, so `locked_fields` / audit applies. |
 | `wikidata_qid` | text unique null | S17. |
 | `wikipedia_title`, `wikipedia_revision_id` | text, bigint | S19. |
+| `wikipedia_document_id` | uuid null | The company's Wikipedia page (`documents`, `kind = wikipedia`). That page, with its summary, is public exactly when the company is (P3.2, D-053). |
 | `sec_cik` | text unique null | S20. |
 | `corp_canada_number` | text null | S21. |
 | `opencorporates_id` | text null | `jurisdiction/number`. Filled from Wikidata P1320 when present; S22 itself is avoided. |
@@ -221,7 +222,11 @@ bigint id · `run_id` · `raw_object_id` · `record_key` (e.g. the GTIN) · `rul
 | `merged_into_id` | uuid null | |
 | `locked_fields` | text[] | §1.2. |
 | +review | | §1.5. Users see the company only when approved (D-050). |
-| +prov | | |
+| +prov | | The creating source. Fields filled in later by other sources are recorded in `company_sources`. |
+
+**`company_sources`**: per-source provenance for company fields a second source fills in (Wikipedia, SEC EDGAR, Corporations Canada; D-053). Mirrors `product_sources`. RLS **admin**.
+
+bigint id · `company_id` · `source_id` · `external_id` (the company's id at that source: page title, CIK, corporation number) · `source_url` null · `fetched_at` · `last_seen_at` · `content_hash` null · `method` · `method_version` · `fields` text[] (the `companies` columns this source set; 1–50 column names) · `ingestion_run_id` null · `raw_object_id` null. Unique on `(company_id, source_id)`.
 
 **`company_ownership`**: parent → child edges between companies. RLS **public** (`approved` only).
 
@@ -369,7 +374,7 @@ Unique on `(kind, subject_id, candidate_id, match_method_version)`. Rejected and
 
 **`review_queue`**: the single admin work list. RLS **admin**.
 
-bigint id · `item_type` (`company_score`, `document_entity`, `company_ownership`, `brand_ownership`, `match_candidate`, `product`, `certification`, `company_event`, `legacy_fact`) · `item_table` · `item_id` text (uuid or bigint as text) · `priority` smallint · `reason` · `status` (`open`, `done`, `dismissed`) · `assigned_to` null · `created_at` · `resolved_at` · `resolved_by`.
+bigint id · `item_type` (`company_score`, `document_entity`, `company_ownership`, `brand_ownership`, `match_candidate`, `product`, `certification`, `company_event`, `legacy_fact`, `company`, `brand`; the last two added in P3.2) · `item_table` · `item_id` text (uuid or bigint as text) · `priority` smallint · `reason` · `status` (`open`, `done`, `dismissed`) · `assigned_to` null · `created_at` · `resolved_at` · `resolved_by`.
 
 The decision itself is written to the item's own `review_status` (§1.5); the queue row only tracks work. Resolved rows are deleted after 90 days.
 
@@ -402,7 +407,7 @@ Check: `review_status = 'approved'` needs at least one citation (a deferred cons
 
 bigint id · `score_id` · `document_id` · `quote` text (≤ 300 characters, a short excerpt for context) · `stance` (`supports_good`, `supports_poor`, `context`) · `added_by_method` (`ai` / `manual`).
 
-**`documents`**: every cited or linked page: news articles (GDELT S23, RSS S24), Wikipedia pages, SEC filings, certification pages, reports. Full text is never stored. RLS **public** when linked to a visible entity or citation.
+**`documents`**: every cited or linked page: news articles (GDELT S23, RSS S24), Wikipedia pages, SEC filings, certification pages, reports. Full text is never stored. RLS **public** when linked to a visible entity or citation, or when it's a `wikipedia` document that a visible company names as its `wikipedia_document_id`.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -413,6 +418,7 @@ bigint id · `score_id` · `document_id` · `quote` text (≤ 300 characters, a 
 | `published_at` | timestamptz null | GDELT `seendate` / RSS `pubDate`. |
 | `language` | text null | |
 | `wikipedia_revision_id` | bigint null | S19. |
+| `summary` | text null | `wikipedia` only, 1–2,000 characters: a short extract shown with its CC BY-SA attribution (the document URL). Not full text (D-014, D-053). |
 | `sec_accession`, `sec_filed_on` | text, date null | S20. |
 | `archive_url` | text null | Optional Wayback link for citations. |
 | +prov | | |
@@ -601,11 +607,12 @@ Every field marked **(key)** in SOURCES.md, including sources marked avoid, so t
 | S19 | page title | `companies.wikipedia_title`; `documents.title` |
 | S19 | page URL | `documents.url` (`kind = wikipedia`) |
 | S19 | revision id | `companies.wikipedia_revision_id`, `documents.wikipedia_revision_id` |
-| S20 | CIK | `companies.sec_cik` |
+| S19 | page summary (extract) | `documents.summary`, linked by `companies.wikipedia_document_id`; provenance in `company_sources` |
+| S20 | CIK | `companies.sec_cik` (provenance in `company_sources` when SEC didn't create the company) |
 | S20 | company name | `companies.name` / `legal_name` |
 | S20 | filing accession number and date | `documents.sec_accession`, `sec_filed_on` |
 | S20 | Exhibit 21 subsidiary names | `company_ownership` (child company, `pending` review) |
-| S21 | corporation number | `companies.corp_canada_number` |
+| S21 | corporation number | `companies.corp_canada_number` (provenance in `company_sources`) |
 | S22 | jurisdiction code + company number | `companies.opencorporates_id` (from Wikidata P1320; S22 itself is avoided) |
 | S23 | article URL | `documents.url`, `url_normalized` |
 | S23 | title | `documents.title` |

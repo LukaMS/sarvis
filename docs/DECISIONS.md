@@ -429,6 +429,11 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **SEC EDGAR and Corporations Canada write only matches.** An Exhibit 21 subsidiary becomes an edge only when its normalized name matches an existing company or brand. Corporations Canada only fills in numbers on existing Canadian companies. Neither creates companies, so the ~5k-company budget holds. Fuzzy matching waits for Phase 4.
 - **Small sources are one task, not a pair:** StatCan (P3.11) and Corporations Canada (P3.18) run their sample and their full run in the same task.
 - **Moved out of Phase 3:** brand creation from OFF strings and product → brand links (Phase 4 resolver), `price_sanity_bounds` (Phase 4, needs categories), in-app attribution (Phase 8 screens, Phase 10 About). The app shows no catalog data before Phase 8.
+- **Built in P3.2:**
+  - The `documents` read clause for a company page also needs `kind = 'wikipedia'`, so a wrong link can't expose a news or SEC document.
+  - `companies.wikipedia_document_id` isn't unique: a Wikidata sitelink belongs to one item, so a shared page would be a data error, not a schema one.
+  - `company_sources` keeps `product_sources`' nullable `content_hash` for the writers' change check. `fields` must hold 1–50 lower-case column names.
+  - Non-legacy companies and brands with a `review_reason` are queued as `company` and `brand`. Under D-054 only Wikidata tie cases and other sources' doubts will use them.
 - **Wikidata visibility is an owner decision before the scale-up (P3.13).** Until then, every Wikidata brand, company and edge is `pending` (D-050). The sample (P3.12) hand-checks 50 edges as evidence. Decided: no review for Wikidata, D-054.
 **Why:** each task fits one session, and every source writes provenance that stays correct when several sources touch one company.
 

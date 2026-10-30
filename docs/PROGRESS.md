@@ -2,6 +2,32 @@
 
 Newest entry first.
 
+## 2026-10-30 — P3.2 Schema: Phase 3 additions (done)
+
+**What changed**
+- Migration `20261030132907_catalog_phase3_additions` (dev only):
+  - `review_queue.item_type` gains `company` and `brand`;
+  - `company_sources`: per-source company provenance, unique on `(company_id, source_id)`, RLS admin;
+  - `documents.summary`: Wikipedia only, 1–2,000 characters;
+  - `companies.wikipedia_document_id`, plus a clause in both `documents` read policies, so a Wikipedia page is public exactly when its company is.
+- `pipeline/src/db/writers/review.ts` maps `companies` → `company` and `brands` → `brand` for non-legacy rows with a `review_reason`. Legacy rows stay `legacy_fact`.
+- Types regenerated. Also updated: `supabase/README.md` (migration row), DATA_MODEL §3.2, §3.5, §3.6 and §7, and D-053 ("Built in P3.2").
+
+**Verification**
+- `supabase/tests/phase3_additions.sql`: **23/23 ok**.
+  - Constraints: a non-Wikipedia document with a summary is rejected (23514); so is a summary over 2,000 characters (23514). Item types `company` and `brand` are accepted and an unknown one still fails. A duplicate `company_sources` (company, source) gives 23505. Bad or empty `fields` and `last_seen_at` before `fetched_at` give 23514.
+  - anon reads the approved company's page summary, but not the pending company's page, not a news document set as a company page, and not an unlinked Wikipedia page. anon can't read `company_sources` (42501) or write `documents` (42501).
+  - A non-admin user sees only the approved page, 0 `company_sources` rows, and can't change a summary.
+  - An admin sees all 4 documents and reads and writes `company_sources`. After the admin approves the pending company, anon sees its page.
+  - `company_sources.relrowsecurity` is true.
+- `get_advisors`: security is unchanged (only the existing leaked-password warning). Performance has the same INFO-only `unused_index` list, plus the 4 new indexes (58 → 62). No unindexed FKs.
+- Writer unit test `review.test.ts` (3 tests). `check:writers` adds a company and a brand with a `review_reason`, written twice: run 1 inserted 1 each, run 2 unchanged 1 each. Exactly 2 open queue rows, one `brand`/`brands` and one `company`/`companies`. Cleanup left 0 rows; a SQL check confirms it.
+- `npm test`: 366 passed, 1 skipped. `typecheck`, `lint` and `format:check` pass.
+
+**Next:** P3.3 Pipeline: streaming dump downloads.
+
+---
+
 ## 2026-10-30 — P3.1 Contact email for sources that ask for one (done)
 
 **What changed**
