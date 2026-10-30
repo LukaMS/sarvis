@@ -29,6 +29,11 @@ const SECRET_FRAGMENTS = [
   'private_key',
   'storage_state',
   'storagestate',
+  // The owner's contact email, and the User-Agent that carries it (D-015).
+  'contact_email',
+  'contactemail',
+  'user_agent',
+  'useragent',
 ];
 
 /** Keys that hold user-table rows or the user's identity (DATA_MODEL §3.9). */

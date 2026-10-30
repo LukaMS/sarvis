@@ -101,6 +101,7 @@ The repo is public (D-003). Screenshots in `docs/baseline/` and `.screenshots/`,
 - **Sign-in providers (P1.14):** email only for now. P1.14 is skipped.
 - **Pipeline User-Agent contact:** the repo URL only, e.g. `Sarvis/<version> (+https://github.com/LukaMS/sarvis)`, with no email. If a source rejects that (SEC EDGAR asks for an email), stop and ask the owner.
   - **Amended 2026-10-29:** the owner gave their email as the contact for sources whose terms ask for an email (OFF's `AppName/Version (ContactEmail)`, SEC EDGAR). Other sources keep the repo URL. The email lives in `.env` as `PIPELINE_CONTACT_EMAIL`, never in the public repo, and the pipeline refuses to run an email-requiring source when it's unset.
+  - **Built in P3.1:** one form for every email source, `Sarvis/<version> (+https://github.com/LukaMS/sarvis; <email>)`. It fits OFF's `AppName/Version (ContactEmail)` and SEC EDGAR's "name plus email" rule, so no per-source format. A source opts in with the capability `contact: 'email'`. The CLI reads the variable on its own (`parseContactEmail`), so a bad value fails only the runs that read it. The driver refuses before any run row; request headers are never stored, and the logger redacts `contact_email` and `user_agent` keys.
 - **Commercial status:** non-commercial for now and probably for a while, but it may become commercial. Prefer sources whose licences allow commercial use. When a source is non-commercial-only, flag it and keep its data separable so it can be dropped later.
 **Why:** owner answers to the open 🟡 list from P0.12.
 

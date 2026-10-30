@@ -8,6 +8,13 @@ describe('pipeline', () => {
     expect(userAgent('0.1.0')).toBe('Sarvis/0.1.0 (+https://github.com/LukaMS/sarvis)');
   });
 
+  it('adds the contact email when given (D-015)', () => {
+    expect(userAgent('0.1.0', 'owner@example.com')).toBe(
+      'Sarvis/0.1.0 (+https://github.com/LukaMS/sarvis; owner@example.com)',
+    );
+    expect(userAgent('0.1.0', null)).toBe('Sarvis/0.1.0 (+https://github.com/LukaMS/sarvis)');
+  });
+
   it('keeps PIPELINE_VERSION in step with package.json', () => {
     const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
     expect(PIPELINE_VERSION).toBe(pkg.version);

@@ -2,6 +2,31 @@
 
 Newest entry first.
 
+## 2026-10-30 — P3.1 Contact email for sources that ask for one (done)
+
+**What changed**
+- `PIPELINE_CONTACT_EMAIL` (optional, email-validated) in `pipeline/src/env.ts` and `.env.example`. `parseContactEmail()` reads it without needing the DB variables.
+- `userAgent(version, email)` adds `; <email>` inside the brackets. A source opts in with the new capability `contact: 'email'` (`sources/source.ts`).
+- The driver refuses an email source with `SourceRefusedError` before any run row when the email is missing. The error names `PIPELINE_CONTACT_EMAIL`, never a value. The CLI passes the env value in.
+- The logger redacts `contact_email`/`contactEmail` and `user_agent`/`userAgent` keys. Raw envelopes never held request headers, and response headers are allow-listed.
+- D-015 gets a "Built in P3.1" note. Earlier today, before this task, D-054 recorded the owner's choice: no manual review for Wikidata or OFF data.
+
+**Verification**
+- New tests: the UA with and without an email (`index.test.ts`); env parsing and a bad value whose error leaves out the value (`env.test.ts`); log redaction (`log.test.ts`); and `runs/contact.test.ts`, which runs the driver against a local server:
+  - refused with no email (undefined, null, empty): no run row, no request;
+  - with the capability: the server sees `Sarvis/0.0.0 (+https://github.com/LukaMS/sarvis; <email>)`. The email isn't in any log line, run row, event or failure, or in the stored envelope, even though the server echoed the UA back in a response header;
+  - without the capability: the UA has no email.
+  - With the driver guard removed, 2 of the 3 tests fail.
+- `npm test`: 363 passed, 1 skipped. `typecheck`, `lint` and `format:check` pass.
+- Fixture e2e: run 1 `inserted 17`, run 2 `inserted 0, unchanged 17`. Cleanup left nothing.
+
+**Notes for you**
+- Before P3.5 (the first OFF run), make sure `PIPELINE_CONTACT_EMAIL` is set in `.env`. I can't read `.env`, so I haven't checked.
+
+**Next:** P3.2 Schema: Phase 3 additions.
+
+---
+
 ## 2026-10-29 — P3.0 Refine Phase 3 (done)
 
 **What changed**

@@ -38,6 +38,22 @@ describe('log', () => {
     expect(out.SUPABASE_DEV_SERVICE_ROLE_KEY).toBe(REDACTED);
   });
 
+  it('redacts the contact email and the User-Agent that carries it (D-015)', () => {
+    const { log, lines } = capture();
+    log.info('config', {
+      PIPELINE_CONTACT_EMAIL: 'owner@example.com',
+      contactEmail: 'owner@example.com',
+      headers: { 'User-Agent': 'Sarvis/0.0.0 (+repo; owner@example.com)' },
+      userAgent: 'Sarvis/0.0.0 (+repo; owner@example.com)',
+    });
+    expect(lines[0]!.line).not.toContain('owner@example.com');
+    const out = JSON.parse(lines[0]!.line);
+    expect(out.PIPELINE_CONTACT_EMAIL).toBe(REDACTED);
+    expect(out.contactEmail).toBe(REDACTED);
+    expect(out.headers['User-Agent']).toBe(REDACTED);
+    expect(out.userAgent).toBe(REDACTED);
+  });
+
   it('keeps ordinary keys that only look similar', () => {
     const { log, parsed } = capture();
     log.info('ai call', { tokens: 120, source_key: 'off', keyCount: 3 });

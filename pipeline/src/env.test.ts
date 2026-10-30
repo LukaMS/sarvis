@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEV_PROJECT_REF, emptyToUndefined, parseEnv } from './env.ts';
+import { DEV_PROJECT_REF, emptyToUndefined, parseContactEmail, parseEnv } from './env.ts';
 import { ConfigurationError } from './errors.ts';
 
 const DEV_URL = `https://${DEV_PROJECT_REF}.supabase.co`;
@@ -10,7 +10,15 @@ describe('parseEnv', () => {
   it('accepts the dev URL and a key', () => {
     expect(
       parseEnv({ EXPO_PUBLIC_SUPABASE_URL: DEV_URL, SUPABASE_DEV_SERVICE_ROLE_KEY: KEY }),
-    ).toEqual({ supabaseUrl: DEV_URL, serviceRoleKey: KEY });
+    ).toEqual({ supabaseUrl: DEV_URL, serviceRoleKey: KEY, contactEmail: null });
+  });
+
+  it('reads an optional contact email', () => {
+    const base = { EXPO_PUBLIC_SUPABASE_URL: DEV_URL, SUPABASE_DEV_SERVICE_ROLE_KEY: KEY };
+    expect(parseEnv({ ...base, PIPELINE_CONTACT_EMAIL: 'owner@example.com' }).contactEmail).toBe(
+      'owner@example.com',
+    );
+    expect(parseEnv({ ...base, PIPELINE_CONTACT_EMAIL: ' ' }).contactEmail).toBeNull();
   });
 
   it('treats empty values as unset and names every missing variable', () => {
@@ -45,6 +53,29 @@ describe('parseEnv', () => {
       parseEnv({ EXPO_PUBLIC_SUPABASE_URL: DEV_URL, SUPABASE_DEV_SERVICE_ROLE_KEY: secret });
     } catch (e) {
       expect((e as Error).message).not.toContain(secret);
+    }
+  });
+});
+
+describe('parseContactEmail', () => {
+  it('needs none of the database variables', () => {
+    expect(parseContactEmail({ PIPELINE_CONTACT_EMAIL: 'owner@example.com' })).toBe(
+      'owner@example.com',
+    );
+    expect(parseContactEmail({})).toBeNull();
+    expect(parseContactEmail({ PIPELINE_CONTACT_EMAIL: '' })).toBeNull();
+  });
+
+  it('rejects a value that is not an email, naming the variable but not the value', () => {
+    const value = 'not-an-email-at-all';
+    expect(() => parseContactEmail({ PIPELINE_CONTACT_EMAIL: value })).toThrow(
+      /PIPELINE_CONTACT_EMAIL: not a valid email address/,
+    );
+    try {
+      parseContactEmail({ PIPELINE_CONTACT_EMAIL: value });
+    } catch (e) {
+      expect(e).toBeInstanceOf(ConfigurationError);
+      expect((e as Error).message).not.toContain(value);
     }
   });
 });

@@ -968,7 +968,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Extra verification for scale-up tasks:** the budget check. `pg_total_relation_size` for the tables the source writes, `pg_database_size`, and `raw` bucket bytes, compared with BUDGET §3 and §5, go in PROGRESS and in a BUDGET "Actuals" line. Anything over its estimate by more than 20% becomes a PLAN task before the next scale-up.
 - **Out (all source tasks):** scheduling (Phase 6), matching and resolution (Phase 4), admin UI (Phase 5), app UI (Phase 8).
 
-### [ ] P3.1 Pipeline: contact email for sources that ask for one
+### [x] P3.1 Pipeline: contact email for sources that ask for one
 - **Slice:** pipeline-runtime.
 - **Goal:** sources whose terms ask for an email in the User-Agent (OFF, SEC EDGAR) get the owner's email; every other source keeps the repo URL (D-015, amended).
 - **Deps:** P2.19.

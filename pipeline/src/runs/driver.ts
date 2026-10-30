@@ -33,6 +33,7 @@ import {
 } from '../errors.ts';
 import { type HttpClient, createHttpClient } from '../http/client.ts';
 import { jitteredDelayMs, sleep } from '../http/retry.ts';
+import { userAgent } from '../index.ts';
 import { type LogLevel, type Logger, logger as rootLogger } from '../log.ts';
 import { type RawInput, envelopeOf, storeRaw } from '../raw/store.ts';
 import type {
@@ -107,6 +108,11 @@ export interface RunDeps<K extends RecordKind> {
   writerFor?: (kind: RecordKind) => RecordWriter<RecordKind>;
   /** Defaults to a polite client limited by the source row's rate. */
   http?: HttpClient;
+  /**
+   * `PIPELINE_CONTACT_EMAIL`. Required by a source with `contact: 'email'`, which is refused
+   * without it; other sources never send it.
+   */
+  contactEmail?: string | null;
   log?: Logger;
   now?: () => Date;
 }
@@ -161,6 +167,17 @@ function checkOptions(source: Source, opts: RunOptions): number | null {
   return sampleSize;
 }
 
+/** The contact email the source's User-Agent carries, or null for the repo URL only. */
+function contactFor(source: Source, contactEmail: string | null | undefined): string | null {
+  if (source.capabilities.contact !== 'email') return null;
+  if (!contactEmail) {
+    throw new SourceRefusedError(
+      `Source ${source.key} asks for a contact email. Set PIPELINE_CONTACT_EMAIL in the repo-root .env.`,
+    );
+  }
+  return contactEmail;
+}
+
 function checkSource(key: string, row: SourceRow | null): SourceRow {
   if (!row) throw new SourceRefusedError(`Source ${key} has no row in sources.`);
   if (row.verdict !== 'use') {
@@ -189,6 +206,7 @@ export async function runSource<K extends RecordKind>(
   const now = deps.now ?? (() => new Date());
   const { store } = deps;
   const sampleSize = checkOptions(source, opts);
+  const contactEmail = contactFor(source, deps.contactEmail);
   const row = checkSource(source.key, await store.loadSource(source.key));
   await source.validateConfiguration?.();
 
@@ -242,7 +260,12 @@ export async function runSource<K extends RecordKind>(
     sampleSize,
     http:
       deps.http ??
-      createHttpClient({ sourceRateLimitPerSec: Number(row.rate_limit_per_sec), signal, log }),
+      createHttpClient({
+        sourceRateLimitPerSec: Number(row.rate_limit_per_sec),
+        userAgent: userAgent(undefined, contactEmail),
+        signal,
+        log,
+      }),
     signal,
     log,
   };

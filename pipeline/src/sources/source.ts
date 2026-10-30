@@ -22,6 +22,11 @@ export interface SourceCapabilities {
   supportsDeactivation: boolean;
   /** Prices are per store, so `verifyContext` must prove the store before anything is written. */
   storeSpecificPricing: boolean;
+  /**
+   * `email`: the source's terms ask for a contact email in the User-Agent (OFF, SEC EDGAR), so the
+   * run needs `PIPELINE_CONTACT_EMAIL`. Default `url`: the repo URL only (D-015).
+   */
+  contact?: 'url' | 'email';
 }
 
 /** The `sources` row fields the driver and sources need. */

@@ -13,6 +13,7 @@ import type { RunMode } from '@sarvis/core';
 
 import { type ServiceClient, getServiceClient } from './db/client.ts';
 import { writerFor } from './db/writers/index.ts';
+import { parseContactEmail } from './env.ts';
 import { ConfigurationError, classifyError } from './errors.ts';
 import { type Logger, logger as rootLogger } from './log.ts';
 import { type RunResult, runSource, storageRawWriter } from './runs/driver.ts';
@@ -96,6 +97,8 @@ export interface RunCommandDeps {
   source?: Source;
   signal?: AbortSignal;
   log?: Logger;
+  /** Overrides `PIPELINE_CONTACT_EMAIL` from the environment (null means unset). */
+  contactEmail?: string | null;
 }
 
 /** One `run` command against the dev project, with the real run store, raw store and writer. */
@@ -122,6 +125,8 @@ export async function runCommand(
       writer: writerFor(db, source.recordKind),
       writerFor: (kind) => writerFor(db, kind),
       log: deps.log,
+      contactEmail:
+        deps.contactEmail === undefined ? parseContactEmail(process.env) : deps.contactEmail,
     },
   );
 }
