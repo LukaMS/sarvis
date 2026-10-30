@@ -411,6 +411,16 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-054 Wikidata auto-approve rule — Accepted by owner (2026-10-30, for P3.13)
+- **Option (b) from P3.13:** a Wikidata brand, its owner company and the brand → owner edge are approved automatically (`decision_method = 'auto'`, `reviewed_at = now()`, no person) when both hold:
+  - the brand's English or French label or alias matched an OFF brand string exactly (after the P3.12 normalization), and
+  - the brand item has exactly one current owner statement (P127 or P749 with no P582 end date).
+- **Everything else stays `pending`** with a `review_reason`: brands with several or no current owners, edges with an end date, and companies reached only through such edges.
+- **Same limits as the D-050 OFF rule:** it sets `review_status` only on a new row or a `pending` one, never moves a row away from `approved`/`rejected` set by an admin, and never touches legacy or AI rows.
+- **Not covered:** company → parent edges above the direct owner stay `pending` until the owner extends the rule.
+- **The P3.12 50-edge precision check still runs** and goes in PROGRESS. If it finds wrong edges, they're reported to the owner before P3.13 applies the rule.
+**Why:** the owner trusts Wikidata and OFF, and approving each brand by hand would leave approved OFF products with no brand or owner for a long time.
+
 ## D-053 Phase 3 task plan choices — Accepted (P3.0)
 - **Shared groundwork first:** the contact email (P3.1), the schema additions (P3.2), streaming dump downloads (P3.3) and the missing writers (P3.4) come before any source, so each source task stays one slice.
 - **OFF reads the CSV export, not the JSONL.** The CSV is ~0.9 GB compressed (SOURCES.md S1) against several GB for the JSONL, and it has every column we parse. It's streamed, so a sample reads only the start of the file. Deltas are JSONL only, so P3.7 reuses the OFF v2 mapping from the fixture (D-048).
@@ -420,7 +430,7 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **SEC EDGAR and Corporations Canada write only matches.** An Exhibit 21 subsidiary becomes an edge only when its normalized name matches an existing company or brand. Corporations Canada only fills in numbers on existing Canadian companies. Neither creates companies, so the ~5k-company budget holds. Fuzzy matching waits for Phase 4.
 - **Small sources are one task, not a pair:** StatCan (P3.11) and Corporations Canada (P3.18) run their sample and their full run in the same task.
 - **Moved out of Phase 3:** brand creation from OFF strings and product → brand links (Phase 4 resolver), `price_sanity_bounds` (Phase 4, needs categories), in-app attribution (Phase 8 screens, Phase 10 About). The app shows no catalog data before Phase 8.
-- **Wikidata visibility is an owner decision before the scale-up (P3.13).** Until then, every Wikidata brand, company and edge is `pending` (D-050). The sample (P3.12) hand-checks 50 edges as evidence.
+- **Wikidata visibility is an owner decision before the scale-up (P3.13).** Until then, every Wikidata brand, company and edge is `pending` (D-050). The sample (P3.12) hand-checks 50 edges as evidence. Decided: option (b), D-054.
 **Why:** each task fits one session, and every source writes provenance that stays correct when several sources touch one company.
 
 ## D-052 Review block on companies, brands and products — Accepted (P2.22)

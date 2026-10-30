@@ -1128,7 +1128,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Source `wikidata`: `plan()` reads the distinct OFF `brand_text` values (split on commas), most frequent first. Batched SPARQL (≤ 50 labels per query, POST) finds items whose English or French label or alias matches exactly, restricted to brand and business classes (P31/P279*). For each hit it walks P127 owned by / P749 parent organization upward (≤ 5 hops), with P580/P582 dates.
   - Records: `brand` and `company` with `wikidata_qid`, name, aliases, country, website, enwiki title, P5531 SEC CIK and P1320 OpenCorporates id where present; `brand_ownership` and `company_ownership` edges with dates. All `pending`, with a `review_reason` (item types from P3.2).
   - Wikidata limits (SOURCES.md S17): one query at a time, the 60 s timeout, and a 429's `Retry-After`.
-  - **Precision check for the owner:** hand-check 50 sampled brand → owner edges against Wikidata and the company's own site, and report how many are right. This is the evidence for the 🟡 decision on P3.13.
+  - **Precision check for the owner:** hand-check 50 sampled brand → owner edges against Wikidata and the company's own site, and report how many are right. This is a sanity check on the D-054 rule; wrong edges are reported to the owner before P3.13.
 - **Out:** linking products to brands (Phase 4), the scale-up (P3.13).
 - **Files:** `pipeline/src/sources/wikidata/{index,sparql,map}.ts` and tests, `pipeline/src/sources/registry.ts`.
 - **Verification:** the source-task rules (`--sample 100` counts brand items). Also: the 50-edge precision check in PROGRESS, and a SQL check that every edge's endpoints exist and no cycle was written.
@@ -1136,9 +1136,9 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 ### [ ] P3.13 Wikidata (b): ownership scale-up
 - **Slice:** source-wikidata.
 - **Goal:** Wikidata ownership for every OFF brand string that has a match (budget: ~20k brands, ~5k companies).
-- **Deps:** P3.12 and the 🟡 decision below.
-- 🟡 **Decision (before this task):** which Wikidata brands, companies and ownership edges users may see without a manual review. D-050 auto-approves only OFF products, so today all of these stay `pending`, and approved OFF products show no brand or owner until an admin approves each one. The P3.12 precision check is the evidence. Options: (a) all stay `pending`; (b) auto-approve a brand, its owner and the edge when the brand label matched an OFF brand string exactly and the item has exactly one current owner statement; (c) auto-approve the entities only, keeping edges `pending`.
-- **In:** `--mode full`, plus the owner's rule as code (with a test) if it's (b) or (c).
+- **Deps:** P3.12 and D-054.
+- ✅ **Decided (D-054), option (b):** auto-approve a brand, its owner and the brand → owner edge when the brand label matched an OFF brand string exactly and the item has exactly one current owner statement. Everything else stays `pending`, and company → parent edges stay `pending`. The P3.12 precision check still runs; wrong edges are reported to the owner before this task applies the rule.
+- **In:** `--mode full`, plus the D-054 rule as code, with tests for each condition (exact match, one current owner, an ended owner, two owners, an admin-rejected row left alone).
 - **Out:** as P3.12.
 - **Files:** `pipeline/src/sources/wikidata/*`, `docs/DECISIONS.md`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`brands`, `companies`, both ownership tables, `review_queue`). Also: the number of OFF brand strings matched, out of the total.
@@ -1224,7 +1224,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.19 |
 | Exit criteria | P3.19 |
 
-**Open 🟡 decisions in Phase 3:** one, **P3.13**: what users may see from Wikidata without a manual review. It's needed before P3.13, not now, and P3.12 gathers the evidence. The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
+**Open 🟡 decisions in Phase 3:** none. P3.13's Wikidata visibility rule was decided as option (b) (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
 
 ## Phase 4 — Normalization and matching (outline)
 
