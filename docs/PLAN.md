@@ -1126,9 +1126,9 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Deps:** P3.2, P3.6.
 - **In:**
   - Source `wikidata`: `plan()` reads the distinct OFF `brand_text` values (split on commas), most frequent first. Batched SPARQL (≤ 50 labels per query, POST) finds items whose English or French label or alias matches exactly, restricted to brand and business classes (P31/P279*). For each hit it walks P127 owned by / P749 parent organization upward (≤ 5 hops), with P580/P582 dates.
-  - Records: `brand` and `company` with `wikidata_qid`, name, aliases, country, website, enwiki title, P5531 SEC CIK and P1320 OpenCorporates id where present; `brand_ownership` and `company_ownership` edges with dates. All `pending`, with a `review_reason` (item types from P3.2).
+  - Records: `brand` and `company` with `wikidata_qid`, name, aliases, country, website, enwiki title, P5531 SEC CIK and P1320 OpenCorporates id where present; `brand_ownership` and `company_ownership` edges with dates and statement rank. The sample writes them `pending` with no `review_reason`; P3.13 adds the D-054 auto-approve.
   - Wikidata limits (SOURCES.md S17): one query at a time, the 60 s timeout, and a 429's `Retry-After`.
-  - **Precision check for the owner:** hand-check 50 sampled brand → owner edges against Wikidata and the company's own site, and report how many are right. This is a sanity check on the D-054 rule; wrong edges are reported to the owner before P3.13.
+  - **Precision check for the owner:** hand-check 50 sampled brand → owner edges against Wikidata and the company's own site, and report how many are right. It's reported for information and doesn't block P3.13. It goes to the owner only if it shows a systematic error (D-054).
 - **Out:** linking products to brands (Phase 4), the scale-up (P3.13).
 - **Files:** `pipeline/src/sources/wikidata/{index,sparql,map}.ts` and tests, `pipeline/src/sources/registry.ts`.
 - **Verification:** the source-task rules (`--sample 100` counts brand items). Also: the 50-edge precision check in PROGRESS, and a SQL check that every edge's endpoints exist and no cycle was written.
@@ -1137,8 +1137,8 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Slice:** source-wikidata.
 - **Goal:** Wikidata ownership for every OFF brand string that has a match (budget: ~20k brands, ~5k companies).
 - **Deps:** P3.12 and D-054.
-- ✅ **Decided (D-054), option (b):** auto-approve a brand, its owner and the brand → owner edge when the brand label matched an OFF brand string exactly and the item has exactly one current owner statement. Everything else stays `pending`, and company → parent edges stay `pending`. The P3.12 precision check still runs; wrong edges are reported to the owner before this task applies the rule.
-- **In:** `--mode full`, plus the D-054 rule as code, with tests for each condition (exact match, one current owner, an ended owner, two owners, an admin-rejected row left alone).
+- ✅ **Decided (D-054): no manual review for Wikidata.** Every Wikidata brand, company, brand → owner edge and company → parent edge is auto-approved, with no queue row. Where several current owners are listed, one is picked by rule (preferred rank, then the latest start date). Remaining ties stay `pending` with no queue row, and the count goes in PROGRESS. Ended edges are approved as history. Admin decisions are never overridden.
+- **In:** `--mode full`, plus the D-054 rule as code, applied to the P3.12 sample rows too. Tests cover each case: one current owner, two owners settled by rank, two settled by start date, a tie left `pending`, an ended edge approved as history, a company → parent edge, and an admin-rejected row left alone. No `review_queue` rows are written.
 - **Out:** as P3.12.
 - **Files:** `pipeline/src/sources/wikidata/*`, `docs/DECISIONS.md`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`brands`, `companies`, both ownership tables, `review_queue`). Also: the number of OFF brand strings matched, out of the total.
@@ -1224,7 +1224,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.19 |
 | Exit criteria | P3.19 |
 
-**Open 🟡 decisions in Phase 3:** none. P3.13's Wikidata visibility rule was decided as option (b) (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
+**Open 🟡 decisions in Phase 3:** none. P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
 
 ## Phase 4 — Normalization and matching (outline)
 
@@ -1240,6 +1240,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - Calibrate the legacy `match_receipt_items` tiers on the gold set.
   - Brand → company resolver: exact, alias, Wikidata, fuzzy, plus the legacy BulkBrandLink rules (CATALOG_REVIEW §6). Unresolved brands go to the queue.
     - This is also where OFF `brand_text` values become `brands` rows (new or an alias of an existing one) and products get `brand_id`. Phase 3 imports brand strings and Wikidata brands but doesn't join them (P3.0).
+    - Brand rows built from OFF strings are auto-approved (D-054). P4.0 decides how the resolver's low-confidence links are handled, since the owner wants no manual review of OFF and Wikidata data.
   - `price_sanity_bounds` per category and unit basis, from StatCan `reference_prices` (P3.11) and observed distributions.
   - Gold-set evaluation script that reports precision and recall.
 
