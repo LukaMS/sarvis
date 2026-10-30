@@ -64,9 +64,13 @@ export interface RawWriter {
 
 /** The default raw writer factory: gzip to the raw bucket plus a raw_objects row (P2.14). */
 export function storageRawWriter(db: ServiceClient): RunDeps<RecordKind>['raw'] {
-  return ({ runId, source }) => ({
+  return ({ runId, source, mode }) => ({
     store: (seq, input) =>
-      storeRaw({ db, sourceId: source.id, sourceKey: source.key, runId }, seq, input),
+      storeRaw(
+        { db, sourceId: source.id, sourceKey: source.key, runId, delta: mode === 'delta' },
+        seq,
+        input,
+      ),
   });
 }
 
@@ -107,7 +111,7 @@ export interface RecordWriter<K extends RecordKind> {
 export interface RunDeps<K extends RecordKind> {
   store: RunStore;
   /** Creates the raw writer once the run exists. Not called in a dry run. */
-  raw: (ctx: { runId: string; source: SourceRow }) => RawWriter;
+  raw: (ctx: { runId: string; source: SourceRow; mode: RunMode }) => RawWriter;
   writer: RecordWriter<K>;
   /** Writers for steps whose parse names another record kind (ParseResult.kind). */
   writerFor?: (kind: RecordKind) => RecordWriter<RecordKind>;
@@ -273,6 +277,7 @@ export async function runSource<K extends RecordKind>(
       }),
     signal,
     log,
+    storedRequestUrls: (urls) => store.storedRequestUrls(row.id, source.job, opts.mode, urls),
   };
   const thresholds = opts.safeguards ?? DEFAULT_SAFEGUARDS;
   const delayMs = opts.politenessDelayMs ?? source.politenessDelayMs ?? DEFAULT_POLITENESS_DELAY_MS;
@@ -306,7 +311,7 @@ export async function runSource<K extends RecordKind>(
     }
 
     const queue: unknown[] = [...(await source.plan(ctx))];
-    const raw = dryRun ? null : deps.raw({ runId, source: row });
+    const raw = dryRun ? null : deps.raw({ runId, source: row, mode: opts.mode });
     const validateOptions = source.validateOptions?.() ?? {};
     let seq = 0;
 

@@ -1058,7 +1058,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/off/*`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`products`, `product_sources`, `raw_objects`, the `raw` bucket). Also: the real row count against the ~95k estimate, and the second full run reports `unchanged` for nearly every row (the `content_hash` path).
 
-### [ ] P3.7 OFF: daily deltas
+### [x] P3.7 OFF: daily deltas
 - **Slice:** source-off.
 - **Goal:** keep products fresh between full imports, using OFF's daily delta files (`/data/delta/index.txt`, last 14 days).
 - **Deps:** P3.6.
@@ -1271,7 +1271,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Milestones:**
   - Cron workflows per source with `workflow_dispatch`, concurrency groups, and `actions/cache` for the HTTP cache.
   - Supabase keep-alive.
-  - Freshness policy: per-source refresh intervals and stale-price thresholds.
+  - Freshness policy: per-source refresh intervals and stale-price thresholds. OFF (P3.7): a daily `--mode delta` run plus a periodic `--mode full`. A gap of more than 14 days between delta runs loses files, so it should trigger a full run. A robots.txt 5xx fails a run (D-059), so the next scheduled run is the retry.
   - Raw-retention cleanup job (retention per DATA_MODEL §5, using `retentionFor()` and `deleteRawFile()` from P2.14; the per-subject limit for Wikipedia and EDGAR needs a subject derived from `request_url`, D-044), plus the row-retention purges (events, validation failures, candidates, queue).
   - A budget monitor (DB size, storage size, OpenRouter spend, egress) that warns at the thresholds in BUDGET §6.
   - Failure notification by opening a GitHub issue.

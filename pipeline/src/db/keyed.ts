@@ -52,6 +52,11 @@ export interface KeyedSpec<P extends AnyRow> {
   touch?: readonly string[];
   /** Why an admin decision (merged, rejected, reviewed) freezes this row against imports. */
   frozen?(stored: AnyRow): boolean;
+  /**
+   * The payload is an older reading of the stored row (e.g. a delta file from before the dump the
+   * row came from), so it's counted as unchanged and never written over the newer one.
+   */
+  stale?(stored: AnyRow, payload: P): boolean;
   /** Stored row and payload that share a key but are different things (a slug collision). */
   conflict?(stored: AnyRow, payload: P): string | null;
 }
@@ -120,6 +125,10 @@ export async function upsertKeyed<P extends AnyRow>(
     rows.push({ payload, id, stored });
     if (spec.frozen?.(stored)) {
       result.skipped_locked++;
+      continue;
+    }
+    if (spec.stale?.(stored, payload)) {
+      result.unchanged++;
       continue;
     }
 

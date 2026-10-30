@@ -5,6 +5,10 @@
 // A sample streams the start of the export and stops as soon as it has enough rows, which closes
 // the connection. Any other run downloads the whole file to the dump cache first (P3.3), so the
 // run records its sha-256 and a re-run on an unchanged dump costs one conditional request.
+//
+// A delta run (P3.7) reads the delta index, skips the files a completed delta run already stored,
+// and streams each new file through the same filter into the same extract format, oldest first.
+// Deltas can't signal deletions, so only a full run deactivates (the driver's rule).
 import { ConfigurationError } from '../../errors.ts';
 import { openLines } from '../../http/lines.ts';
 import type { FetchResult, ParseResult, RawPayload, Source, SourceRunContext } from '../source.ts';
@@ -16,6 +20,7 @@ import {
   parseExtract,
   toExtract,
 } from './csv.ts';
+import { type DeltaFile, OFF_DELTA_BASE, createDeltaFilter, parseDeltaIndex } from './delta.ts';
 import { OFF_JOB, OFF_KEY, OFF_VERSION, toProductRecord } from './map.ts';
 
 export { OFF_JOB, OFF_KEY, OFF_VERSION } from './map.ts';
@@ -28,12 +33,16 @@ export const EXTRACT_CONTENT_TYPE = 'text/tab-separated-values; charset=utf-8';
 
 export interface OffStep {
   part: number;
+  /** Delta runs: which new file (index into the plan's list), and which extract of it. */
+  delta?: { file: number; chunk: number };
 }
 
 export interface OffSourceOptions {
   /** The export to read: a URL, or a local path (tests). */
   csvUrl?: string;
   extractSize?: number;
+  /** Where the delta index and files live (tests serve them locally). */
+  deltaBase?: string;
 }
 
 /** Filtered rows, taken a batch at a time. */
@@ -97,13 +106,44 @@ function filterEvent(counts: FilterCounts) {
   };
 }
 
+interface DeltaIndexSummary {
+  listed: number;
+  alreadyImported: number;
+  new: number;
+}
+
+function deltaEvent(file: DeltaFile, counts: FilterCounts, index: DeltaIndexSummary | null) {
+  const d = counts.dropped;
+  return {
+    severity: 'info' as const,
+    eventType: 'off_delta_file',
+    message:
+      `${file.name}: scanned ${counts.scanned}, kept ${counts.kept}. Dropped: ${d.malformed} ` +
+      `malformed, ${d.not_canada} not sold in Canada, ${d.no_name} without a name, ` +
+      `${d.no_brand_or_category} without a brand or category.`,
+    details: {
+      file: file.name,
+      window: [new Date(file.from * 1000).toISOString(), new Date(file.to * 1000).toISOString()],
+      scanned: counts.scanned,
+      kept: counts.kept,
+      dropped: { ...d },
+      ...(index ? { index } : {}),
+    },
+  };
+}
+
 export function createOffSource(options: OffSourceOptions = {}): Source<'product', OffStep> {
   const csvUrl = options.csvUrl ?? OFF_CSV_URL;
   const extractSize = options.extractSize ?? OFF_EXTRACT_SIZE;
+  const deltaBase = options.deltaBase ?? OFF_DELTA_BASE;
   const isUrl = /^https?:\/\//i.test(csvUrl);
   let feed: RowFeed | null = null;
   let counts = emptyFilterCounts();
   let dump: { url: string; sha256: string | null; fetchedAt: string } | null = null;
+  // Delta runs: the new files, the index summary, and the kept rows of the file being read.
+  let deltaFiles: DeltaFile[] = [];
+  let deltaIndex: DeltaIndexSummary | null = null;
+  let held: { rows: OffRow[]; fetchedAt: string; counts: FilterCounts } | null = null;
 
   /** A sample reads only as far as it needs; the stream is closed before anything is written. */
   async function openSample(ctx: SourceRunContext, size: number): Promise<RowFeed> {
@@ -135,13 +175,68 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
     return feedOf(openLines(file.path, { gzip: true }), counts);
   }
 
+  async function planDelta(ctx: SourceRunContext): Promise<OffStep[]> {
+    // Always revalidated: a cached index would hide the file published since.
+    const index = await ctx.http.request({
+      url: new URL('index.txt', deltaBase).href,
+      cacheTtlMs: 0,
+    });
+    const listed = parseDeltaIndex(index.body, deltaBase);
+    const stored = await ctx.storedRequestUrls(listed.map((f) => f.url));
+    deltaFiles = listed.filter((f) => !stored.has(f.url));
+    deltaIndex = { listed: listed.length, alreadyImported: stored.size, new: deltaFiles.length };
+    ctx.log.info('OFF delta index read.', { ...deltaIndex });
+    // One file at a time, in order: each file's last extract names the next file as its step.
+    return deltaFiles.length > 0 ? [{ part: 1, delta: { file: 0, chunk: 0 } }] : [];
+  }
+
+  async function fetchDelta(
+    step: OffStep & { delta: { file: number; chunk: number } },
+    ctx: SourceRunContext,
+  ): Promise<FetchResult<OffStep>> {
+    const { file: at, chunk } = step.delta;
+    const file = deltaFiles[at];
+    if (!file) throw new Error(`off: no delta file ${at}`);
+    if (chunk === 0) {
+      const counts = emptyFilterCounts();
+      const keep = createDeltaFilter(counts);
+      const fetchedAt = new Date().toISOString();
+      const rows: OffRow[] = [];
+      for await (const line of openLines(file.url, { http: ctx.http, gzip: true })) {
+        const row = keep(line);
+        if (row) rows.push(row);
+      }
+      held = { rows, fetchedAt, counts };
+    }
+    if (!held) throw new Error('off: delta extract read out of order');
+    const rows = held.rows.slice(chunk * extractSize, (chunk + 1) * extractSize);
+    const more = (chunk + 1) * extractSize < held.rows.length;
+    const next: OffStep[] = more
+      ? [{ part: step.part + 1, delta: { file: at, chunk: chunk + 1 } }]
+      : at + 1 < deltaFiles.length
+        ? [{ part: step.part + 1, delta: { file: at + 1, chunk: 0 } }]
+        : [];
+    return {
+      response: {
+        body: toExtract(rows),
+        fetchedAt: held.fetchedAt,
+        url: file.url,
+        status: 200,
+        contentType: EXTRACT_CONTENT_TYPE,
+      },
+      next,
+      events:
+        chunk === 0 ? [deltaEvent(file, held.counts, step.part === 1 ? deltaIndex : null)] : [],
+    };
+  }
+
   return {
     key: OFF_KEY,
     job: OFF_JOB,
     version: OFF_VERSION,
     recordKind: 'product',
     capabilities: {
-      supportsDelta: false,
+      supportsDelta: true,
       // The export holds every product, so one missing from a clean full run left the Canadian set.
       supportsDeactivation: true,
       storeSpecificPricing: false,
@@ -158,11 +253,13 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
 
     async plan(ctx) {
       counts = emptyFilterCounts();
+      if (ctx.mode === 'delta') return planDelta(ctx);
       feed = ctx.sampleSize !== null ? await openSample(ctx, ctx.sampleSize) : await openFull(ctx);
       return [{ part: 1 }];
     },
 
-    async fetch(step): Promise<FetchResult<OffStep>> {
+    async fetch(step, ctx): Promise<FetchResult<OffStep>> {
+      if (step.delta) return fetchDelta({ ...step, delta: step.delta }, ctx);
       if (!feed || !dump) throw new Error('off: fetch before plan');
       const { rows, done } = await feed.take(extractSize);
       return {
@@ -186,6 +283,7 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
     async dispose() {
       await feed?.close();
       feed = null;
+      held = null;
     },
   };
 }

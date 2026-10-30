@@ -27,7 +27,7 @@ export interface FilterCounts {
   scanned: number;
   kept: number;
   dropped: {
-    /** A line whose column count doesn't match the header. */
+    /** A CSV line whose column count doesn't match the header, or a delta line that isn't a product. */
     malformed: number;
     not_canada: number;
     no_name: number;
@@ -74,15 +74,23 @@ export function createRowFilter(headerLine: string, counts: FilterCounts) {
     const row = Object.fromEntries(
       EXTRACT_COLUMNS.map((c, i) => [c, fields[at[i]!]!.replaceAll('\u0000', '')]),
     ) as OffRow;
-    if (!hasTag(row.countries_tags, CANADA_TAG)) counts.dropped.not_canada++;
-    else if (blank(row.product_name)) counts.dropped.no_name++;
-    else if (blank(row.brands) && blank(row.categories_tags)) counts.dropped.no_brand_or_category++;
-    else {
-      counts.kept++;
-      return row;
-    }
-    return null;
+    return keepRow(row, counts);
   };
+}
+
+/**
+ * The import filter on one scanned row, from the CSV export or a delta file: a Canadian product
+ * with a name, and a brand or a category. Counts the rule that dropped it, or the keep.
+ */
+export function keepRow(row: OffRow, counts: FilterCounts): OffRow | null {
+  if (!hasTag(row.countries_tags, CANADA_TAG)) counts.dropped.not_canada++;
+  else if (blank(row.product_name)) counts.dropped.no_name++;
+  else if (blank(row.brands) && blank(row.categories_tags)) counts.dropped.no_brand_or_category++;
+  else {
+    counts.kept++;
+    return row;
+  }
+  return null;
 }
 
 /** The stored extract: the header, then one line per row, columns in EXTRACT_COLUMNS order. */

@@ -56,6 +56,16 @@ export interface RunStore {
   addValidationFailures(rows: FailureRow[]): Promise<void>;
   /** `counts.fetched` of the source's last clean, full run of this job, for the drop safeguard. */
   previousFullCount(sourceId: string, job: string): Promise<number | null>;
+  /**
+   * Which of `urls` a `completed` run of this source, job and mode stored as a raw object's
+   * `request_url`. A failed, cancelled or errored run's files don't count, so they're fetched again.
+   */
+  storedRequestUrls(
+    sourceId: string,
+    job: string,
+    mode: RunMode,
+    urls: string[],
+  ): Promise<Set<string>>;
 }
 
 export const STALE_SWEEP_SUMMARY = 'Swept at start-up: still running past the run timeout.';
@@ -135,6 +145,23 @@ export function createSupabaseRunStore(db: ServiceClient): RunStore {
       const fetched = (data?.counts as Partial<RunCounts> | undefined)?.fetched;
       return typeof fetched === 'number' ? fetched : null;
     },
+
+    async storedRequestUrls(sourceId, job, mode, urls) {
+      const found = new Set<string>();
+      for (let i = 0; i < urls.length; i += 100) {
+        const { data, error } = await db
+          .from('raw_objects')
+          .select('request_url, ingestion_runs!inner(job, mode, status)')
+          .eq('source_id', sourceId)
+          .eq('ingestion_runs.job', job)
+          .eq('ingestion_runs.mode', mode)
+          .eq('ingestion_runs.status', 'completed')
+          .in('request_url', urls.slice(i, i + 100));
+        if (error) fail('Reading stored request URLs', error);
+        for (const r of data) if (r.request_url) found.add(r.request_url);
+      }
+      return found;
+    },
   };
 }
 
@@ -158,6 +185,8 @@ export interface MemoryRunStore extends RunStore {
   runs: MemoryRun[];
   events: RunEvent[];
   failures: FailureRow[];
+  /** Stored raw objects, as far as storedRequestUrls needs them (tests push to it). */
+  rawUrls: { run_id: string; request_url: string }[];
 }
 
 export function createMemoryRunStore(
@@ -169,6 +198,7 @@ export function createMemoryRunStore(
     runs: init.runs ?? [],
     events: [],
     failures: [],
+    rawUrls: [],
 
     async loadSource(key) {
       return store.sources.find((s) => s.key === key) ?? null;
@@ -228,6 +258,26 @@ export function createMemoryRunStore(
         .sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
       const fetched = (last?.counts as Partial<RunCounts> | undefined)?.fetched;
       return typeof fetched === 'number' ? fetched : null;
+    },
+
+    async storedRequestUrls(sourceId, job, mode, urls) {
+      const runs = new Set(
+        store.runs
+          .filter(
+            (r) =>
+              r.source_id === sourceId &&
+              r.job === job &&
+              r.mode === mode &&
+              r.status === 'completed',
+          )
+          .map((r) => r.id),
+      );
+      const wanted = new Set(urls);
+      return new Set(
+        store.rawUrls
+          .filter((r) => runs.has(r.run_id) && wanted.has(r.request_url))
+          .map((r) => r.request_url),
+      );
     },
   };
   return store;

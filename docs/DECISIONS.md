@@ -412,6 +412,22 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-059 OFF daily deltas — Accepted (P3.7)
+- **A delta product becomes the CSV row the English export would give it** (`deltaRow`), then goes through the same filter (`keepRow`), TSV extract and `parse` as a full import. So the delta and full paths can't drift apart, and an unchanged product hashes the same either way. Two export rules had to be copied:
+  - `product_name` is `product_name_en`, else the main-language name;
+  - `image_url` is the selected front image in English, then in the product's `lc`, then in any language (sorted; OFF's own order isn't defined), at `<folder>/front_<lang>.<rev>.400.jpg`. The folder is the code padded to 13 digits and split 3/3/3/rest.
+  - Checked on two real delta files against the cached 2026-10-30 export: 546 of 546 products with the same `last_modified_t` map to identical records.
+  - The "v2 mapping" of D-048 is this one, read through the CSV column names.
+- **Imported files are tracked by the raw objects' `request_url`.** `SourceRunContext.storedRequestUrls(urls)` (backed by `RunStore.storedRequestUrls`) says which listed files a **`completed`** delta run of the same source and job already stored. Files from a failed, cancelled or `completed_with_errors` run are fetched again; re-writing is idempotent and the 14-day window bounds the cost. The lookup is limited to the URLs asked about, so it doesn't grow with history. A delta run with no new files fetches the index only and completes with zero counts.
+- **One step per file, oldest first, chained.** Each file's last extract names the next file as its `next` step, so files and their 10k-row extracts stay in order. A file is streamed (`openLines` over the polite client), not downloaded to `.cache/dumps/`, so 14 × ~22 MB doesn't pile up on disk. The index is always revalidated (`cacheTtlMs: 0`). Raw extracts carry the 30-day delta retention: the raw writer factory now gets the run mode and passes `delta` to `storeRaw`.
+- **An older reading never overwrites a newer one.** A new `KeyedSpec.stale` hook counts the row `unchanged` without writing. Products use it: a record whose `source_modified_at` is strictly earlier than the stored one is skipped, and an unknown time on either side never is. This is needed both ways round:
+  - the delta window overlaps the export, so most delta records are older than or equal to the stored row (the first run: 236 older, 2,208 equal and identical);
+  - the export also lags the newest delta by a few hours (the 2026-10-30 export has Penne Rigate from June; that day's delta has its 06:06 edit), so a later full import must not undo a delta either.
+  - `product_sources` rows don't use the hook; they hold only a link and a hash.
+- **Deltas never deactivate.** The driver only deactivates on `full`, and a test proves `deactivateUnseen` isn't called. The periodic full import stays (Phase 6 schedule). If deltas stop for more than 14 days, the missed files are gone from the index and only a full import catches up.
+- **robots.txt 5xx is a disallow** (RFC 9309, existing client behaviour): the first P3.7 attempt failed on a transient 502 and wrote nothing. The next run, or the next day's, picks up every file still listed.
+**Why:** deltas keep ~90k products fresh for ~150 KB of raw a day instead of a 1.5 GB download, without letting stale or overlapping files roll data back.
+
 ## D-058 Product deactivation and row-level data errors — Accepted (P3.6)
 - **Seen set:** on a full run of a source with `supportsDeactivation`, the driver collects the `external_id` of every fetched record of the source's kind, **valid or not**, and passes it to `deactivateUnseen` as `seen`. A record that starts failing validation is then not counted as gone. Generic code reads `external_id` only, the import key every source record has (DATA_MODEL §1.2).
 - **Products:** `deactivateUnseen` sets `status = 'discontinued'` on the source's own `active` products (`products.source_id`) not in `seen`. It never deletes, skips rows with `status` in `locked_fields`, and leaves `product_sources` rows alone (that product belongs to another source). It also clears `content_hash`, so the next sighting is a change and the writer rewrites the row as `active` again.

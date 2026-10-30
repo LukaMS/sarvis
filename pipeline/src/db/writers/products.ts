@@ -61,7 +61,20 @@ export const productSpec: KeyedSpec<ProductPayload> = {
   // The source record id never moves; a product found by GTIN keeps the id it was created with.
   keep: ['source_id', 'external_id'],
   frozen: (stored) => stored.status === 'merged' || stored.status === 'rejected',
+  stale: (stored, payload) => isOlder(payload.source_modified_at, stored.source_modified_at),
 };
+
+/**
+ * Whether a source's reading is strictly older than the stored one, by the source's own
+ * modification time. Either side unknown is never older. OFF deltas overlap the full export, and
+ * the export can lag the newest delta, so either may arrive after the other (D-059).
+ */
+export function isOlder(next: unknown, stored: unknown): boolean {
+  if (typeof next !== 'string' || typeof stored !== 'string') return false;
+  const a = Date.parse(next);
+  const b = Date.parse(stored);
+  return Number.isFinite(a) && Number.isFinite(b) && a < b;
+}
 
 type SecondaryPayload = TablesInsert<'product_sources'>;
 

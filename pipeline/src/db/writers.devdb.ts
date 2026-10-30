@@ -2,6 +2,7 @@
 // writes 2 brands, 5 products, 1 store and 3 prices twice, then once more with a changed price,
 // an equal later price, a locked name and a changed product. P3.4 adds reference prices, documents
 // and a company enrichment, written twice. P3.6 discontinues an unseen product and revives it.
+// P3.7 writes a newer then an older reading of one product: only the newer one lands.
 // Prints the counts, checks provenance on every row, and
 // deletes everything it wrote, even when a step fails.
 //
@@ -659,5 +660,32 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
     expect(revived.data?.status).toBe('active');
     expect(revived.data?.content_hash).not.toBeNull();
     logger.info('deactivation', { discontinued: 1, revived: back.updated });
+  });
+
+  it('never writes an older reading over a newer one (P3.7)', async () => {
+    const at = (iso: string, name: string) =>
+      products({ 3: { name, source_modified_at: iso } }).slice(3, 4);
+    const stored = async () =>
+      (
+        await db
+          .from('products')
+          .select('name, source_modified_at')
+          .eq('external_id', `${TAG}-4`)
+          .single()
+      ).data;
+
+    const newer = counts(await write('product', at('2026-10-30T05:00:00.000Z', 'P37 Newer')));
+    expect(newer).toMatchObject({ inserted: 0, updated: 1, unchanged: 0, rejected: 0 });
+    // An older delta file arriving after the export: counted unchanged, the row keeps the newer data.
+    const older = counts(await write('product', at('2026-10-17T05:00:00.000Z', 'P37 Older')));
+    expect(older).toMatchObject({ inserted: 0, updated: 0, unchanged: 1, rejected: 0 });
+    expect(await stored()).toEqual({
+      name: 'P37 Newer',
+      source_modified_at: '2026-10-30T05:00:00+00:00',
+    });
+    // The same time with other content still updates: only a strictly older reading is skipped.
+    const same = counts(await write('product', at('2026-10-30T05:00:00.000Z', 'P37 Same time')));
+    expect(same).toMatchObject({ updated: 1, unchanged: 0 });
+    logger.info('older reading', { newer: newer.updated, older: older.unchanged });
   });
 });

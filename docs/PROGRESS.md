@@ -2,6 +2,58 @@
 
 Newest entry first.
 
+## 2026-10-30 — P3.7 OFF: daily deltas (done)
+
+**What changed**
+- **Terms check:** robots.txt still allows `/data/` for our UA, and the terms were re-read today in P3.5. Nothing changed, so no migration.
+- **`off --mode delta`** (`supportsDelta: true`, D-059):
+  - reads `/data/delta/index.txt` (always revalidated);
+  - skips the files a `completed` delta run already stored (by raw `request_url`);
+  - streams each new file oldest first and turns each JSONL product into the same CSV row the export gives (`delta.ts`). It then goes through the same filter, TSV extract and `parse` as a full import.
+  - Two export rules are copied: the English name before the main-language one, and the front image picked English → `lc` → any language.
+- **Generic additions:**
+  - `SourceRunContext.storedRequestUrls` / `RunStore.storedRequestUrls`;
+  - the raw writer factory gets the run mode, so delta raw files get the 30-day retention;
+  - `KeyedSpec.stale`: the products writer counts a record **older** (by `source_modified_at`) than the stored row as `unchanged` and doesn't write it.
+- `keepRow` is split out of the CSV filter so both paths share it.
+- **Tests:**
+  - `delta.test.ts` on two real slices (fixture JSONL with product fields only): index parsing, image folder and language order, the row mapping, filter counts, and Penne mapping exactly as the full import stored it;
+  - a driver run over a local server (split extracts, no deactivation, a re-run fetches no files, a new file only, a failed run's files fetched again);
+  - `isOlder` unit tests;
+  - a `check:writers` case on dev: newer updates, older is unchanged and the row keeps the newer data, same time still updates.
+
+**Verification** (dev project)
+- **Mapping check before running:** on two real delta files against the cached 2026-10-30 export, **546 of 546** products with the same `last_modified_t` map to identical records (101 + 445).
+- **Runs:**
+  - attempt `233b18f5-a96b-4338-9941-40a7531dd645`: **failed**. robots.txt answered 502, which the client treats as a disallow, so nothing was fetched or written. curl a minute later got 200.
+  - run 1 `73a48852-f5f4-4967-82e1-49438ddda72b`: completed in 1 min 31 s. 13 files listed, 13 new. Fetched 2,584, valid 2,444, invalid 140, **inserted 0, updated 1, unchanged 2,443**, deactivated null.
+  - run 2 `0840fa2d-effe-4832-b455-83dbe0ea7423`: completed. Index listed 13, 13 already imported, 0 new. **Fetched 0, inserted 0, updated 0**, 0 raw objects.
+- **Filter (run 1, from the 13 `off_delta_file` events):** 104,412 scanned, 2,584 kept. Dropped 3 malformed, 101,590 not Canadian, 209 with no name, 26 with no brand or category.
+- **Validation failures by rule:** `gtin_check_digit` 140, nothing else. The DB keeps 50; the full count comes from re-parsing all 13 raw files.
+- **Raw:** 13 `raw_objects` (one per file, 150,480 B total, `expires_at` = fetched + 30 days). `readRaw()` on **all 13** re-parses to 2,584 records, the run's exact count.
+- **Against stored rows:** of the 2,444 valid, 2,208 have the same `source_modified_at` and identical fields, **236 are older than the stored row** (skipped by the new guard; without it they'd have rolled products back), 0 newer, 0 missing.
+- **Provenance:** a SQL count of rows run 1 wrote missing `source_id`, `fetched_at`, `method`, `method_version`, `raw_object_id` or a rebuildable URL is **0**. OFF products: 90,659, all `active`.
+- **5 examples** (as stored; all `active`/`approved`/`auto`):
+  - `0076808011159` Penne Rigate, "Barilla", 410 g ok, image `…/front_en.8.400.jpg`, `source_modified_at` 2026-10-30 06:06:28 (was June in the export), `off@1.0.1`, **run `73a48852`**, raw `bec8e7c3` (the 10-30 delta file). This is the one update;
+  - `0627735289281` Italian Meatballs, "Great Value", unparsed, run `d84ff31f` (the delta had the same time, so unchanged);
+  - `0691740027169` Organic Hazelnuts (Filberts), "Dad's Organic Market", no image, run `d84ff31f`;
+  - `0897581000365` Vegan Marshmallows Vanilla Flavoured imp, "Dandies", 283 g ok, `off@1.0.0`, run `07a79dc0`;
+  - `4800092113277` "rebisco (b) 32g butter" (the English name), "Barber", 32g ok, run `07a79dc0`.
+- **Budget:** delta raw is ~11.6 KB a day against 0.2 MB estimated (BUDGET "Actuals: OFF daily deltas").
+- **Checks:**
+  - `npm test`: 431 passed, 1 skipped;
+  - typecheck, lint and `format:check` pass;
+  - `check:writers` passes 6/6, and the pipeline e2e passes.
+
+**For you**
+- **Deltas and the export overlap, in both directions.** The export lags the newest delta by a few hours, and most delta records are older than the export. The writer now keeps whichever reading is newer, so neither path can roll the other back.
+- **A robots.txt 5xx fails the run** (correct under RFC 9309). The next run picks up every file still listed. A gap of more than 14 days needs a full run. Both are in the Phase 6 freshness milestone.
+- The OFF `name` is the English name where OFF has one (e.g. "rebisco (b) 32g butter" over "Butter Cream-Filled Cracker Sandwich"). The full import already worked this way. Name quality is a P4.0 matter if it matters to you.
+
+**Next:** P3.9 Open Prices (a): Canadian sample (P3.8 waits on P3.10).
+
+---
+
 ## 2026-10-30 — P3.6 OFF (b): full Canadian import (done)
 
 **What changed**

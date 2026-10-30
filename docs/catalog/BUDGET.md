@@ -157,6 +157,17 @@ Measured after two clean full runs (plus one failed attempt) on the 2026-10-30 d
 
 Nothing is over its estimate by more than 20% at the line level, so no PLAN task comes before the next scale-up.
 
+### Actuals: OFF daily deltas (P3.7, 2026-10-30, dev project)
+
+First delta run over the 13 files listed (2026-10-17 → 2026-10-30): 104,412 changed products scanned worldwide, 2,584 Canadian ones kept (~200 a day), 2,444 valid.
+
+| Measure | Actual | §5 estimate | Note |
+|---|---:|---:|---|
+| Raw per day (gz) | ~11.6 KB (150,480 B for 13 files) | ≈ 0.2 MB | −94%: TSV extract (D-057), and fewer Canadian changes than the 1–2k guessed |
+| Raw kept (30 days) | ≈ 0.35 MB | 6 MB | ✅ |
+| Download per day | ~22 MB streamed, not stored | — | not counted against Supabase |
+| Rows written | 1 updated | — | the export is newer than most deltas (D-059) |
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |

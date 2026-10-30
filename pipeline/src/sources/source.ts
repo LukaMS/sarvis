@@ -47,6 +47,11 @@ export interface SourceRunContext {
   http: HttpClient;
   signal: AbortSignal;
   log: Logger;
+  /**
+   * Which of `urls` an earlier `completed` run of this source, job and mode already stored, by
+   * the raw objects' `request_url`. A delta source uses it to skip files it has imported.
+   */
+  storedRequestUrls(urls: string[]): Promise<Set<string>>;
 }
 
 /** A bulk file the run read. A DownloadResult fits; a sample streamed from the URL has no hash. */
