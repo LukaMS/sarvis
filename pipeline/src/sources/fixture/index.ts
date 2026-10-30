@@ -2,9 +2,10 @@
 // HTTP server, so `pipeline run fixture` exercises the whole run path (robots.txt, the polite
 // client, raw storage, parse, validation, upserts) without touching a real site. It also previews
 // the OFF source's shape for Phase 3: paged search responses mapped to product records.
-import { type RecordInputOf, cleanText, normalizeGtin, slugify } from '@sarvis/core';
+import { type RecordInputOf, cleanText, slugify } from '@sarvis/core';
 
 import { SourceResponseError } from '../../errors.ts';
+import { offGtin } from '../off/map.ts';
 import type { FetchResult, ParseResult, RawPayload, Source } from '../source.ts';
 import type { OffProduct } from './data.ts';
 import { type FixtureServer, type FixtureServerOptions, startFixtureServer } from './server.ts';
@@ -35,17 +36,6 @@ function readSearch(body: string): SearchResponse {
   return data as SearchResponse;
 }
 
-/**
- * OFF codes to a GTIN-14. A code that is GTIN-shaped but fails its check digit is passed on padded,
- * so validation records it as `gtin_check_digit`; PLUs and restricted codes have no GTIN.
- */
-function gtinOf(code: string): string | null {
-  const result = normalizeGtin(code);
-  if (result.kind === 'gtin') return result.value;
-  if (result.kind === 'invalid' && result.reason === 'check_digit') return code.padStart(14, '0');
-  return null;
-}
-
 const UNITS: Record<string, 'g' | 'ml'> = { g: 'g', ml: 'ml' };
 
 export function toProductRecord(p: OffProduct, raw: RawPayload): RecordInputOf<'product'> {
@@ -53,7 +43,7 @@ export function toProductRecord(p: OffProduct, raw: RawPayload): RecordInputOf<'
   const unit = UNITS[String(p.product_quantity_unit ?? '').toLowerCase()];
   const sized = unit !== undefined && quantity > 0;
   return {
-    gtin: gtinOf(p.code),
+    gtin: offGtin(p.code),
     external_id: p.code,
     // Blank stays null, so validation reports a missing name as required_field.
     name: cleanText(p.product_name) as string,

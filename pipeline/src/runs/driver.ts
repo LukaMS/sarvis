@@ -322,6 +322,9 @@ export async function runSource<K extends RecordKind>(
           dump_fetched_at: fetched.dump.fetchedAt,
         });
       }
+      for (const e of fetched.events ?? []) {
+        await event(e.severity, e.eventType, e.message, { seq, ...e.details });
+      }
 
       const envelope = envelopeOf(fetched.response);
       const rawObjectId = raw ? (await raw.store(seq, fetched.response)).id : null;

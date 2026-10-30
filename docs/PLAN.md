@@ -1031,7 +1031,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `npm run check:writers --workspace @sarvis/pipeline` writes the new kinds twice: the second pass is all `unchanged`, provenance is correct, and an enrichment leaves the company's own `source_id` alone while adding one `company_sources` row.
   - `npm run typecheck`, `lint` and `test` pass.
 
-### [ ] P3.5 OFF (a): Canadian sample
+### [x] P3.5 OFF (a): Canadian sample
 - **Slice:** source-off.
 - **Goal:** the first real products. 100 Canadian OFF products go dump → filtered extract → parsed → validated → upserted.
 - **Deps:** P3.1, P3.3.
@@ -1242,6 +1242,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - This is also where OFF `brand_text` values become `brands` rows (new or an alias of an existing one) and products get `brand_id`. Phase 3 imports brand strings and Wikidata brands but doesn't join them (P3.0).
     - Brand rows built from OFF strings are auto-approved (D-054). P4.0 decides how the resolver's low-confidence links are handled, since the owner wants no manual review of OFF and Wikidata data.
   - `price_sanity_bounds` per category and unit basis, from StatCan `reference_prices` (P3.11) and observed distributions.
+  - **Legacy products that hold an OFF GTIN** (found in P3.5): the products writer keeps the first owner of a GTIN, so when a legacy product already has the GTIN, the OFF record goes to `product_sources` and the legacy row stays `pending` (hidden, D-050). The OFF data never shows. 1 of the 100 sample products (Kashi Bars). P4.0 decides the rule, e.g. OFF takes over the product fields and the legacy row's review status, or a merge.
   - Gold-set evaluation script that reports precision and recall.
 
 ## Phase 5 — Admin portal: catalog tools (outline)

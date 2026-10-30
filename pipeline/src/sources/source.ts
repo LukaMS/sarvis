@@ -56,12 +56,22 @@ export interface DumpInfo {
   fetchedAt: string;
 }
 
+/** Something the source wants on the run's event log (e.g. how many rows a filter dropped). */
+export interface SourceEvent {
+  severity: 'info' | 'warn';
+  eventType: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 /** One fetch: the response to store, and any further steps it revealed (the next page). */
 export interface FetchResult<Step> {
   response: RawInput;
   next?: Step[];
   /** Recorded on the run as `dump_url`, `dump_sha256` and `dump_fetched_at`; the last one wins. */
   dump?: DumpInfo;
+  /** Written as `ingestion_run_events` (within the run's event cap). */
+  events?: SourceEvent[];
 }
 
 /** A stored response as `parse` sees it. The same shape whether it came from a fetch or Storage. */

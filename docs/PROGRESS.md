@@ -2,6 +2,51 @@
 
 Newest entry first.
 
+## 2026-10-30 — P3.5 OFF (a): Canadian sample (done)
+
+**What changed**
+- **Terms check:** OFF terms, the data page and `static.openfoodfacts.org/robots.txt` have not changed (`/data/` allowed). The export now redirects to an S3 host with no robots.txt. `terms_checked_at` is unchanged, so no migration. SOURCES.md S1 notes the re-check and the real dump: **1.53 GB**, 211 columns, no unit column.
+- `pipeline/src/sources/off/`:
+  - `csv.ts`: header check, the Canada and import filter with per-rule counts, the TSV extract;
+  - `map.ts`: the D-048 mapping, the unit taken from `quantity`, `image_key`, `offGtin` (moved from the fixture source);
+  - `index.ts`: source `off`, email UA, 10k-row extract parts. A sample streams and stops; other runs download first;
+  - `off.test.ts` plus `fixture.products.tsv`: real header and rows, with the columns we don't use blanked.
+- Driver: generic `FetchResult.events`, so a source can log its filter counts.
+- Products writer: D-050/D-054 auto-approve through `AUTO_APPROVE` in `writers/review.ts`. Only `off` products take it, and only new or `pending` rows.
+- D-057 records the choices. BUDGET has an "Actuals: OFF sample" table.
+
+**Verification**
+- Runs, against the dev project:
+  - dry run `cd2f906b-…`: fetched 100, valid 100, nothing written;
+  - sample `88d60477-e8c9-41b6-9ca7-2ae7f5377175`: fetched 100, valid 100, **inserted 100**, invalid 0;
+  - re-run `3b2f8602-65b9-4b11-854f-21d112f268fb`: fetched 100, **inserted 0, unchanged 100**.
+- **Filter counts** (sample run): scanned 36,321 rows, kept 100. Dropped 0 malformed, 36,212 not sold in Canada, 6 without a name, 3 without a brand or category.
+- **Validation failures:** 0 in all three runs.
+- **Rows written:** 99 `products` plus 1 `product_sources`. GTIN 0018627102557 was already held by the legacy product "Kashi Bars", so the OFF record sits beside it. That row stays `pending`; see "For you".
+- **Provenance:** a SQL count of OFF products missing `fetched_at`, `method`, `method_version`, `ingestion_run_id` or a URL is **0**. `source_url` is null and is rebuilt from `url_template`.
+- **Review status:** all 99 are `approved` / `auto`, with `reviewed_at` set, `reviewed_by` null, and 0 `review_queue` rows. A unit test shows `legacy-import` and `fixture` rows stay `pending`.
+- **Raw:**
+  - one `raw_objects` row per run: `raw/off/<run>/000001.json.gz`, 8,887 B, TSV, `expires_at` null (keep the last 3 runs);
+  - `dump_url` is set and `dump_sha256` is null (a streamed sample);
+  - `readRaw()` on `e5bd56ee-…` re-parses to 100 valid records. 99 equal their stored product (with `net_quantity` rounded to 3 places as the writer does), and 1 is the secondary row.
+- **5 examples** (as stored; all `approved`/`auto`, method `import`, `off@1.0.0`, run `88d60477…`, raw `e5bd56ee…`):
+  - `00008577002786` Organic Vermont Maple Syrup, brand_text "usda organic Butternut Mountain Farm,Butternut Mountain Farm", 946 ml, labels [organic];
+  - `00012511472313` Organic Blue Agave, "Wholesome", 480 ml, 3 labels;
+  - `00018627100997` Dark Chocolate, Almond & Sea Salt Chia Granola Bars, "Kashi Company", 175 g;
+  - `00018627104858` Cherry Dark Chocolate, Chewy whole-grain bars, "Kashi 🇺🇸Solana Beach California", "5 bars / barres 175 g" → 175 g;
+  - `00018627597490` Toasted Berry Crisp, GO LEAN Cereal., 400 g.
+- **Sizes:** 81 `ok`, 18 `unparsed` (no `product_quantity` or no unit word), 0 `ambiguous`. 98 of 99 have an image key; 20 have a known label.
+- **Row width:** 379 B average (341–469) against 348 B in BUDGET §3, +9%.
+- **Checks:** `npm test` 417 passed, 1 skipped. Typecheck, lint and `format:check` pass. The pipeline e2e passes, and `check:writers` passes 4/4.
+
+**For you**
+- **The full import will likely be larger than budgeted.** The filter keeps 92–95% of Canadian rows, not the 74% BUDGET assumed. That means about 119–123k products instead of 95k (+25–29%), and roughly 75–80 MB for `products` instead of 56 MB. That's still inside the ~56 MB headroom overall, but tight. P3.6 measures the real count. If it's over by more than 20%, a PLAN task comes before any further scale-up (the §7 levers, e.g. a tighter filter). There's nothing to decide yet.
+- When a legacy product already holds an OFF GTIN, the OFF data stays hidden behind the pending legacy row. I added this to the P4.0 list.
+
+**Next:** P3.6 OFF (b): full Canadian import.
+
+---
+
 ## 2026-10-30 — P3.4 Writers: reference prices, documents and company enrichment (done)
 
 **What changed**

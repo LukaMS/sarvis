@@ -116,6 +116,14 @@ Measured with `pg_total_relation_size`, `pg_database_size` and `pg_column_size(r
 
 Row counts are far too small for the index or heap sizes to say anything beyond this. The per-row widths are within the §1 headroom (~56 MB), and the only one to watch is `products`.
 
+### Actuals: OFF sample (P3.5, 2026-10-30, dev project)
+
+| Measure | Sample | §3/§5 estimate | Note |
+|---|---:|---:|---|
+| `products` row width (avg `pg_column_size`, 99 OFF rows) | **379 B** (341–469) | 348 B | +9%, inside the 20% line. Names average 27 characters (est. 35); the extra is `image_key` (~37 B) and `quantity_text`. ≈ +3 MB heap at 95k rows. |
+| Raw extract (gz, per OFF record) | 89 B (8,887 B / 100) | ~155 B (20 MB / 129k) | The TSV extract of 10 columns is smaller than the JSON the estimate assumed: ≈ 11.5 MB per full extract. |
+| Import-filter pass rate (Canadian rows kept) | 92% (100 of 109); 95% over the dump's first 94k rows (1,493 of 1,572) | 74% (129k → 95k) | **The filter drops fewer rows than estimated.** At 92–95% of ~129k, the full import is ~119–123k rows, +25–29% over 95k. The early rows (codes starting `0`, mostly North American UPCs) may be better filled than the rest, so P3.6 measures the real count before any lever (§7) is chosen. |
+
 ## 4. Cuts designed in (first pass ≈ 425 MB → 267 MB)
 
 | Cut | Saves | Where |

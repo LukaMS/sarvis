@@ -85,7 +85,7 @@ This table is mirrored in the `public.sources` table (one row per S-id, joined o
 | Provides | Products by barcode: name, brands, quantity, categories, labels, ingredients, nutrition, images, countries sold. |
 | Licence | Database: ODbL. Contents: DbCL. Images: CC BY-SA. "You must attribute any public use of the database, or works produced from the database". Share-alike: if you publicly use an adapted version of the database, you must offer that adapted database under the ODbL. Source: https://world.openfoodfacts.org/data (checked 2026-10-26). |
 | Terms on automated access | Bulk use is encouraged: apps expecting heavy traffic should "host a local instance and use the daily exports", and large fetches should "download the data as a CSV or JSONL file directly" (https://openfoodfacts.github.io/openfoodfacts-server/api/, checked 2026-10-26). The terms of use have no anti-automation clause (https://world.openfoodfacts.org/terms-of-use, checked 2026-10-26). |
-| robots.txt | `static.openfoodfacts.org/robots.txt` disallows `/api`, `/cgi` and `/facets` for `*`. It doesn't block `/data/`, where the exports live. |
+| robots.txt | `static.openfoodfacts.org/robots.txt` disallows `/api`, `/cgi` and `/facets` for `*`. It doesn't block `/data/`, where the exports live. The export URL redirects (302) to `openfoodfacts-ds.s3.eu-west-3.amazonaws.com`, which has no robots.txt (404). Re-checked 2026-10-30 (P3.5): unchanged. |
 | Access method | Bulk dump. Nightly JSONL (`openfoodfacts-products.jsonl.gz`), CSV (`en.openfoodfacts.org.products.csv.gz`, "about 0.9 GB compressed, about 9 GB uncompressed"), Parquet on Hugging Face, and daily deltas covering the last 14 days (`/data/delta/index.txt`). |
 | Auth | None. |
 | Rate limits | None stated for static files. Download once per run on the Actions runner (D-010). Don't store the dump in Supabase. |
@@ -94,6 +94,7 @@ This table is mirrored in the `public.sources` table (one row per S-id, joined o
 | Key fields | **`code` (GTIN, key)**, **`product_name` (key)**, **`brands` / `brands_tags` (key)**, **`quantity` (key)**, **`categories_tags` (key)**, `labels_tags`, **`countries_tags` (key; filter)**, `image_url`, **`last_modified_t` (key; change detection)**, `ingredients_text`, `nutriscore_grade`. |
 | Est. rows / size | About 129k Canadian products. The dump is several GB, processed on the runner only. A selected-column extract is roughly 0.5–1 KB per row, so about 65–130 MB before indexes. P0.11 must budget this, possibly importing only products with a name and a brand. |
 | Verdict | **use**. ODbL share-alike **accepted** (D1): keep OFF-derived tables separable, publish an ODbL extract, and show attribution in the app UI. |
+| Pipeline (P3.5) | Source `off`, email User-Agent (P3.1). Reads the CSV export; on 2026-10-30 it was **1.53 GB** compressed (the data page still says ~0.9 GB), tab-separated, 211 columns, no `product_quantity_unit` column (the unit comes from `quantity`, D-057). Terms re-checked 2026-10-30: no change, so `terms_checked_at` stays 2026-10-26. |
 
 ### S2 Open Food Facts: product API
 

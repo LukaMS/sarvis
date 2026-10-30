@@ -13,6 +13,7 @@ import {
   upsertKeyed,
 } from '../keyed.ts';
 import { type AnyRow, selectIn } from '../query.ts';
+import type { RefResolver } from '../refs.ts';
 import {
   type DomainWriter,
   keyOf,
@@ -21,14 +22,14 @@ import {
   resolverFor,
   unknownRef,
 } from './common.ts';
-import { ReviewNotes, queueNotes } from './review.ts';
+import { AUTO_APPROVE, ReviewNotes, approveAuto, autoApproveIds, queueNotes } from './review.ts';
 
 type ProductPayload = TablesInsert<'products'>;
 
 const PRODUCT_COLUMNS =
   'id, gtin, external_id, name, brand_id, brand_text, category_id, quantity_text, net_quantity, ' +
   'net_unit, pack_count, unit_parse_status, label_codes, image_key, description, source_modified_at, ' +
-  'content_hash, status, locked_fields, source_id, source_url, method';
+  'content_hash, status, locked_fields, review_status, source_id, source_url, method';
 
 export const productSpec: KeyedSpec<ProductPayload> = {
   table: 'products',
@@ -91,6 +92,7 @@ export async function productPayloads(
   payloads: ProductPayload[];
   rejected: WriteResult['rejected'];
   notes: ReviewNotes;
+  refs: RefResolver;
 }> {
   const refs = resolverFor(db, ctx);
   await loadSources(refs, records);
@@ -132,13 +134,13 @@ export async function productPayloads(
     notes.add(productSpec.label(payload), r);
     return [payload];
   });
-  return { payloads, rejected, notes };
+  return { payloads, rejected, notes, refs };
 }
 
 export function productWriter(db: ServiceClient): DomainWriter<'product'> {
   return {
     async upsert(records, ctx) {
-      const { payloads, rejected, notes } = await productPayloads(db, records, ctx);
+      const { payloads, rejected, notes, refs } = await productPayloads(db, records, ctx);
 
       // A GTIN already held by another source's product: record this source beside it.
       const byGtin = await selectIn(
@@ -171,6 +173,11 @@ export function productWriter(db: ServiceClient): DomainWriter<'product'> {
       }
 
       const main = await upsertKeyed(db, productSpec, own);
+      // Validated OFF products are approved by rule, not reviewed (D-050, D-054).
+      const autoSources = new Set(
+        (AUTO_APPROVE.products ?? []).flatMap((k) => refs.slug('sources', k) ?? []),
+      );
+      await approveAuto(db, 'products', autoApproveIds(main.rows, autoSources, productSpec.frozen));
       await queueNotes(db, productSpec, notes, main);
       const extra = await upsertKeyed(db, productSourceSpec, secondary);
       const result = mergeWriteResults(main.result, extra.result);
