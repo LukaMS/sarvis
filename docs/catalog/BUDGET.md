@@ -136,6 +136,27 @@ Row counts are far too small for the index or heap sizes to say anything beyond 
 | `bigint` ids on high-volume tables | ≈ 10 MB | DATA_MODEL §1.1 |
 | Retention caps: events and validation failures ≤ 50 per run for 30 days; rejected match candidates purged after 30 days; resolved queue rows after 90 days | ≈ 45 MB | DATA_MODEL §3.1, §3.5 |
 
+### Actuals: OFF full import (P3.6, 2026-10-30, dev project)
+
+Measured after two clean full runs (plus one failed attempt) on the 2026-10-30 dump (1.53 GB gz, 4,883,869 rows).
+
+| Measure | Actual | §3/§5 estimate | Note |
+|---|---:|---:|---|
+| Canadian rows in the dump | 129,859 | ~129k | ✅ |
+| Kept by the import filter | 93,178 (71.8%) | 95k (74%) | −2%. P3.5's 92–95% pass rate came from the dump's early, better-filled rows; the full dump drops 3,262 for no name and 33,419 for no brand or category. |
+| Valid → written | 90,659 `products` + 3 `product_sources` | — | 2,516 rejected (`gtin_check_digit`) |
+| `products` total (heap + indexes) | **71.1 MB** | 67.5 MB (56.1 + 11.4 trigram) at 95k rows | +5% in total, **+10% per row** (784 B vs 711 B), inside the 20% line |
+| … heap | 36.9 MB (407 B/row on disk) | 400 B/row (348 × 1.15) | +2% |
+| … trigram GIN on name | 12.6 MB | 11.4 MB | +10% |
+| … 9 btree indexes | 21.6 MB (238 B/row) | 190 B/row | +25% on its own: `products_source_key` (source_id, external_id) is 6.7 MB, and `reviewed_by` (added after §3) is another index. Covered by the heap and trigram margin, so the products line stays at +5% and needs no PLAN task. |
+| Avg row width (`pg_column_size`) | 351 B | 348 B | ✅ (the sample's 379 B was early, wordier rows) |
+| `product_sources`, `raw_objects` | 64 KB, 152 KB | 2.8 MB, 2.2 MB | ✅ |
+| Whole DB (`pg_database_size`) | 90.5 MB | alarm 400 MB | ✅ |
+| Raw extract per full run (gz) | 4.34 MB, 10 files (47 B/record) | 20 MB (×3 = 60 MB) | −78%: TSV extract (D-057), not JSON |
+| `raw` bucket total | 12.7 MB, 70 files | 700 MB | ✅ (three OFF full runs, one of them the failed attempt, plus earlier runs) |
+
+Nothing is over its estimate by more than 20% at the line level, so no PLAN task comes before the next scale-up.
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |

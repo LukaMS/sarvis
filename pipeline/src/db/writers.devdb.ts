@@ -1,7 +1,8 @@
 // Dev-project check for the writers (P2.16). Under the `fixture` source and one throwaway run, it
 // writes 2 brands, 5 products, 1 store and 3 prices twice, then once more with a changed price,
 // an equal later price, a locked name and a changed product. P3.4 adds reference prices, documents
-// and a company enrichment, written twice. Prints the counts, checks provenance on every row, and
+// and a company enrichment, written twice. P3.6 discontinues an unseen product and revives it.
+// Prints the counts, checks provenance on every row, and
 // deletes everything it wrote, even when a step fails.
 //
 //   npm run check:writers --workspace @sarvis/pipeline
@@ -18,6 +19,7 @@ import type { SourceRow } from '../sources/source.ts';
 import { getServiceClient } from './client.ts';
 import type { WriteResult } from './keyed.ts';
 import { writerFor } from './writers/index.ts';
+import { deactivateUnseenProducts } from './writers/products.ts';
 
 const enabled = !!process.env.SUPABASE_DEV_SERVICE_ROLE_KEY;
 const TAG = 'p216-check';
@@ -615,5 +617,47 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       summary: 'P34 Company, revised.',
       wikipedia_revision_id: 1002,
     });
+  });
+
+  it('discontinues an unseen product, refuses a mass deactivation and revives on sight (P3.6)', async () => {
+    const sourceId = ctx.source.id;
+    // The share math below assumes the 5 test products are the fixture source's only active ones.
+    const active = await db
+      .from('products')
+      .select('external_id')
+      .eq('source_id', sourceId)
+      .eq('status', 'active');
+    expect(active.data?.map((r) => r.external_id).sort()).toEqual(
+      products().map((p) => p.external_id),
+    );
+    const missing = `${TAG}-5`;
+    const seen = new Set(
+      products().flatMap((p) => (p.external_id === missing ? [] : [p.external_id])),
+    );
+
+    // 1 of 5 is over the 10% default, so the default refuses and changes nothing.
+    await expect(deactivateUnseenProducts(db, sourceId, seen)).rejects.toThrow(
+      /Refused to discontinue 1 of 5/,
+    );
+    expect(await deactivateUnseenProducts(db, sourceId, seen, 1)).toBe(1);
+    expect(await deactivateUnseenProducts(db, sourceId, seen, 1)).toBe(0);
+    const gone = await db
+      .from('products')
+      .select('status, content_hash')
+      .eq('external_id', missing)
+      .single();
+    expect(gone.data).toEqual({ status: 'discontinued', content_hash: null });
+
+    // Seen again: the cleared hash makes the writer rewrite the row as active.
+    const back = counts(await write('product', products().slice(4)));
+    expect(back).toMatchObject({ inserted: 0, updated: 1, unchanged: 0, rejected: 0 });
+    const revived = await db
+      .from('products')
+      .select('status, content_hash')
+      .eq('external_id', missing)
+      .single();
+    expect(revived.data?.status).toBe('active');
+    expect(revived.data?.content_hash).not.toBeNull();
+    logger.info('deactivation', { discontinued: 1, revived: back.updated });
   });
 });

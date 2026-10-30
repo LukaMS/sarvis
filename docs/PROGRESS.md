@@ -2,6 +2,62 @@
 
 Newest entry first.
 
+## 2026-10-30 — P3.6 OFF (b): full Canadian import (done)
+
+**What changed**
+- **Terms check:** OFF robots.txt still allows `/data/`. Terms were re-read earlier today in P3.5. Nothing changed, so no migration.
+- **Deactivation (D-058):** P2.16 never supplied `deactivateUnseen`, so it's added here.
+  - The driver passes it the `external_id` of every fetched record, valid or not.
+  - The products writer discontinues the source's own active products that weren't seen. It never deletes, skips rows with `status` locked, clears `content_hash` so a product that reappears comes back `active`, and refuses to touch more than 10% of the source's products.
+  - OFF now has `supportsDeactivation: true`.
+- **Row-level data errors:** the first full run failed at row ~71k. Product `0200090024331` has a NUL in its name and brand, and Postgres rejected the whole insert.
+  - OFF now strips NUL from every field (`off@1.0.1`).
+  - The insert/update helpers now retry row by row on a class 22 error, as they already did for class 23, so one bad row can no longer fail a run (`isRowError`).
+- Tests:
+  - a driver test (invalid records count as seen);
+  - OFF tests (NUL stripping, the seen set on a full run, no deactivation on a sample);
+  - a `check:writers` case on dev: discontinue 1 product, the 10% guard refuses, and a re-sighting revives it.
+- BUDGET has an "Actuals: OFF full import" table. PLAN P4.0 has two new findings (below).
+
+**Verification**
+- **Runs** (dev project, dump sha256 `295d13f0…`, 1.53 GB, download 56 s, each run ~4 min):
+  - dry run `23dd9d72-…`: fetched 93,178, valid 90,662, invalid 2,516, nothing written;
+  - attempt `07a79dc0-3971-4e4d-a8b4-75c2bbd43ea1`: **failed** on the NUL (row ~71k). Its counts say 68,603 inserted, but 69,602 rows carry its run id: a chunk's inserts before a fatal error aren't counted. Those rows are correct and were confirmed unchanged by the next run;
+  - run 1 `d84ff31f-57fa-4620-aa7f-e1ca75ad6c1e`: completed; fetched 93,178, valid 90,662, invalid 2,516, inserted 20,959, unchanged 69,703, deactivated 0;
+  - run 2 `22da94b5-2883-4e4e-8e77-ea1b6256bb95`: completed; **inserted 0, updated 0, unchanged 90,662**, deactivated 0. The dump was revalidated, not downloaded again.
+- **Filter:** 4,883,869 rows scanned, 129,859 Canadian, **93,178 kept (71.8%)**. Dropped 0 malformed, 3,262 with no name, 33,419 with no brand or category.
+- **Validation failures by rule (all runs):** `gtin_check_digit` 2,516, nothing else. The DB keeps 50 per run, so a script over the cached dump counted the full breakdown. No GTIN repeats across extract parts.
+- **Rows:** 90,659 `products` + 3 `product_sources` (= 90,662 valid). All `active` / `approved` / `auto`, with 0 in `review_queue`.
+  - Sizes: 19,319 `ok`, 71,315 `unparsed`, 25 `ambiguous`.
+  - Coverage: 63,350 have an image, 6,623 have a label, 7,014 have no GTIN (restricted in-store codes, kept on `external_id`).
+- **Provenance:** a SQL count of OFF rows missing `fetched_at`, `method`, `method_version`, `ingestion_run_id` or a rebuildable URL is **0** for both `products` and `product_sources`.
+- **Raw:** 10 files per run (4.34 MB). `readRaw()` on run 2's `000008.json.gz` re-parses to 10,000 records (9,931 valid): 9,930 equal their stored product and 1 is a secondary row. That file holds the NUL product, stored as "Protéine IsoGen - Iced Caff".
+- **5 examples** (as stored; all `active`/`approved`/`auto`, method `import`):
+  - `00064200116435` Spaghetti, "Catelli", 600 g ok, `off@1.0.0`, run `07a79dc0`, raw `a169a79c`;
+  - `00624777013706` Fermented organic vegan proteins, "Genuine health", 260 g, labels organic+vegan, `off@1.0.1`, run `d84ff31f`, raw `9a73a2f9`;
+  - `00643843802747` Chocolate Mint Protein Shake, "Premier Protein", 325 ml, `off@1.0.1`, run `d84ff31f`, raw `7144145e`;
+  - `00045700330040` Tomato & Basil, "Classico Pasta Sauce", "650 ml. (in 20 oz Canning Jar)" → `ambiguous`, run `07a79dc0`;
+  - no GTIN, external_id `0267732503692` Kaiser Buns, "Safeway", 315 g, run `07a79dc0`, raw `c5b1e703`.
+- **Budget:**
+  - `products` is 71.1 MB against 67.5 MB estimated: +5% in total, +10% per row. Heap +2%, trigram +10%. The btree indexes are +25% on their own, but the line is well inside 20%;
+  - whole DB 90.5 MB; `raw` bucket 12.7 MB (70 files). A full extract is 4.34 MB against 20 MB estimated;
+  - nothing at the line level is over 20%, so no PLAN task.
+- **Checks:**
+  - `npm test`: 419 passed, 1 skipped;
+  - typecheck, lint and `format:check` pass;
+  - the pipeline e2e passes, and `check:writers` passes 5/5.
+
+**For you**
+- **The size worry from P3.5 is gone:** 90.7k products, not ~120k. The sample's high pass rate came from early, better-filled rows.
+- Two new findings are in the P4.0 list for you to decide then:
+  - **2.7% of Canadian OFF products (2,516) are rejected for a bad GTIN check digit.** Keeping them without a GTIN would add coverage, but their barcodes are wrong.
+  - **77% of OFF products have no size at all in OFF** (70,196), so unit prices for them need another source.
+- 3 legacy products now hide their OFF data (Kashi Bars, Green Goodness, Scoobi Doo Pasta); this was already on the P4.0 list.
+
+**Next:** P3.7 OFF: daily deltas.
+
+---
+
 ## 2026-10-30 — P3.5 OFF (a): Canadian sample (done)
 
 **What changed**

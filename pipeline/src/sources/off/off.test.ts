@@ -57,6 +57,16 @@ describe('OFF CSV filter', () => {
     ]);
   });
 
+  it('drops NUL characters, which Postgres text cannot hold', () => {
+    const [header = '', ...lines] = readFileSync(FIXTURE, 'utf8').split('\n');
+    const line = lines.find((l) => l.startsWith('0008577002786\t')) ?? '';
+    expect(line).toContain('Maple');
+    const keep = createRowFilter(header, emptyFilterCounts());
+    const row = keep(line.replace('Maple', 'Ma\u0000ple'));
+    expect(row?.product_name).toBe(keep(line)?.product_name);
+    expect(row?.product_name).not.toContain('\u0000');
+  });
+
   it('refuses a header without a column it needs', () => {
     expect(() => headerIndex('code\tproduct_name')).toThrow(/brands/);
   });
@@ -135,7 +145,7 @@ describe('OFF mapping', () => {
       source_url: null,
       fetched_at: FETCHED_AT,
       method: 'import',
-      method_version: 'off@1.0.0',
+      method_version: 'off@1.0.1',
     });
   });
 
@@ -164,10 +174,15 @@ describe('OFF source through the driver', () => {
     const source = createOffSource({ csvUrl: FIXTURE, extractSize: 4 });
     const store = createMemoryRunStore({ sources: [SOURCE_ROW] });
     const written: unknown[] = [];
+    const seen: string[] = [];
     const writer: RecordWriter<'product'> = {
       async upsert(records) {
         written.push(...records);
         return { inserted: records.length, updated: 0, unchanged: 0, skipped_locked: 0 };
+      },
+      async deactivateUnseen(ctx) {
+        seen.push(...ctx.seen);
+        return 0;
       },
     };
     const raws: string[] = [];
@@ -188,12 +203,17 @@ describe('OFF source through the driver', () => {
         log: silent,
       },
     );
-    return { result, store, written, raws };
+    return { result, store, written, raws, seen };
   }
 
   it('a full run splits the extract into parts and logs the filter counts', async () => {
-    const { result, store, written, raws } = await run('full', null);
+    const { result, store, written, raws, seen } = await run('full', null);
     expect(result.status).toBe('completed');
+    // Every kept code counts as seen, so deactivation only touches products that left the set.
+    expect(result.deactivated).toBe(0);
+    expect(seen.sort()).toEqual(
+      (written as { external_id: string }[]).map((r) => r.external_id).sort(),
+    );
     expect(result.counts).toMatchObject({ fetched: 6, valid: 6, invalid: 0, inserted: 6 });
     expect(raws.map((b) => b.trim().split('\n').length - 1)).toEqual([4, 2]);
     expect(written).toHaveLength(6);
@@ -207,8 +227,10 @@ describe('OFF source through the driver', () => {
   });
 
   it('a sample stops reading once it has enough rows', async () => {
-    const { result, store, raws } = await run('sample', 3);
+    const { result, store, raws, seen } = await run('sample', 3);
     expect(result.status).toBe('completed');
+    expect(result.deactivated).toBeNull();
+    expect(seen).toEqual([]);
     expect(result.counts).toMatchObject({ fetched: 3, inserted: 3 });
     expect(raws).toHaveLength(1);
     const filter = store.events.find((e) => e.event_type === 'off_filter');

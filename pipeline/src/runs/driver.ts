@@ -96,6 +96,11 @@ export interface RecordWriter<K extends RecordKind> {
     runId: string;
     source: SourceRow;
     runStartedAt: string;
+    /**
+     * The `external_id` of every record of the source's kind this run fetched, valid or not, so
+     * a record that failed validation still counts as seen.
+     */
+    seen: ReadonlySet<string>;
   }): Promise<number>;
 }
 
@@ -278,6 +283,11 @@ export async function runSource<K extends RecordKind>(
   let failuresStored = 0;
   let cancelled = false;
   let failed = false;
+  const deactivates =
+    opts.mode === 'full' &&
+    source.capabilities.supportsDeactivation &&
+    deps.writer.deactivateUnseen !== undefined;
+  const seen = new Set<string>();
   let hadErrors = false;
   let errorSummary: string | null = null;
   let deactivated: number | null = null;
@@ -358,6 +368,12 @@ export async function runSource<K extends RecordKind>(
         if (sampleSize !== null && counts.fetched >= sampleSize) break;
         const records =
           sampleSize === null ? group.records : group.records.slice(0, sampleSize - counts.fetched);
+        if (deactivates && kind === source.recordKind) {
+          for (const r of records) {
+            const id = (r as { external_id?: unknown } | null)?.external_id;
+            if (typeof id === 'string') seen.add(id);
+          }
+        }
         const batch = validateBatch(kind, records, validateOptions);
         counts = addCounts(counts, {
           fetched: records.length,
@@ -472,17 +488,13 @@ export async function runSource<K extends RecordKind>(
 
   // Conservative deactivation (legacy lesson): only a clean, full, uncancelled, written run may
   // mark rows it didn't see as gone. A sample, a dry run or any error leaves them alone.
-  if (
-    status === 'completed' &&
-    opts.mode === 'full' &&
-    source.capabilities.supportsDeactivation &&
-    deps.writer.deactivateUnseen
-  ) {
+  if (status === 'completed' && deactivates && deps.writer.deactivateUnseen) {
     try {
       deactivated = await deps.writer.deactivateUnseen({
         runId,
         source: row,
         runStartedAt: started.toISOString(),
+        seen,
       });
     } catch (err) {
       status = 'completed_with_errors';

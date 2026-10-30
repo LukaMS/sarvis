@@ -1046,7 +1046,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/off/{index,map,csv}.ts` and tests, `pipeline/src/sources/registry.ts`, `pipeline/src/db/writers/products.ts`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules. Also: the sample's rows are `approved` / `auto`; the filter counts are in PROGRESS; the measured row width is in BUDGET.
 
-### [ ] P3.6 OFF (b): full Canadian import
+### [x] P3.6 OFF (b): full Canadian import
 - **Slice:** source-off.
 - **Goal:** every Canadian OFF product that passes the filter (~95k estimated).
 - **Deps:** P3.5.
@@ -1242,7 +1242,9 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
     - This is also where OFF `brand_text` values become `brands` rows (new or an alias of an existing one) and products get `brand_id`. Phase 3 imports brand strings and Wikidata brands but doesn't join them (P3.0).
     - Brand rows built from OFF strings are auto-approved (D-054). P4.0 decides how the resolver's low-confidence links are handled, since the owner wants no manual review of OFF and Wikidata data.
   - `price_sanity_bounds` per category and unit basis, from StatCan `reference_prices` (P3.11) and observed distributions.
-  - **Legacy products that hold an OFF GTIN** (found in P3.5): the products writer keeps the first owner of a GTIN, so when a legacy product already has the GTIN, the OFF record goes to `product_sources` and the legacy row stays `pending` (hidden, D-050). The OFF data never shows. 1 of the 100 sample products (Kashi Bars). P4.0 decides the rule, e.g. OFF takes over the product fields and the legacy row's review status, or a merge.
+  - **Legacy products that hold an OFF GTIN** (found in P3.5): the products writer keeps the first owner of a GTIN, so when a legacy product already has the GTIN, the OFF record goes to `product_sources` and the legacy row stays `pending` (hidden, D-050). The OFF data never shows. 1 of the 100 sample products (Kashi Bars); 3 after the full import (P3.6: Kashi Bars, Green Goodness, Scoobi Doo Pasta). P4.0 decides the rule, e.g. OFF takes over the product fields and the legacy row's review status, or a merge.
+  - **OFF codes with a bad check digit** (found in P3.6): 2,516 of 93,178 kept Canadian rows (2.7%) are GTIN-shaped but fail the check digit, so validation rejects them (`gtin_check_digit`, D-057). Restricted in-store codes are kept with `gtin` null (7,014 rows). P4.0 decides whether bad-check-digit codes get the same treatment (kept on `external_id`, no GTIN) for coverage, or stay out because the barcode is wrong.
+  - **OFF size coverage** (found in P3.6): 71,315 of 90,659 OFF products (79%) are `unparsed`, but 70,196 of those have no `quantity` at all in OFF. Only ~1.1k have text the D-057 rule can't read (bare numbers like "1", "12 pcs", "CTN24"). The unit parser should handle `pcs` → `ct`; the missing sizes need another source (P4.0 decides whether to look for one).
   - Gold-set evaluation script that reports precision and recall.
 
 ## Phase 5 — Admin portal: catalog tools (outline)

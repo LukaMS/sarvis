@@ -70,7 +70,10 @@ export function createRowFilter(headerLine: string, counts: FilterCounts) {
       counts.dropped.malformed++;
       return null;
     }
-    const row = Object.fromEntries(EXTRACT_COLUMNS.map((c, i) => [c, fields[at[i]!]!])) as OffRow;
+    // Postgres text can't hold NUL, which a few OFF rows carry in place of a lost character.
+    const row = Object.fromEntries(
+      EXTRACT_COLUMNS.map((c, i) => [c, fields[at[i]!]!.replaceAll('\u0000', '')]),
+    ) as OffRow;
     if (!hasTag(row.countries_tags, CANADA_TAG)) counts.dropped.not_canada++;
     else if (blank(row.product_name)) counts.dropped.no_name++;
     else if (blank(row.brands) && blank(row.categories_tags)) counts.dropped.no_brand_or_category++;

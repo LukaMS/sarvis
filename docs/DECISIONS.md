@@ -412,6 +412,15 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-058 Product deactivation and row-level data errors — Accepted (P3.6)
+- **Seen set:** on a full run of a source with `supportsDeactivation`, the driver collects the `external_id` of every fetched record of the source's kind, **valid or not**, and passes it to `deactivateUnseen` as `seen`. A record that starts failing validation is then not counted as gone. Generic code reads `external_id` only, the import key every source record has (DATA_MODEL §1.2).
+- **Products:** `deactivateUnseen` sets `status = 'discontinued'` on the source's own `active` products (`products.source_id`) not in `seen`. It never deletes, skips rows with `status` in `locked_fields`, and leaves `product_sources` rows alone (that product belongs to another source). It also clears `content_hash`, so the next sighting is a change and the writer rewrites the row as `active` again.
+- **Mass-deactivation guard:** if more than 10% of the source's active products would be discontinued (`MAX_DEACTIVATION_SHARE`), it refuses. The run ends `completed_with_errors` with a `deactivation_failed` event flagged for an alert. A truncated dump or a broken filter looks like that; normal churn doesn't.
+- **OFF enables it** (`supportsDeactivation: true`). The export holds every product, so a product missing from a clean full run has left the Canadian set or the filter. Deltas still never deactivate (P3.7).
+- **Row-level data errors:** `insertChunked`/`updateById` now treat Postgres class 22 (data exception, e.g. a NUL in text) like class 23 (integrity). The chunk is retried row by row and the bad row is rejected, rather than failing the whole run. `isIntegrityError` → `isRowError`.
+- **OFF strips NUL** from every kept CSV field (a few rows carry one in place of a lost character). `off@1.0.1`.
+**Why:** a full import must not discontinue thousands of products because of one bad dump, and one bad row must not sink 90k good ones (the first P3.6 run failed at row ~71k on a NUL).
+
 ## D-057 OFF source: CSV extract, size unit, auto-approve — Accepted (P3.5)
 - **Raw is a TSV extract**, not JSON: the 10 parsed columns (`code`, `product_name`, `brands`, `categories_tags`, `labels_tags`, `countries_tags`, `quantity`, `product_quantity`, `last_modified_t`, `image_url`) under their CSV header names, 10k rows per `seq` file, content type `text/tab-separated-values`. It's what the source read, in the source's own format, and it's ~89 B/record gz (BUDGET actuals). `parse` reads the extract's own header, so a later column change stays readable.
 - **Filter order:** malformed line (column count ≠ header) → not `en:canada` → no `product_name` → neither `brands` nor `categories_tags`. Each row counts under the first rule it breaks. The cumulative counts go in an `off_filter` run event per extract part.

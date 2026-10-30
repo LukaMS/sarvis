@@ -6,7 +6,7 @@ import type { OffRow } from './csv.ts';
 
 export const OFF_KEY = 'off';
 export const OFF_JOB = 'off-import';
-export const OFF_VERSION = '1.0.0';
+export const OFF_VERSION = '1.0.1';
 /** Image paths are stored without this prefix (DATA_MODEL §3.3 `image_key`). */
 export const OFF_IMAGE_BASE = 'https://images.openfoodfacts.org/images/products/';
 

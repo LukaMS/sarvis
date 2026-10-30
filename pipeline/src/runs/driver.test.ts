@@ -101,13 +101,15 @@ function setup(init: { sources?: SourceRow[]; runs?: MemoryRun[] } = {}) {
   const rawStored: { seq: number; input: RawInput }[] = [];
   const upserted: RecordOf<'product'>[][] = [];
   const deactivations: string[] = [];
+  const seenSets: string[][] = [];
   const writer: RecordWriter<'product'> = {
     async upsert(records) {
       upserted.push(records);
       return { inserted: records.length, updated: 0, unchanged: 0, skipped_locked: 0 };
     },
-    async deactivateUnseen({ runId }) {
+    async deactivateUnseen({ runId, seen }) {
       deactivations.push(runId);
+      seenSets.push([...seen].sort());
       return 2;
     },
   };
@@ -123,7 +125,7 @@ function setup(init: { sources?: SourceRow[]; runs?: MemoryRun[] } = {}) {
     http: {} as HttpClient,
     log: createLogger({}, () => {}),
   };
-  return { store, deps, rawStored, upserted, deactivations };
+  return { store, deps, rawStored, upserted, deactivations, seenSets };
 }
 
 const full: RunOptions = { mode: 'full', trigger: 'cli', politenessDelayMs: 0 };
@@ -190,6 +192,17 @@ describe('runSource: lifecycle', () => {
     });
     expect(run.finished_at).not.toBeNull();
     expect(store.events.at(-1)).toMatchObject({ event_type: 'run_finished', severity: 'info' });
+  });
+
+  it('counts every fetched record as seen, invalid ones included', async () => {
+    const { deps, seenSets } = setup();
+    const many = Array.from({ length: 20 }, (_, i) => good(`g${i}`));
+    const result = await runSource(fakeSource({ pages: [[...many, bad('y')]] }), full, deps);
+    expect(result.status).toBe('completed');
+    expect(result.counts).toMatchObject({ fetched: 21, valid: 20, invalid: 1 });
+    expect(seenSets).toHaveLength(1);
+    expect(seenSets[0]).toContain('y');
+    expect(seenSets[0]).toHaveLength(21);
   });
 
   it('records the dump a fetch reports on the run', async () => {

@@ -50,9 +50,12 @@ export function fail(what: string, error: PgError): never {
   throw new DatabaseError(`${what} failed: ${error.message}`, error);
 }
 
-/** A Postgres integrity violation (class 23: unique, foreign key, check, not null). */
-export function isIntegrityError(error: PgError): boolean {
-  return typeof error.code === 'string' && error.code.startsWith('23');
+/**
+ * An error caused by one row's data: an integrity violation (class 23: unique, foreign key, check,
+ * not null) or a data exception (class 22: a NUL in text, a value out of range).
+ */
+export function isRowError(error: PgError): boolean {
+  return typeof error.code === 'string' && /^2[23]/.test(error.code);
 }
 
 /**
@@ -91,7 +94,7 @@ export interface RowError<T> {
 
 /**
  * Inserts in chunks and returns the inserted rows (`returning` columns) in input order. When a
- * chunk breaks an integrity rule, its rows are retried one by one so one bad row doesn't sink 499
+ * row's data breaks a chunk (isRowError), its rows are retried one by one so one bad row doesn't sink 499
  * good ones; those failures come back in `errors`. Any other error throws.
  */
 export async function insertChunked<T extends AnyRow>(
@@ -108,11 +111,11 @@ export async function insertChunked<T extends AnyRow>(
       (data ?? []).forEach((stored, i) => inserted.push({ row: chunk[i] as T, stored }));
       continue;
     }
-    if (!isIntegrityError(error)) fail(`Inserting into ${table}`, error);
+    if (!isRowError(error)) fail(`Inserting into ${table}`, error);
     for (const row of chunk) {
       const one = await from(db, table).insert([row]).select(returning);
       if (one.error) {
-        if (!isIntegrityError(one.error)) fail(`Inserting into ${table}`, one.error);
+        if (!isRowError(one.error)) fail(`Inserting into ${table}`, one.error);
         errors.push({ row, message: one.error.message });
       } else if (one.data?.[0]) inserted.push({ row, stored: one.data[0] });
     }
@@ -120,7 +123,7 @@ export async function insertChunked<T extends AnyRow>(
   return { inserted, errors };
 }
 
-/** Single-row updates by id, a few at a time. Integrity failures come back in `errors`. */
+/** Single-row updates by id, a few at a time. Row errors (isRowError) come back in `errors`. */
 export async function updateById<T extends { id: string | number; patch: AnyRow }>(
   db: ServiceClient,
   table: TableName,
@@ -133,7 +136,7 @@ export async function updateById<T extends { id: string | number; patch: AnyRow 
     );
     results.forEach(({ error }, i) => {
       if (!error) return;
-      if (!isIntegrityError(error)) fail(`Updating ${table}`, error);
+      if (!isRowError(error)) fail(`Updating ${table}`, error);
       errors.push({ row: group[i] as T, message: error.message });
     });
   }

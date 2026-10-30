@@ -142,7 +142,8 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
     recordKind: 'product',
     capabilities: {
       supportsDelta: false,
-      supportsDeactivation: false,
+      // The export holds every product, so one missing from a clean full run left the Canadian set.
+      supportsDeactivation: true,
       storeSpecificPricing: false,
       contact: 'email',
     },

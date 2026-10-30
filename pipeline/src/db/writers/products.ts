@@ -3,6 +3,7 @@
 // product is left as it is and this source's record goes to product_sources instead.
 import type { ProductRecord, TablesInsert } from '@sarvis/core';
 
+import { CatalogError } from '../../errors.ts';
 import { byteaHash, roundTo } from '../change.ts';
 import type { ServiceClient } from '../client.ts';
 import {
@@ -12,7 +13,7 @@ import {
   mergeWriteResults,
   upsertKeyed,
 } from '../keyed.ts';
-import { type AnyRow, selectIn } from '../query.ts';
+import { type AnyRow, selectIn, updateMany } from '../query.ts';
 import type { RefResolver } from '../refs.ts';
 import {
   type DomainWriter,
@@ -137,8 +138,58 @@ export async function productPayloads(
   return { payloads, rejected, notes, refs };
 }
 
+/**
+ * A clean full run that would discontinue more than this share of its source's active products is
+ * refused instead: a truncated dump or a broken filter looks like that, a month of churn doesn't.
+ */
+export const MAX_DEACTIVATION_SHARE = 0.1;
+
+/**
+ * Discontinues the source's active products whose external_id the run didn't see. Products are
+ * never deleted, rows with `status` locked are left alone, and the cleared content_hash makes the
+ * next sighting rewrite the row, which brings it back to `active`. Products this source only
+ * contributes to (product_sources) belong to another source and aren't touched.
+ */
+export async function deactivateUnseenProducts(
+  db: ServiceClient,
+  sourceId: string,
+  seen: ReadonlySet<string>,
+  maxShare = MAX_DEACTIVATION_SHARE,
+): Promise<number> {
+  const active = await selectIn(
+    db,
+    'products',
+    'id, external_id, locked_fields',
+    'source_id',
+    [sourceId],
+    (q) => q.eq('status', 'active'),
+  );
+  const gone = active.filter(
+    (r) =>
+      !seen.has(r.external_id as string) &&
+      !((r.locked_fields as string[] | null) ?? []).includes('status'),
+  );
+  if (gone.length === 0) return 0;
+  if (gone.length > maxShare * active.length) {
+    throw new CatalogError(
+      'unknown',
+      `Refused to discontinue ${gone.length} of ${active.length} active products ` +
+        `(over ${maxShare * 100}%).`,
+      { alert: true },
+    );
+  }
+  await updateMany(
+    db,
+    'products',
+    gone.map((r) => r.id as string),
+    { status: 'discontinued', content_hash: null },
+  );
+  return gone.length;
+}
+
 export function productWriter(db: ServiceClient): DomainWriter<'product'> {
   return {
+    deactivateUnseen: ({ source, seen }) => deactivateUnseenProducts(db, source.id, seen),
     async upsert(records, ctx) {
       const { payloads, rejected, notes, refs } = await productPayloads(db, records, ctx);
 
