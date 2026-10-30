@@ -2,6 +2,36 @@
 
 Newest entry first.
 
+## 2026-10-30 — P3.3 Pipeline: streaming dump downloads (done)
+
+**What changed**
+- `pipeline/src/http/client.ts`: the robots/redirect/limiter/Retry-After path is factored into one internal `open()` shared by `request` and two new methods:
+  - `stream({url, headers})` returns the body as a Node `Readable`, with an idle timeout per chunk; destroying it aborts the request;
+  - `download(url)` wraps `downloadToCache`. A new `dumpDir` option sets the folder.
+- `pipeline/src/http/download.ts` (new): streams to `.cache/dumps/<sha-of-url>` through a temp file, hashing sha-256 as it writes. A JSON sidecar keeps the ETag and Last-Modified, which the next call sends; a 304 returns `cache: 'revalidated'`. A body that breaks off is retried whole, and a content-length mismatch counts as truncated.
+- `pipeline/src/http/lines.ts` (new): `openLines(pathOrUrl, {gzip, http})` is an async line iterator (`
+` / `
+`, UTF-8 safe across chunks, gzip auto-detected from `.gz`). `break` destroys the stream.
+- `sources/source.ts`: `FetchResult.dump` (`DumpInfo`). `runs/driver.ts` writes `dump_url`, `dump_sha256` and `dump_fetched_at` on the run (the columns already existed); `RunPatch` and `MemoryRun` have the fields.
+- No new dependency. D-055 records the choices.
+
+**Verification**
+- `download.test.ts` (7 tests, local `node:http` server, real limiter):
+  - the sha-256 matches the served gzip and the file bytes are identical, sent with `accept-encoding: identity` and the Sarvis UA, leaving no temp files;
+  - the second call sends `If-None-Match` / `If-Modified-Since` and the server answers 304 (statuses `[200, 304]`, `cache: 'revalidated'`, same sha);
+  - a deleted file gets a fresh 200 without validators;
+  - a robots-disallowed path throws `RobotsDisallowedError` with 0 hits;
+  - a 503 is retried (`[503, 200]`);
+  - a body cut off after 100 bytes is retried with no partial file;
+  - a downloaded dump reads back as 5,000 lines.
+- `lines.test.ts` (7 tests): CRLF and a last line without a newline, an empty file, `.gz`, an `é` split across the 64 KiB chunk boundary, an early stop on a file, and a URL without a client (`ConfigurationError`). **Against an endless gzipped response, stopping after 10 lines closes the socket within 3 s and the server stops writing.** A mutation check (no abort on destroy) makes this test fail.
+- Driver test: a reported dump lands on the run; a streamed one has `dump_sha256` null; with no dump the fields are left unset.
+- `npm test`: 381 passed, 1 skipped. `typecheck`, `lint` and `format:check` pass. The fixture pipeline e2e (`npm run e2e --workspace @sarvis/pipeline`) still passes.
+
+**Next:** P3.4 Writers: reference prices, documents and company enrichment.
+
+---
+
 ## 2026-10-30 — P3.2 Schema: Phase 3 additions (done)
 
 **What changed**

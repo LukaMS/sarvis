@@ -6,7 +6,13 @@ import { SourceBlockedError } from '../errors.ts';
 import type { HttpClient } from '../http/client.ts';
 import { createLogger } from '../log.ts';
 import type { RawInput } from '../raw/store.ts';
-import type { RawPayload, Source, SourceCapabilities, SourceRow } from '../sources/source.ts';
+import type {
+  DumpInfo,
+  RawPayload,
+  Source,
+  SourceCapabilities,
+  SourceRow,
+} from '../sources/source.ts';
 import {
   MAX_RUN_EVENTS,
   MAX_VALIDATION_FAILURES,
@@ -46,6 +52,8 @@ interface FakeOptions {
   /** Called after each page is fetched. */
   onFetch?: (page: number) => void;
   verifyContext?: () => Promise<void>;
+  /** Reported by the fetch of the given page (0-based). */
+  dump?: { page: number; info: DumpInfo };
 }
 
 function fakeSource(o: FakeOptions): Source<'product', number> & { parsed: RawPayload[] } {
@@ -74,7 +82,11 @@ function fakeSource(o: FakeOptions): Source<'product', number> & { parsed: RawPa
         body: JSON.stringify({ total: o.expectedTotal ?? null, items: o.pages[page] }),
         fetchedAt: '2026-10-29T12:00:00.000Z',
       };
-      return { response, next: page + 1 < o.pages.length ? [page + 1] : [] };
+      return {
+        response,
+        next: page + 1 < o.pages.length ? [page + 1] : [],
+        dump: o.dump?.page === page ? o.dump.info : undefined,
+      };
     },
     parse(raw) {
       parsed.push(raw);
@@ -178,6 +190,40 @@ describe('runSource: lifecycle', () => {
     });
     expect(run.finished_at).not.toBeNull();
     expect(store.events.at(-1)).toMatchObject({ event_type: 'run_finished', severity: 'info' });
+  });
+
+  it('records the dump a fetch reports on the run', async () => {
+    const { store, deps } = setup();
+    const info = {
+      url: 'https://static.example.test/products.csv.gz',
+      sha256: 'a'.repeat(64),
+      fetchedAt: '2026-10-30T02:00:00.000Z',
+    };
+    await runSource(
+      fakeSource({ pages: [[good('a')], [good('b')]], dump: { page: 0, info } }),
+      full,
+      deps,
+    );
+    expect(store.runs[0]).toMatchObject({
+      dump_url: info.url,
+      dump_sha256: info.sha256,
+      dump_fetched_at: info.fetchedAt,
+    });
+
+    // A sample streamed from the URL has no hash; a run without a dump leaves the fields unset.
+    const streamed = setup();
+    await runSource(
+      fakeSource({
+        pages: [[good('a')]],
+        dump: { page: 0, info: { url: info.url, fetchedAt: info.fetchedAt } },
+      }),
+      full,
+      streamed.deps,
+    );
+    expect(streamed.store.runs[0]).toMatchObject({ dump_url: info.url, dump_sha256: null });
+    const none = setup();
+    await runSource(fakeSource({ pages: [[good('a')]] }), full, none.deps);
+    expect(none.store.runs[0]!.dump_url).toBeUndefined();
   });
 
   it('sweeps a stale running run to failed at start, and leaves a recent one', async () => {

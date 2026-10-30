@@ -24,6 +24,9 @@ export interface RunPatch {
   counts?: RunCounts;
   expected_total?: number | null;
   error_summary?: string | null;
+  dump_url?: string | null;
+  dump_sha256?: string | null;
+  dump_fetched_at?: string | null;
 }
 
 export interface RunEvent {
@@ -145,6 +148,9 @@ export interface MemoryRun extends NewRun {
   counts: RunCounts | Record<string, never>;
   expected_total: number | null;
   error_summary: string | null;
+  dump_url?: string | null;
+  dump_sha256?: string | null;
+  dump_fetched_at?: string | null;
 }
 
 export interface MemoryRunStore extends RunStore {

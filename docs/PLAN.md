@@ -1001,7 +1001,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `anon` reads a Wikipedia document's summary only when its company is approved;
   - a non-Wikipedia document with a summary is rejected.
 
-### [ ] P3.3 Pipeline: streaming dump downloads
+### [x] P3.3 Pipeline: streaming dump downloads
 - **Slice:** pipeline-http.
 - **Goal:** download large bulk files (OFF, Open Prices, Corporations Canada) to disk and read them as streams, because the polite client returns whole bodies as text (D-043).
 - **Deps:** P3.1.

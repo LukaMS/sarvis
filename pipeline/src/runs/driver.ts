@@ -315,6 +315,13 @@ export async function runSource<K extends RecordKind>(
         continue;
       }
       queue.push(...(fetched.next ?? []));
+      if (fetched.dump) {
+        await store.updateRun(runId, {
+          dump_url: fetched.dump.url,
+          dump_sha256: fetched.dump.sha256 ?? null,
+          dump_fetched_at: fetched.dump.fetchedAt,
+        });
+      }
 
       const envelope = envelopeOf(fetched.response);
       const rawObjectId = raw ? (await raw.store(seq, fetched.response)).id : null;

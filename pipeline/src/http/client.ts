@@ -5,6 +5,10 @@
 // - backoff with jitter on 5xx and network errors;
 // - 403 and 429 stop the source (SourceBlockedError); a 429 honours Retry-After once first;
 // - an on-disk cache with a TTL, revalidated with ETag / Last-Modified.
+// Large files go through `stream` and `download` (P3.3): the same rules, but the body is never
+// held in memory.
+import { Readable } from 'node:stream';
+
 import {
   CancelledError,
   ConfigurationError,
@@ -23,7 +27,8 @@ import {
   type CachedResponse,
   type HttpCache,
 } from './cache.ts';
-import { sleep, withRetry } from './retry.ts';
+import { type DownloadOptions, type DownloadResult, downloadToCache } from './download.ts';
+import { type RetryOptions, sleep, withRetry } from './retry.ts';
 import { ALLOW_ALL, DISALLOW_ALL, policyFromText, type RobotsPolicy } from './robots.ts';
 
 /** The ceiling for every host, whatever a source row says (CLAUDE.md "Scrapers"). */
@@ -49,7 +54,10 @@ export interface HttpClientOptions {
   maxDelayMs?: number;
   /** A 429's Retry-After longer than this isn't waited for: the source stops at once. */
   maxRetryAfterMs?: number;
+  /** Per request. For `stream` and `download`: the longest wait for the headers or the next chunk. */
   timeoutMs?: number;
+  /** Where `download` keeps files. Defaults to the repo-root .cache/dumps/. */
+  dumpDir?: string;
   signal?: AbortSignal;
   log?: Logger;
 }
@@ -75,9 +83,34 @@ export interface HttpResponse {
   cache: 'ttl' | 'revalidated' | null;
 }
 
+export interface StreamRequest {
+  url: string;
+  headers?: Record<string, string>;
+}
+
+export interface HttpStream {
+  /** The final URL, after redirects. */
+  url: string;
+  /** 2xx, or 304 when the request sent validators. */
+  status: number;
+  /** Header names in lower case. */
+  headers: Record<string, string>;
+  /** When the headers arrived (ISO). */
+  fetchedAt: string;
+  /** The body as it arrives (empty for a 304). Destroying it closes the connection. */
+  body: Readable;
+}
+
 export interface HttpClient {
   request(req: HttpRequest): Promise<HttpResponse>;
   get(url: string, headers?: Record<string, string>): Promise<HttpResponse>;
+  /**
+   * A GET whose body is read as a stream, never held whole. Robots, the limiter and the UA work as
+   * for `request`; retries cover the request up to the headers. Not cached.
+   */
+  stream(req: StreamRequest): Promise<HttpStream>;
+  /** Downloads a large file to the dump cache, revalidating a copy it already has (download.ts). */
+  download(url: string, opts?: DownloadOptions): Promise<DownloadResult>;
 }
 
 /**
@@ -152,11 +185,26 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
   const limiter = new HostLimiter();
   const robots = new Map<string, Promise<RobotsPolicy>>();
 
-  /** One HTTP request, after waiting for the host's slot. Network failures become NetworkError. */
-  async function send(url: URL, init: RequestInit, crawlDelayMs: number): Promise<Response> {
+  /**
+   * One HTTP request, after waiting for the host's slot. Network failures become NetworkError.
+   * With `idle`, its timer starts when the request goes out and keeps running while the body
+   * streams; without, the whole request gets `timeoutMs`.
+   */
+  async function send(
+    url: URL,
+    init: RequestInit,
+    crawlDelayMs: number,
+    idle?: IdleTimer,
+  ): Promise<Response> {
     const start = () => {
-      const timeout = AbortSignal.timeout(timeoutMs);
-      const signal = outer ? AbortSignal.any([outer, timeout]) : timeout;
+      let limit: AbortSignal;
+      if (idle) {
+        idle.touch();
+        limit = idle.signal;
+      } else {
+        limit = AbortSignal.timeout(timeoutMs);
+      }
+      const signal = outer ? AbortSignal.any([outer, limit]) : limit;
       return fetch(url, { ...init, signal });
     };
     try {
@@ -200,16 +248,72 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
     }
   }
 
+  /**
+   * Robots, redirects, the host limiter and one Retry-After wait. Resolves with a 2xx or 304
+   * response whose body is unread; any other status throws. Redirects are followed by hand, so
+   * each target is robots-checked and rate-limited too.
+   */
+  async function open(
+    target: URL,
+    init: RequestInit,
+    state: { retryAfterUsed: boolean },
+    idle?: IdleTimer,
+    hops = 0,
+  ): Promise<{ target: URL; res: Response; fields: Record<string, unknown> }> {
+    const policy = await robotsFor(target);
+    if (!policy.isAllowed(target.pathname + target.search)) {
+      throw new RobotsDisallowedError(target.href);
+    }
+    const started = Date.now();
+    const res = await send(target, { ...init, redirect: 'manual' }, policy.crawlDelayMs, idle);
+    const fields = { url: target.href, status: res.status, durationMs: Date.now() - started };
+
+    if (REDIRECTS.has(res.status)) {
+      await res.body?.cancel();
+      const location = res.headers.get('location');
+      if (!location || hops >= MAX_REDIRECTS) {
+        throw new SourceResponseError(
+          res.status,
+          `${location ? 'Too many redirects' : 'Redirect without a Location'}: ${target.href}`,
+        );
+      }
+      // 301/302/303 turn a POST into a GET, as browsers and fetch do.
+      const next =
+        res.status <= 303 && init.method === 'POST'
+          ? { ...init, method: 'GET', body: undefined }
+          : init;
+      log.debug('http redirect', fields);
+      return open(new URL(location, target), next, state, idle, hops + 1);
+    }
+    if (res.ok || res.status === 304) return { target, res, fields };
+
+    await res.body?.cancel();
+    const retryAfterMs = parseRetryAfter(res.headers.get('retry-after'));
+    if (
+      res.status === 429 &&
+      !state.retryAfterUsed &&
+      retryAfterMs !== undefined &&
+      retryAfterMs <= maxRetryAfterMs
+    ) {
+      state.retryAfterUsed = true;
+      log.warn('http 429; waiting for Retry-After once', { ...fields, retryAfterMs });
+      await sleep(retryAfterMs, outer);
+      return open(target, init, state, idle, hops);
+    }
+    throw errorFromStatus(res.status, target.href, { retryAfterMs });
+  }
+
+  const retryOptions = (url: URL): RetryOptions => ({
+    maxAttempts: options.maxAttempts ?? 4,
+    baseDelayMs: options.baseDelayMs ?? 1000,
+    maxDelayMs: options.maxDelayMs ?? 30_000,
+    signal: outer,
+    onRetry: (retryAttempt, err, delayMs) =>
+      log.warn('http retry', { url: url.href, retryAttempt, delayMs, err }),
+  });
+
   async function request(req: HttpRequest): Promise<HttpResponse> {
-    let url: URL;
-    try {
-      url = new URL(req.url);
-    } catch {
-      throw new ConfigurationError(`Not a valid URL: ${req.url}`);
-    }
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-      throw new ConfigurationError(`Only http(s) URLs can be fetched: ${url.href}`);
-    }
+    const url = parseUrl(req.url);
     const method = req.method ?? 'GET';
     const ttl = req.cacheTtlMs ?? defaultTtl;
     const key = cacheKey(method, url.href, req.body);
@@ -223,87 +327,151 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
     if (cached?.headers['last-modified']) {
       headers['if-modified-since'] = cached.headers['last-modified'];
     }
-    let retryAfterUsed = false;
+    const state = { retryAfterUsed: false };
 
-    // Redirects are followed by hand so each target is robots-checked and rate-limited too.
-    const attempt = async (target: URL, init: RequestInit, hops: number): Promise<HttpResponse> => {
-      const policy = await robotsFor(target);
-      if (!policy.isAllowed(target.pathname + target.search)) {
-        throw new RobotsDisallowedError(target.href);
-      }
-      const started = Date.now();
-      const res = await send(target, { ...init, redirect: 'manual' }, policy.crawlDelayMs);
-      const fields = { url: target.href, status: res.status, durationMs: Date.now() - started };
-
-      if (REDIRECTS.has(res.status)) {
+    return withRetry(async () => {
+      const { target, res, fields } = await open(url, { method, headers, body: req.body }, state);
+      if (res.status === 304) {
         await res.body?.cancel();
-        const location = res.headers.get('location');
-        if (!location || hops >= MAX_REDIRECTS) {
-          throw new SourceResponseError(
-            res.status,
-            `${location ? 'Too many redirects' : 'Redirect without a Location'}: ${target.href}`,
-          );
-        }
-        // 301/302/303 turn a POST into a GET, as browsers and fetch do.
-        const next =
-          res.status <= 303 && init.method === 'POST'
-            ? { ...init, method: 'GET', body: undefined }
-            : init;
-        log.debug('http redirect', fields);
-        return attempt(new URL(location, target), next, hops + 1);
-      }
-
-      if (res.status === 304 && cached) {
-        await res.body?.cancel();
+        if (!cached) throw errorFromStatus(304, target.href);
         const refreshed = { ...cached, fetchedAt: new Date().toISOString() };
         await cache?.set(refreshed);
         log.debug('http 304', fields);
         return fromCache(refreshed, 'revalidated');
       }
-      if (res.ok) {
-        const out: HttpResponse = {
+      const out: HttpResponse = {
+        url: target.href,
+        status: res.status,
+        headers: Object.fromEntries(res.headers),
+        body: await res.text(),
+        fetchedAt: new Date().toISOString(),
+        cache: null,
+      };
+      if (cache && method === 'GET' && res.status === 200) await cache.set(toEntry(key, out));
+      log.debug('http ok', fields);
+      return out;
+    }, retryOptions(url));
+  }
+
+  async function stream(req: StreamRequest): Promise<HttpStream> {
+    const url = parseUrl(req.url);
+    const headers: Record<string, string> = { ...req.headers, 'user-agent': ua };
+    const state = { retryAfterUsed: false };
+
+    return withRetry(async () => {
+      const idle = idleTimer(timeoutMs);
+      try {
+        const { target, res, fields } = await open(url, { headers }, state, idle);
+        log.debug('http stream', fields);
+        return {
           url: target.href,
           status: res.status,
           headers: Object.fromEntries(res.headers),
-          body: await res.text(),
           fetchedAt: new Date().toISOString(),
-          cache: null,
+          body: nodeBody(res, idle, target.href, outer),
         };
-        if (cache && method === 'GET' && res.status === 200) await cache.set(toEntry(key, out));
-        log.debug('http ok', fields);
-        return out;
+      } catch (err) {
+        idle.stop();
+        throw err;
       }
-
-      await res.body?.cancel();
-      const retryAfterMs = parseRetryAfter(res.headers.get('retry-after'));
-      if (
-        res.status === 429 &&
-        !retryAfterUsed &&
-        retryAfterMs !== undefined &&
-        retryAfterMs <= maxRetryAfterMs
-      ) {
-        retryAfterUsed = true;
-        log.warn('http 429; waiting for Retry-After once', { ...fields, retryAfterMs });
-        await sleep(retryAfterMs, outer);
-        return attempt(target, init, hops);
-      }
-      throw errorFromStatus(res.status, target.href, { retryAfterMs });
-    };
-
-    return withRetry(() => attempt(url, { method, headers, body: req.body }, 0), {
-      maxAttempts: options.maxAttempts ?? 4,
-      baseDelayMs: options.baseDelayMs ?? 1000,
-      maxDelayMs: options.maxDelayMs ?? 30_000,
-      signal: outer,
-      onRetry: (retryAttempt, err, delayMs) =>
-        log.warn('http retry', { url: url.href, retryAttempt, delayMs, err }),
-    });
+    }, retryOptions(url));
   }
 
-  return {
+  const client: HttpClient = {
     request,
     get: (url, headers) => request({ url, headers }),
+    stream,
+    download: (url, opts) =>
+      downloadToCache({ http: client, retry: retryOptions(parseUrl(url)), log }, url, {
+        dir: options.dumpDir,
+        ...opts,
+      }),
   };
+  return client;
+}
+
+function parseUrl(raw: string): URL {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new ConfigurationError(`Not a valid URL: ${raw}`);
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new ConfigurationError(`Only http(s) URLs can be fetched: ${url.href}`);
+  }
+  return url;
+}
+
+/** A timeout that restarts on every `touch`: the longest wait for the headers or the next chunk. */
+interface IdleTimer {
+  signal: AbortSignal;
+  touch(): void;
+  stop(): void;
+  /** Aborts the request now, which closes its connection. */
+  abort(): void;
+}
+
+function idleTimer(ms: number): IdleTimer {
+  const ctl = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stop = () => clearTimeout(timer);
+  return {
+    signal: ctl.signal,
+    touch() {
+      stop();
+      timer = setTimeout(
+        () => ctl.abort(new DOMException(`No data for ${ms} ms`, 'TimeoutError')),
+        ms,
+      );
+      timer.unref();
+    },
+    stop,
+    abort() {
+      stop();
+      ctl.abort();
+    },
+  };
+}
+
+/**
+ * The fetch body as a Node stream. Each chunk restarts the idle timer. Destroying the stream
+ * before the end aborts the request, so stopping early closes the connection.
+ */
+function nodeBody(res: Response, idle: IdleTimer, href: string, outer?: AbortSignal): Readable {
+  if (!res.body) {
+    idle.stop();
+    return Readable.from([]);
+  }
+  const reader = res.body.getReader();
+  let finished = false;
+  return new Readable({
+    read() {
+      reader.read().then(
+        ({ done, value }) => {
+          if (done) {
+            finished = true;
+            idle.stop();
+            this.push(null);
+          } else {
+            idle.touch();
+            this.push(value);
+          }
+        },
+        (err: unknown) =>
+          this.destroy(
+            outer?.aborted
+              ? new CancelledError()
+              : new NetworkError(`Body interrupted: ${href}`, err),
+          ),
+      );
+    },
+    destroy(err, callback) {
+      idle.stop();
+      if (!finished) idle.abort();
+      callback(err);
+    },
+  });
 }
 
 function toEntry(key: string, res: HttpResponse): CachedResponse {

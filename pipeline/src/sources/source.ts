@@ -49,10 +49,19 @@ export interface SourceRunContext {
   log: Logger;
 }
 
+/** A bulk file the run read. A DownloadResult fits; a sample streamed from the URL has no hash. */
+export interface DumpInfo {
+  url: string;
+  sha256?: string | null;
+  fetchedAt: string;
+}
+
 /** One fetch: the response to store, and any further steps it revealed (the next page). */
 export interface FetchResult<Step> {
   response: RawInput;
   next?: Step[];
+  /** Recorded on the run as `dump_url`, `dump_sha256` and `dump_fetched_at`; the last one wins. */
+  dump?: DumpInfo;
 }
 
 /** A stored response as `parse` sees it. The same shape whether it came from a fetch or Storage. */

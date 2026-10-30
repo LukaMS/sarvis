@@ -382,7 +382,7 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **robots.txt (RFC 9309):** it's fetched once per origin per client, using our UA. The product token is `sarvis`. Groups that name us are merged; otherwise the `*` groups apply. The longest match wins, and Allow wins a tie. `*` and `$` are supported. A **4xx** robots.txt allows everything, and a **5xx or network error disallows the whole host** for that run. Redirects are followed by hand (at most 5), and each target is robots-checked and rate-limited before it's requested. 301/302/303 turn a POST into a GET.
 - **Retries:** at most 4 attempts, with backoff starting at 1 s, capped at 30 s and jittered. Only 408, 5xx and network errors are retried (D-042). A 429 waits for its Retry-After once, if that's 60 s or less; the next 429, or one with no usable Retry-After, throws `SourceBlockedError`. A 403 throws at once. Each request has a 30 s timeout.
 - **Cache:** JSON files under the repo-root `.cache/http/`, keyed by the sha-256 of method + URL (+ body for a POST). Only GET 200 responses are stored, keeping the body plus `etag`, `last-modified` and `content-type`. Within the TTL (12 h by default, set per source or per request) no request is made. After it, the client revalidates with `If-None-Match` / `If-Modified-Since`, and a 304 serves the stored body with a new `fetchedAt`. Responses say `cache: 'ttl' | 'revalidated' | null`, so P2.14 can skip re-storing raw data it already has.
-- **Response body** is text: every planned source returns JSON, HTML or CSV.
+- **Response body** is text: every planned source returns JSON, HTML or CSV. Bulk dumps use `stream` and `download` instead (D-055).
 - **`PIPELINE_VERSION`** lives in `pipeline/src/index.ts` and goes into the User-Agent. A test keeps it equal to `pipeline/package.json`.
 
 ## D-044 Raw store details — Accepted (P2.14)
@@ -411,6 +411,17 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Caps:** 49 events during the run plus the `run_finished` event, which carries `eventsDropped`. 50 `validation_failures` rows, with `counts.invalid` holding the full number. Counts are written after every step so a crash leaves progress visible.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
+
+## D-055 Streaming downloads and line reading — Accepted (P3.3)
+- **One request path.** `request`, the new `stream` and `download` share one internal `open()`: robots check, manual redirects, host limiter, one Retry-After wait. Retries (D-043) wrap `stream` up to the headers only.
+- **Timeout:** for `stream` and `download`, `timeoutMs` (30 s) is an **idle** timeout: it restarts when the request goes out and on every chunk, so a 0.9 GB file isn't cut off at 30 s but a stalled one is. `request` keeps its whole-request timeout.
+- **Stopping early:** destroying the stream aborts the fetch, which closes the socket. A test against an endless response checks that the server sees the close.
+- **Dump cache:** `.cache/dumps/<sha-256 of the URL>` plus a `<key>.json` sidecar (`url`, `sha256`, `bytes`, `fetchedAt`, `etag`, `lastModified`). It always revalidates (no TTL), because one conditional request costs little and a TTL could hide a new nightly dump. The validators are sent only when the file on disk has the size the sidecar records. The body goes to a temp file and is renamed into place. It's sent with `accept-encoding: identity`, so the hash is of the bytes the server publishes. A `content-length` mismatch counts as a truncated, retryable download.
+- **Retries:** a body that breaks off mid-way restarts the whole download (no Range resume), at most the client's 4 attempts. Failures before the headers are retried only inside `stream`, so attempts don't multiply.
+- **`openLines`** splits lines itself with a streaming `TextDecoder` rather than `node:readline`. That keeps errors and early `break` predictable, and handles `
+` and UTF-8 split across chunks. `gzip` defaults on for a `.gz` path or URL path.
+- **Run fields:** a source reports `dump: {url, sha256?, fetchedAt}` on a `FetchResult`, and the driver writes `dump_url`, `dump_sha256` and `dump_fetched_at`. A `DownloadResult` fits the shape. A sample streamed from the URL has no hash (null). If a run reports several dumps, the last one wins.
+**Why:** dumps must stream (D-043), follow the same politeness rules as every other request, and not be fetched again when unchanged (CLAUDE.md "Cache aggressively").
 
 ## D-054 Wikidata and OFF need no manual review — Accepted by owner (2026-10-30, for P3.13)
 - **The owner reviews nothing that comes from Wikidata or Open Food Facts.** Every brand, company, brand → owner edge and company → parent edge that Wikidata provides, and every OFF product (D-050), is approved automatically (`decision_method = 'auto'`, `reviewed_at = now()`, no person), with no `review_queue` row. This replaces the narrower option (b) the owner first picked on the same day.
