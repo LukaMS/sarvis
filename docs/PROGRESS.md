@@ -2,6 +2,62 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.12a Wikidata: tighten the match and clear stale sample rows (done)
+
+**What changed** (`wikidata@1.1.0`, D-066)
+- **Excluded classes:** a candidate in a place, school, publisher, media, periodical, record label, airline, government agency, movie theater, law firm or cigarette-brand class (`P31/P279*`) is never picked. Wikidata files US towns and French communes under "business".
+- **Country tiers (CA, US) need a brand or a grocery trade** (P452 under food, drink, retail, FMCG, dairy …).
+- **Brand-class tier:** North American or no country only.
+- **`single`** means the only candidate *before* exclusions.
+- **≤ 2-letter strings** match labels only, never aliases.
+- **Why exclusion instead of a P452 requirement:** on the top 400 OFF strings, requiring a P452 everywhere lost Old Dutch, Planters, Ocean Spray, Mott's, Ghirardelli, Gay Lea and others, which have no P452. That evaluation also showed the old matcher had more wrong picks than the 50-edge check caught: Heinz → Heinz Records, Ritz → a cigarette brand, Arizona → a university, Cedar → a Kansas town, and record labels for Black Diamond, Olympic and Harvest.
+- **Class checks run in a separate, cached query.** My first version put the subclass walks in the match query: up to 43 s per query, and HTTP 429 on 3 of 4 runs (`81f67046`, `dd22662c`, `e2253350` failed; `11e75758` completed). Now the match query returns P31/P452 values, and one more query per batch asks only for classes the run hasn't seen. The match envelope stores those queries, their results and the flags it used.
+- **Stale rows: D-054 approval covers only rows the approving run writes or confirms** (per-batch `AUTO_APPROVE`). Nothing is deleted, because deleting after a sample would break the conservative-deactivation rule. P3.13's text is updated to match.
+- Tests: 18 Wikidata tests (5 new). The match fixture is re-saved with the 1.1.0 query, plus a real classes response.
+
+**Verification**
+- Terms: unchanged since P3.12 (same day).
+- `--dry-run --sample 100` `705e7183`: completed, 0 invalid. Then `--sample 100` twice:
+
+  | run | status | fetched | valid | invalid | inserted | updated | unchanged |
+  |---|---|---|---|---|---|---|---|
+  | `394e0ef5` | completed | 501 | 501 | 0 | 0 | 0 | 501 |
+  | `63baa086` | completed | 501 | 501 | 0 | **0** | 0 | 501 |
+
+  The first run inserts 0 too: the 1.1.0 rows were first written by `11e75758` (+22) and the two runs that hit a 429 (+17, +18), before the class-cache change. The cache gives the same decisions. The final code also adds 7 trade industries (dairy, retail chain, …), which brought back Neilson Dairy. Its rows were already stored from P3.12. `validation_failures`: none. 22 raw files and 27 requests per run, 140 s and 221 s, no 429 (1 network error retried).
+- Match: 207 strings tried, 107 matched (100 items: 33 brands, 67 businesses), 23 ambiguous, 77 unmatched. Tiers: 75 single, 21 brand-class, 7 CA, 4 US.
+- **The 5 P3.12 wrong matches:** PC, Beatrice and Flamingo are unmatched; Co-op and Avril are ambiguous.
+- **Stale-row rule on counts.** I re-parsed `63baa086`'s 22 raw files (501 records) and compared them with the stored Wikidata rows. Produced but not stored: 0 in all four tables (the re-parse check).
+
+  | table | stored | produced by `63baa086` | stale (all `pending`) |
+  |---|---|---|---|
+  | companies | 164 | 148 | 16 |
+  | brands | 113 | 100 | 13 |
+  | brand edges | 105 | 96 | 9 |
+  | company edges | 125 | 118 | 7 |
+
+  - The stale rows are the wrong matches and their owner chains: The Canadian Press (with The Globe and Mail, Torstar, NordStar, Power Corporation), Christie → USHIO (projectors), Cedar (a town), the UK Co-operative Group, Beatrice (magazine) → Dash Publishing, Avril, Flamingo → HarperCollins → News Corp, Heinz Records, Black Diamond and Olympic (record labels), Riviera (a restaurant), Selection.
+  - Classico is stale only because the sample cut-off moved (Neilson Dairy took the 100th slot). That's the case for not deleting after a sample.
+  - P3.13 will approve none of these unless its full run produces them again.
+- Rows missing `source_url`, `fetched_at`, `method`, `method_version` or `ingestion_run_id`: 0 in all four tables. Orphan edges: 0. Cycles among live company edges: 0. Longest chain 3. All 507 Wikidata rows are `pending`. New `review_queue` rows: 0.
+- Examples (1.1.0 rows, `method api`, `wikidata@1.1.0`):
+  - company `alimentation-couche-tard` Q2836957, CA, `…/wiki/Q2836957`, run `11e75758`, raw `d9dcb44a`.
+  - company `arla-foods` Q674575, run `11e75758`, raw `fd638e9c`.
+  - company + brand `barilla-group` Q762787, IT, run `dd22662c`, raw `783d1a07`.
+  - brand `castello` Q2561991, run `11e75758`, raw `94c5bce0`.
+  - brand edge `mondelez-international` → itself (owner), `…/wiki/Q12857502`, run `81f67046`, raw `96430bdf`. "Christie" now picks Mondelez in the US tier, which is right.
+- **Precision check, 50 brand → owner edges** (all 29 to another owner plus 21 random self edges): **0 wrong matches** (5 in P3.12). **47/50 right in the real world.** The 3 misses are the same outdated Wikidata owners: Becel → Unilever (Becel → Flora Food Group is also there), Breyers → Unilever, Canada Dry → Dr Pepper Snapple Group. They're left to D-054. Right, for example: Activia → Danone, Castello → Arla, French's → McCormick, Kinder → Ferrero, Kellogg's → both WK Kellogg Co and Kellanova (a D-054 two-owner case), Oreo → Nabisco (ended 2016) and → Mondelez, Philadelphia → Kraft Heinz, Neilson, Farm Boy, Laura Secord, Nature's Path.
+- `npm run typecheck`, `lint`, `format:check` and `npm test` pass (492 passed, 1 skipped).
+
+**For you**
+- **The brand-class tier is still weak:** 5 of its 21 picks are wrong (Astro → gas stations, Chapman's → a department store chain, Prana → clothing, Primo → NZ milk, Quest → a cigarette brand). They have no owner edge, so the 50-edge check misses them, but P3.13 would auto-approve them. I added **P3.12b** to fix it before P3.13, and P3.13 now depends on it.
+- The tighter rules cost some coverage. On the top 400 strings, 179 match instead of 201, and most of the 22 lost were wrong. Abbott (medical P452), Red Bull, Maggi and Magnum (foreign brand-class) are lost and left to Phase 4's resolver.
+- Stale rows keep their slugs (`beatrice` is held by the GB magazine), so a Phase 4 brand created from "Beatrice" would get `beatrice-2`. It's not worth a task yet. An admin merge or prune frees them.
+
+**Next:** P3.12b Wikidata: brand-class tier precision.
+
+---
+
 ## 2026-11-03 — P3.12 Wikidata (a): ownership sample (done)
 
 **What changed**

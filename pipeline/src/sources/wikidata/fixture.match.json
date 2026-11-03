@@ -1,10 +1,27 @@
 {
-  "head": { "vars": ["label", "item", "cc", "brand", "business"] },
+  "head": {
+    "vars": ["label", "item", "how", "cc", "brand", "business", "p31", "ind"]
+  },
   "results": {
     "bindings": [
       {
-        "label": { "xml:lang": "mul", "type": "literal", "value": "Metro" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q38239825" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q26647988"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -14,11 +31,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3947"
         }
       },
       {
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q38239825" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q26647988"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -28,11 +64,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q180846"
         }
       },
       {
-        "label": { "xml:lang": "mul", "type": "literal", "value": "Metro" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q38240991" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q26647988"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -42,11 +97,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q212198"
         }
       },
       {
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q38240991" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q31680193"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -56,11 +130,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3947"
         }
       },
       {
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Metro" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q38241425" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q31680193"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -70,11 +163,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q24354"
         }
       },
       {
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q38241425" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q31680193"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -84,98 +196,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
-        }
-      },
-      {
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q105637045" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q41253"
         }
       },
       {
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Metro" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q105637045" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q31680193"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "cc": {
           "type": "literal",
-          "value": "false"
-        }
-      },
-      {
-        "label": { "xml:lang": "en", "type": "literal", "value": "Kellogg's" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q130326112" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+          "value": "GB"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "label": {
+          "xml:lang": "en",
           "type": "literal",
-          "value": "false"
-        }
-      },
-      {
-        "label": { "xml:lang": "mul", "type": "literal", "value": "Kellogg's" },
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q130326112" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+          "value": "Metro"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "how": {
           "type": "literal",
-          "value": "false"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
-        "cc": { "type": "literal", "value": "CA" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "President's Choice" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+          "value": "alias"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
-        "cc": { "type": "literal", "value": "CA" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "President's Choice" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
-        },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q856897" },
-        "cc": { "type": "literal", "value": "IE" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Kellogg's" },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -185,12 +229,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q108325"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q856897" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Kellogg's" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q56619381"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -200,12 +262,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q489357"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q936768" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Kirkland" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q56619381"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -215,42 +295,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q936768" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Kirkland" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q72030539"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
-        "cc": { "type": "literal", "value": "CA" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q104744254"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "cc": {
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
-        "cc": { "type": "literal", "value": "CA" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
+          "value": "FR"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Avril"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -260,177 +328,63 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q507619"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1743511" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Kirkland" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q104744254"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "FR"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Avril"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
-          "value": "false"
+          "value": "true"
         },
         "business": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q2192134" },
-        "cc": { "type": "literal", "value": "GB" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q507619"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q2671956" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Kirkland" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q106787713"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "cc": {
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q2671956" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Kirkland" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+          "value": "GB"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "label": {
+          "xml:lang": "en",
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q3708314" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Kirkland" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+          "value": "Metro"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "how": {
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q3708314" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "mul", "type": "literal", "value": "Kirkland" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+          "value": "label"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q3708314" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Kirkland" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
-        },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q4902339" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
-        },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q6824450" },
-        "cc": { "type": "literal", "value": "ID" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
-        },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q6824450" },
-        "cc": { "type": "literal", "value": "SG" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
-        },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q6824746" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
-        },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q7258007" },
-        "cc": { "type": "literal", "value": "NZ" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -440,42 +394,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "false"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q7987043" },
-        "cc": { "type": "literal", "value": "GB" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q18127"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q10931299" },
-        "cc": { "type": "literal", "value": "AU" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q106787713"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "cc": {
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q13610282" },
-        "cc": { "type": "literal", "value": "TR" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Metro" },
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -485,57 +427,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "false"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q13610282" },
-        "cc": { "type": "literal", "value": "DE" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q18127"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q16640217" },
-        "cc": { "type": "literal", "value": "PE" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q111059184"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "cc": {
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q16640217" },
-        "cc": { "type": "literal", "value": "CO" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+          "value": "IN"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "label": {
+          "xml:lang": "en",
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q24259377" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "mul", "type": "literal", "value": "Metro" },
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -545,72 +460,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q24259377" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "true"
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27686"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q24259377" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q112614022"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "cc": {
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q31680193" },
-        "cc": { "type": "literal", "value": "GB" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+          "value": "GB"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "label": {
+          "xml:lang": "en",
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q56619381" },
-        "cc": { "type": "literal", "value": "GB" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Kirkland" },
-        "brand": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
-          "type": "literal",
-          "value": "false"
+          "value": "Beatrice"
         },
-        "business": {
-          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+        "how": {
           "type": "literal",
-          "value": "true"
-        }
-      },
-      {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q106787713" },
-        "cc": { "type": "literal", "value": "GB" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -620,12 +493,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q41298"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q106787713" },
-        "cc": { "type": "literal", "value": "GB" },
-        "label": { "xml:lang": "fr", "type": "literal", "value": "Metro" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q112614022"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Beatrice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -635,12 +526,63 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q431289"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q111059184" },
-        "cc": { "type": "literal", "value": "IN" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q112614022"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Beatrice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q847906"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130458467"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -650,12 +592,30 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q622425"
         }
       },
       {
-        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q130458467" },
-        "cc": { "type": "literal", "value": "US" },
-        "label": { "xml:lang": "en", "type": "literal", "value": "Metro" },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130458467"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
         "brand": {
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
@@ -665,6 +625,3915 @@
           "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
           "type": "literal",
           "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q8719053"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q138110947"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q180846"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q138110947"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q212198"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q139935424"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q180846"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q139935424"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q212198"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q141779681"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q180846"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q141779681"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q212198"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130326112"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q167270"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q627371"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130326112"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q167270"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q627371"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130326112"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16323605"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q627371"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130326112"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16323605"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q627371"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q66224"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Beatrice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15127012"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q66224"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Beatrice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15127012"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q117202"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q614084"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15825471"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q117202"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q18043413"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15825471"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q117202"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q614084"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q29586127"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q117202"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Co-op"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q18043413"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q29586127"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q813247"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Beatrice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q62049"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q813247"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Beatrice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q62049"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q813247"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Beatrice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1093829"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q813247"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Beatrice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1093829"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q845185"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "President's Choice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q722080"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q845185"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "President's Choice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q722080"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q845185"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "President's Choice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1378329"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q845185"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "President's Choice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1378329"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q845185"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "President's Choice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16323605"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q845185"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "President's Choice"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16323605"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "IE"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q891723"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q540912"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q891723"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q540912"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "IE"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q540912"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q540912"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "IE"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6881511"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q540912"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6881511"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q540912"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "IE"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q891723"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1187656"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q891723"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1187656"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "IE"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1187656"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1187656"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "IE"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6881511"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1187656"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q856897"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kellogg's"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6881511"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1187656"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q936768"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1093829"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q936768"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1093829"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1018403"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "FR"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Avril"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q484170"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1018403"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "FR"
+        },
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "Avril"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q484170"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1018403"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "FR"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Avril"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q484170"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1100424"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "TR"
+        },
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q46970"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1757562"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1100424"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "TR"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q46970"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1757562"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1100424"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "TR"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q46970"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1757562"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1100424"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "TR"
+        },
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1757562"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1100424"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "TR"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1757562"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1100424"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "TR"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1757562"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1145669"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q891723"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q180846"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1145669"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q891723"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q180846"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1145669"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q18043413"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q180846"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1145669"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q18043413"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q180846"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1743511"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q613142"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1494322"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1743511"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1494322"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2192134"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15081032"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2410130"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q35127"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1193236"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2410130"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q163740"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1193236"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2410130"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q192283"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1193236"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2410130"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1589009"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1193236"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2410130"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1193236"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2410130"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CA"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q95155801"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1193236"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2671956"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q110071217"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2671956"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q110071217"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3708314"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15127012"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3708314"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15127012"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3708314"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15127012"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3708314"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q106071004"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3708314"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q106071004"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3708314"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Kirkland"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q106071004"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4902339"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q740752"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6824450"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "ID"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q126793"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6824450"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "SG"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q126793"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6824746"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7835189"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6824746"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q10438042"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7186815"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q1336920"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7186815"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q23002039"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7231405"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9826"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7240509"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GH"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q9826"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7240768"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q3914"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q136822"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7240768"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q189004"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q136822"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7240768"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q23002054"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q136822"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7240840"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6540832"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q136822"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7240840"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q23002054"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q136822"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7240962"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "PC"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q23002054"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q136822"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7258007"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "NZ"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q431289"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7258007"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "NZ"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7835189"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7987043"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q514989"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q178512"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7987043"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "GB"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q178512"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q10931299"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "AU"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q249556"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q178512"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q13610282"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "TR"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q431289"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q220695"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q13610282"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "DE"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q431289"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q220695"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q13610282"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "TR"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2128165"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q220695"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q13610282"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "DE"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2128165"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q220695"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16640217"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "PE"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q658255"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q126793"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16640217"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CO"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q658255"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q126793"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16640217"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "PE"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q18043413"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q126793"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16640217"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "CO"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q18043413"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q126793"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q24259377"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4373046"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q24259377"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4373046"
+        }
+      },
+      {
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q24259377"
+        },
+        "cc": {
+          "type": "literal",
+          "value": "US"
+        },
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4830453"
+        },
+        "ind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4373046"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Flamingo"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q17645529"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2085381"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Flamingo"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q17645529"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2085381"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Flamingo"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q17645529"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2608849"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Flamingo"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q17645529"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q2608849"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q38239825"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q41253"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q38239825"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q41253"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "mul",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q38240991"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q41253"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q38240991"
+        },
+        "how": {
+          "type": "literal",
+          "value": "alias"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q41253"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q38241425"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q41253"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q38241425"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q41253"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q105637045"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q431289"
+        }
+      },
+      {
+        "label": {
+          "xml:lang": "fr",
+          "type": "literal",
+          "value": "Metro"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q105637045"
+        },
+        "how": {
+          "type": "literal",
+          "value": "label"
+        },
+        "brand": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "true"
+        },
+        "business": {
+          "datatype": "http://www.w3.org/2001/XMLSchema#boolean",
+          "type": "literal",
+          "value": "false"
+        },
+        "p31": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q431289"
         }
       }
     ]

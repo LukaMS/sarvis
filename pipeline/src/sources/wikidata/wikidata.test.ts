@@ -1,5 +1,7 @@
 // Wikidata ownership on fixtures saved from real WDQS responses (2026-11-03, CC0): a match for
-// "President's Choice", "Metro", "Kellogg's" and "Kirkland"; the entities of President's Choice
+// "President's Choice", "Metro", "Kellogg's" and "Kirkland", plus the five P3.12 wrong matches
+// ("Beatrice", "Avril", "Co-op", "PC", "Flamingo"; re-saved with the 1.1.0 query, P3.12a) and the
+// classes query for its candidates' classes and industries; the entities of President's Choice
 // (a brand) and Metro Inc. (a business); and Loblaw Companies, read with President's Choice as a
 // child (its P127 statement names Loblaw).
 import { readFileSync } from 'node:fs';
@@ -17,11 +19,14 @@ import { createWikidataSource } from './index.ts';
 import {
   type Candidate,
   type Envelope,
+  candidateClasses,
+  classFlagsOf,
   type Statement,
   companyRelation,
   decideMatches,
   factsOf,
   hitSteps,
+  isShortBrand,
   labelVariants,
   nameOf,
   nextHop,
@@ -33,11 +38,12 @@ import {
   usableBrand,
   walksUp,
 } from './map.ts';
-import { dateOf, entitiesQuery, literal, matchQuery, qidOf } from './sparql.ts';
+import { classQuery, dateOf, entitiesQuery, literal, matchQuery, qidOf } from './sparql.ts';
 
 const read = (name: string): unknown =>
   JSON.parse(readFileSync(fileURLToPath(new URL(`./${name}`, import.meta.url)), 'utf8'));
 const MATCH = read('fixture.match.json');
+const CLASSES = read('fixture.classes.json');
 const HOP0 = read('fixture.hop0.json');
 const HOP1 = read('fixture.hop1.json');
 const FETCHED_AT = '2026-11-03T16:30:00.000Z';
@@ -101,11 +107,20 @@ describe('Brand strings', () => {
 });
 
 describe('Matching', () => {
-  const c = (qid: string, countries: string[], brand = false): Candidate => ({
+  // A business in a grocery trade by default; `brand` makes it brand-class instead.
+  const c = (
+    qid: string,
+    countries: string[],
+    brand = false,
+    more: Partial<Candidate> = {},
+  ): Candidate => ({
     qid,
     countries,
     brand,
     business: !brand,
+    excluded: false,
+    trade: !brand,
+    ...more,
   });
 
   it('picks by tier, and only when one candidate is in the tier', () => {
@@ -119,10 +134,50 @@ describe('Matching', () => {
     expect(pickCandidate([]).pick).toBeNull();
   });
 
+  it('never picks an excluded class, and an excluded one still blocks `single`', () => {
+    const town = c('Q9', ['FR'], false, { excluded: true, trade: false });
+    expect(pickCandidate([town]).pick).toBeNull();
+    // Avril: a French commune and a French chain. The chain isn't the only candidate, and it
+    // isn't North American, so nothing is picked.
+    expect(pickCandidate([town, c('Q2', ['FR'], true)]).pick).toBeNull();
+    expect(pickCandidate([town, c('Q2', ['CA'])])).toMatchObject({ tier: 'CA' });
+  });
+
+  it('takes only North American brand-class items, and needs trade for a country tier', () => {
+    // Beatrice / Co-op: the only brand-class item is British.
+    expect(
+      pickCandidate([c('Q1', ['US']), c('Q2', ['US']), c('Q3', ['GB'], true)]).pick,
+    ).toBeNull();
+    expect(pickCandidate([c('Q1', ['GB']), c('Q3', [], true)])).toMatchObject({
+      tier: 'brand-class',
+    });
+    // Kirkland: a US law firm (no grocery trade) doesn't win the US tier.
+    const firm = c('Q1', ['US'], false, { trade: false });
+    expect(pickCandidate([firm, c('Q2', ['GB'])]).pick).toBeNull();
+    expect(pickCandidate([firm, c('Q2', ['GB']), c('Q3', ['US'])])).toMatchObject({ tier: 'US' });
+    // A Canadian projector maker loses to nothing; a Canadian brand wins.
+    expect(pickCandidate([c('Q1', ['CA'], false, { trade: false }), c('Q2', ['GB'])]).pick).toBe(
+      null,
+    );
+    expect(pickCandidate([c('Q1', ['CA'], true), c('Q2', ['GB'])])).toMatchObject({ tier: 'CA' });
+  });
+
   it('decides each brand string from a real match result', () => {
     const d = decideMatches(
-      ["President's Choice", 'Metro', "Kellogg's", 'Kirkland', 'Nope'],
+      [
+        "President's Choice",
+        'Metro',
+        "Kellogg's",
+        'Kirkland',
+        'Beatrice',
+        'Avril',
+        'Co-op',
+        'PC',
+        'Flamingo',
+        'Nope',
+      ],
       MATCH,
+      classFlagsOf(CLASSES, candidateClasses(MATCH)),
     );
     expect(
       d.map((x) => [x.brand, x.status, x.qid ?? null, x.role ?? null, x.tier ?? null]),
@@ -131,9 +186,37 @@ describe('Matching', () => {
       ['Metro', 'matched', 'Q1145669', 'company', 'CA'],
       ["Kellogg's", 'matched', 'Q130326112', 'brand', 'brand-class'],
       ['Kirkland', 'ambiguous', null, null, null],
+      // The five P3.12 wrong matches: a GB magazine (now excluded) beside two US towns; a French
+      // chain beside a commune; the UK Co-operative Group; The Canadian Press by its alias "PC";
+      // a publisher.
+      ['Beatrice', 'unmatched', null, null, null],
+      ['Avril', 'ambiguous', null, null, null],
+      ['Co-op', 'ambiguous', null, null, null],
+      ['PC', 'unmatched', null, null, null],
+      ['Flamingo', 'unmatched', null, null, null],
       ['Nope', 'unmatched', null, null, null],
     ]);
     expect(d[1]?.candidates).toBeGreaterThan(10);
+    // "PC" is an alias of The Canadian Press, and a 2-letter string matches labels only.
+    expect(d[7]?.candidates).toBe(0);
+    expect(isShortBrand('PC')).toBe(true);
+    expect(isShortBrand('M&M')).toBe(true);
+    expect(isShortBrand('IGA')).toBe(false);
+  });
+
+  it('flags excluded classes and grocery trades from a real classes result', () => {
+    const used = candidateClasses(MATCH);
+    const flags = classFlagsOf(CLASSES, used);
+    expect(Object.keys(flags)).toHaveLength(used.length);
+    expect(flags.Q2085381).toEqual({ excluded: true, trade: false }); // publishing house
+    expect(flags.Q15127012?.excluded).toBe(true); // town in the United States
+    expect(flags.Q41298?.excluded).toBe(true); // magazine
+    expect(flags.Q126793).toEqual({ excluded: false, trade: true }); // retail
+    expect(flags.Q4830453).toEqual({ excluded: false, trade: false }); // business
+    // Without the flags the publisher comes back (Beatrice stays out: its towns aren't a trade).
+    const bare = decideMatches(['Flamingo', 'Beatrice'], MATCH);
+    expect(bare.map((x) => x.status)).toEqual(['matched', 'ambiguous']);
+    expect(classQuery(['Q1'])).toContain('(wd:Q486972 "excluded")');
   });
 });
 
@@ -170,7 +253,7 @@ describe('Entities', () => {
       source_url: 'https://www.wikidata.org/wiki/Q1145669',
       source_key: 'wikidata',
       method: 'api',
-      method_version: 'wikidata@1.0.0',
+      method_version: 'wikidata@1.1.0',
       fetched_at: FETCHED_AT,
     });
     expect(r.brandEdges).toEqual([
@@ -291,11 +374,13 @@ describe('Wikidata source run', () => {
         const items = /VALUES \?item \{([^}]*)\}/.exec(q)?.[1] ?? '';
         const body = q.includes('VALUES ?label')
           ? MATCH
-          : items.includes('wd:Q845185')
-            ? HOP0
-            : items.includes('wd:Q909856')
-              ? HOP1
-              : EMPTY;
+          : q.includes('VALUES (?root ?flag)')
+            ? CLASSES
+            : items.includes('wd:Q845185')
+              ? HOP0
+              : items.includes('wd:Q909856')
+                ? HOP1
+                : EMPTY;
         return {
           url: req.url,
           status: 200,
@@ -311,7 +396,7 @@ describe('Wikidata source run', () => {
     };
   }
 
-  async function run(sampleSize: number | null) {
+  async function run(sampleSize: number | null, labelsPerQuery?: number) {
     const store = createMemoryRunStore({ sources: [SOURCE_ROW] });
     const written: { kind: RecordKind; records: unknown[] }[] = [];
     const writerOf = (kind: RecordKind): RecordWriter<RecordKind> => ({
@@ -331,6 +416,7 @@ describe('Wikidata source run', () => {
     const result = await runSource(
       createWikidataSource({
         endpoint: 'https://wdqs.example/sparql',
+        labelsPerQuery,
         loadBrands: async () => [
           { brand: "President's Choice", products: 1820 },
           { brand: 'null', products: 10 },
@@ -364,8 +450,8 @@ describe('Wikidata source run', () => {
   it('matches, walks two hops and writes entities before their edges', async () => {
     const { result, raws, requests, written } = await run(null);
     expect(result.status).toBe('completed');
-    // match, hop 0, hop 1 (Loblaw), hop 2 (George Weston: no facts in the fake).
-    expect(requests).toHaveLength(4);
+    // match, classes, hop 0, hop 1 (Loblaw), hop 2 (George Weston: no facts in the fake).
+    expect(requests).toHaveLength(5);
     expect(requests.every((r) => r.method === 'POST')).toBe(true);
     expect(raws.map((b) => parseEnvelope(b).kind)).toEqual([
       'match',
@@ -389,7 +475,19 @@ describe('Wikidata source run', () => {
     // One item (President's Choice), and the whole walk above it.
     expect(written.filter((w) => w.kind === 'brand').flatMap((w) => w.records)).toHaveLength(1);
     expect(written.map((w) => w.kind)).toEqual(['brand', 'company', 'brand_ownership']);
-    expect(requests).toHaveLength(4);
+    expect(requests).toHaveLength(5);
+  });
+
+  it('asks for each class once per run, and stores the flags each batch used', async () => {
+    // One string per match query: three match batches, but the classes are asked only once.
+    const { requests, raws } = await run(null, 1);
+    const bodies = requests.map((r) => new URLSearchParams(r.body ?? '').get('query') ?? '');
+    expect(bodies.filter((q) => q.includes('VALUES ?label'))).toHaveLength(3);
+    expect(bodies.filter((q) => q.includes('VALUES (?root ?flag)'))).toHaveLength(1);
+    const matches = raws.map(parseEnvelope).filter((e) => e.kind === 'match');
+    expect(matches.map((e) => e.classQueries.length)).toEqual([1, 0, 0]);
+    // Each envelope carries the flags it used, so a decision can be re-checked from storage.
+    for (const e of matches) expect(Object.keys(e.classes)).toEqual(candidateClasses(e.result));
   });
 
   it('re-parses a stored envelope to the same records', async () => {

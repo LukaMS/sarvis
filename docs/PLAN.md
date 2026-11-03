@@ -1155,7 +1155,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/wikidata/{index,sparql,map}.ts` and tests, `pipeline/src/sources/registry.ts`.
 - **Verification:** the source-task rules (`--sample 100` counts brand items). Also: the 50-edge precision check in PROGRESS, and a SQL check that every edge's endpoints exist and no cycle was written.
 
-### [ ] P3.12a Wikidata: tighten the match and clear stale sample rows (added in P3.12)
+### [x] P3.12a Wikidata: tighten the match and clear stale sample rows (added in P3.12)
 - **Slice:** source-wikidata.
 - **Goal:** fix the precision problems the P3.12 check found before P3.13 auto-approves anything. Of 50 brand → owner edges, 42 were right, 5 were wrong matches and 3 were outdated in Wikidata itself.
 - **Deps:** P3.12.
@@ -1173,12 +1173,24 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/wikidata/*` and tests, `docs/DECISIONS.md`.
 - **Verification:** the source-task rules for a sample. The 5 wrong matches above no longer match, a fresh 50-edge precision check is reported, and the stale-row rule is shown on SQL counts.
 
+### [ ] P3.12b Wikidata: brand-class tier precision (added in P3.12a)
+- **Slice:** source-wikidata.
+- **Goal:** the brand-class tier is the weakest one left. In the P3.12a sample, 5 of its 21 picks are wrong: Astro → a gas station chain, Chapman's → a department store chain, Prana → a clothing company, Primo → a NZ milk maker, Quest → a cigarette brand. None has an owner edge, so the 50-edge check doesn't see them. P3.13 would auto-approve them.
+- **Deps:** P3.12a.
+- **In:**
+  - In the brand-class tier, count a candidate only if it's in a grocery brand class (food, drink, confectionery… brand, `P31/P279*`) or has a `TRADE_INDUSTRIES` P452. Use the P3.12a class cache. Offline on the P3.12a sample this drops 4 of the 5 wrong picks (Prana stays: P452 retail) and loses Castello and French's (P31 plain "brand").
+  - Measure it on the top 400 OFF strings before choosing: wrong picks removed vs. right picks lost, as in D-066. Pick the more precise rule and record it in D-066.
+  - Bump `wikidata@1.2.0` and re-run `--sample 100` twice.
+- **Out:** fuzzy matching (Phase 4).
+- **Files:** `pipeline/src/sources/wikidata/*` and tests, `docs/DECISIONS.md`.
+- **Verification:** the source-task rules for a sample, plus the brand-class picks listed with right/wrong in PROGRESS.
+
 ### [ ] P3.13 Wikidata (b): ownership scale-up
 - **Slice:** source-wikidata.
 - **Goal:** Wikidata ownership for every OFF brand string that has a match (budget: ~20k brands, ~5k companies).
-- **Deps:** P3.12, P3.12a and D-054.
+- **Deps:** P3.12, P3.12a, P3.12b and D-054.
 - ✅ **Decided (D-054): no manual review for Wikidata.** Every Wikidata brand, company, brand → owner edge and company → parent edge is auto-approved, with no queue row. Where several current owners are listed, one is picked by rule (preferred rank, then the latest start date). Remaining ties stay `pending` with no queue row, and the count goes in PROGRESS. Ended edges are approved as history. Admin decisions are never overridden.
-- **In:** `--mode full`, plus the D-054 rule as code, applied to the P3.12 sample rows too. Tests cover each case: one current owner, two owners settled by rank, two settled by start date, a tie left `pending`, an ended edge approved as history, a company → parent edge, and an admin-rejected row left alone. No `review_queue` rows are written.
+- **In:** `--mode full`, plus the D-054 rule as code. It's applied through the per-batch `AUTO_APPROVE` path, so it covers only rows this run writes or confirms (D-066). P3.12 sample rows the full run still produces get approved, and stale ones (45 after P3.12a) stay `pending`. Tests cover each case: a stale `pending` row from an earlier run left alone, one current owner, two owners settled by rank, two settled by start date, a tie left `pending`, an ended edge approved as history, a company → parent edge, and an admin-rejected row left alone. No `review_queue` rows are written.
 - **Out:** as P3.12.
 - **Files:** `pipeline/src/sources/wikidata/*`, `docs/DECISIONS.md`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`brands`, `companies`, both ownership tables, `review_queue`). Also: the number of OFF brand strings matched, out of the total.
@@ -1257,7 +1269,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M2 Open Food Facts | P3.5 (sample, row width, auto-approve), P3.6 (full), P3.7 (deltas), P3.8 (ODbL extract) |
 | M3 Open Prices | P3.9 (sample), P3.10 (full) |
 | M4 StatCan | P3.11 (sample and full) |
-| M5 Wikidata | P3.12 (sample, precision check), P3.12a (match precision, stale rows), P3.13 (scale-up) |
+| M5 Wikidata | P3.12 (sample, precision check), P3.12a (match precision, stale rows), P3.12b (brand-class tier), P3.13 (scale-up) |
 | M6 Wikipedia | P3.14 (sample), P3.15 (full) |
 | M7 SEC EDGAR | P3.16 (sample), P3.17 (full) |
 | M8 Corporations Canada | P3.18 (sample and full) |

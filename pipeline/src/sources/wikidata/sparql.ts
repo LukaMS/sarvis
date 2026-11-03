@@ -1,7 +1,9 @@
-// SPARQL for the Wikidata ownership source (SOURCES.md S17, PLAN P3.12, D-065): the queries and a
-// reader for the SPARQL 1.1 JSON results format. Two queries:
+// SPARQL for the Wikidata ownership source (SOURCES.md S17, PLAN P3.12, D-065, D-066): the queries
+// and a reader for the SPARQL 1.1 JSON results format. Three queries:
 //
-// - match: which brand- or business-class items have one of these labels or aliases (en, fr, mul);
+// - match: which brand- or business-class items have one of these labels or aliases (en, fr, mul),
+//   whether by label or alias, and their P31 classes and P452 industries;
+// - classes: which of those classes are excluded, and which industries are a grocery trade;
 // - entities: the facts for a set of items (labels, aliases, P31, country, website, enwiki title,
 //   SEC CIK, OpenCorporates id, P576), their own owner statements (P127 / P749, with rank, P580,
 //   P582 and P1107), and the statements of the given children that point at them.
@@ -16,6 +18,55 @@ export const WD_ENTITY = 'http://www.wikidata.org/entity/';
 export const BRAND_CLASSES = ['Q431289', 'Q167270'] as const;
 /** business, enterprise, company. */
 export const BUSINESS_CLASSES = ['Q4830453', 'Q6881511', 'Q783794'] as const;
+/**
+ * P31/P279* classes that are never a grocery brand or its owner, though Wikidata files many of
+ * them under business (D-066): places (US towns, French communes), schools, publishers, media,
+ * record labels, airlines, government agencies, movie theaters, law firms, cigarette brands.
+ */
+export const EXCLUDED_CLASSES = [
+  'Q486972', // human settlement
+  'Q56061', // administrative territorial entity
+  'Q2385804', // educational institution
+  'Q2085381', // publisher
+  'Q11033', // mass media
+  'Q1331793', // media company
+  'Q1002697', // periodical
+  'Q18127', // record label
+  'Q210167', // video game developer
+  'Q46970', // airline
+  'Q327333', // government agency
+  'Q41253', // movie theater
+  'Q613142', // law firm
+  'Q19509097', // cigarette brand
+] as const;
+/**
+ * P452/P279* industries that count as grocery trade. A candidate picked only for its country (the
+ * CA and US tiers) must be brand-class or in one of them (D-066).
+ */
+export const TRADE_INDUSTRIES = [
+  'Q540912', // food industry
+  'Q627371', // food processing
+  'Q4899370', // beverage industry
+  'Q1187656', // fast-moving consumer goods
+  'Q126793', // retail
+  'Q220695', // wholesale
+  'Q11451', // agriculture
+  'Q2095', // food
+  'Q40050', // drink
+  'Q180846', // supermarket
+  'Q1295201', // grocery store
+  'Q7361709', // convenience store
+  'Q81799', // fast food
+  'Q484847', // e-commerce
+  // Seen on grocery companies in the P3.12a sample but not under the roots above.
+  'Q637776', // dairy
+  'Q1445627', // ice cream manufacturer
+  'Q1054321', // coffee production
+  'Q107601756', // food and tobacco industry
+  'Q396622', // agribusiness
+  'Q507619', // retail chain
+  'Q16766413', // big-box store
+] as const;
 /** Label languages for matching OFF brand strings, and for aliases. */
 export const MATCH_LANGS = ['en', 'fr', 'mul'] as const;
 /** Name languages, most preferred first; owners are often only labelled in their own language. */
@@ -39,13 +90,34 @@ const langList = (langs: readonly string[]) => langs.map((l) => `"${l}"`).join('
 
 export function matchQuery(labels: readonly string[]): string {
   const values = labels.flatMap((l) => MATCH_LANGS.map((lang) => literal(l, lang))).join(' ');
-  return `SELECT ?label ?item ?cc ?brand ?business WHERE {
+  return `SELECT ?label ?item ?how ?cc ?brand ?business ?p31 ?ind WHERE {
   VALUES ?label { ${values} }
-  ?item rdfs:label|skos:altLabel ?label .
+  { ?item rdfs:label ?label . BIND("label" AS ?how) } UNION { ?item skos:altLabel ?label . BIND("alias" AS ?how) }
   BIND(EXISTS { VALUES ?bc { ${BRAND_CLASSES.map(wd).join(' ')} } ?item wdt:P31/wdt:P279* ?bc } AS ?brand)
   BIND(EXISTS { VALUES ?oc { ${BUSINESS_CLASSES.map(wd).join(' ')} } ?item wdt:P31/wdt:P279* ?oc } AS ?business)
   FILTER(?brand || ?business)
   OPTIONAL { ?item wdt:P17/wdt:P297 ?cc }
+  OPTIONAL { ?item wdt:P31 ?p31 }
+  OPTIONAL { ?item wdt:P452 ?ind }
+}`;
+}
+
+/**
+ * For P31 classes and P452 industries: is it (a subclass of) an excluded class, and is it (a
+ * subclass of) a grocery trade. Asked once per class per run, so the subclass walks that would
+ * slow every match query (US towns alone are thousands of classes deep) run only on new classes.
+ */
+export function classQuery(qids: readonly string[]): string {
+  // Both ends of the path are bound in one group, so each check is a short upward walk. (A walk
+  // with one end free, as in a UNION branch or EXISTS, expands the root's whole subclass tree.)
+  const roots = [
+    ...EXCLUDED_CLASSES.map((q) => `(${wd(q)} "excluded")`),
+    ...TRADE_INDUSTRIES.map((q) => `(${wd(q)} "trade")`),
+  ].join(' ');
+  return `SELECT DISTINCT ?c ?flag WHERE {
+  VALUES ?c { ${qids.map(wd).join(' ')} }
+  VALUES (?root ?flag) { ${roots} }
+  ?c wdt:P279* ?root .
 }`;
 }
 

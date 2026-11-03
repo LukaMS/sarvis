@@ -11,11 +11,13 @@ import { NAME_LANGS, type SparqlRow, dateOf, qidOf, rankOf, sparqlRows } from '.
 
 export const WD_KEY = 'wikidata';
 export const WD_JOB = 'wikidata-ownership';
-export const WD_VERSION = '1.0.0';
+export const WD_VERSION = '1.1.0';
 export const WD_METHOD_VERSION = `${WD_KEY}@${WD_VERSION}`;
 /** Labels per match query and items per entities query (PLAN P3.12: ≤ 50). */
 export const MAX_LABELS = 50;
 export const MAX_ITEMS = 50;
+/** Classes per classes query. */
+export const MAX_CLASSES = 200;
 /** Owner hops walked above a matched item. */
 export const MAX_HOPS = 5;
 
@@ -61,6 +63,10 @@ export interface Candidate {
   countries: string[];
   brand: boolean;
   business: boolean;
+  /** In an EXCLUDED_CLASSES class: never picked, but still counts against the `single` tier. */
+  excluded: boolean;
+  /** Has a TRADE_INDUSTRIES industry (P452). */
+  trade: boolean;
 }
 
 export type MatchTier = 'single' | 'CA' | 'brand-class' | 'US';
@@ -75,33 +81,89 @@ export interface MatchDecision {
   tier?: MatchTier;
 }
 
+/** No country, or Canada or the US among them. */
+const northAmerican = (c: Candidate) =>
+  c.countries.length === 0 || c.countries.includes('CA') || c.countries.includes('US');
+/** A country alone isn't evidence: the item must also be a brand or in a grocery trade. */
+const tradesHere = (c: Candidate, country: string) =>
+  c.countries.includes(country) && (c.brand || c.trade);
+
 /**
- * The item for one brand string, or none (D-065). Exact label matches are often several items
- * ("Metro" has 19), so the pick is by tiers, and a tier only decides when exactly one candidate
- * is in it: the only candidate; else the only Canadian one; else the only brand-class one; else
- * the only US one. Anything else is ambiguous and skipped (the P4 resolver can try later).
+ * The item for one brand string, or none (D-065, D-066). Exact label matches are often several
+ * items ("Metro" has 19), so the pick is by tiers, and a tier only decides when exactly one
+ * candidate is in it: the only candidate (excluded classes count here, so a French commune keeps
+ * a French chain from winning by default); else the only Canadian one; else the only North
+ * American brand-class one; else the only US one. The country tiers need a brand or a grocery
+ * trade. Excluded-class items are never picked. Anything else is ambiguous and skipped (the P4
+ * resolver can try later).
  */
 export function pickCandidate(candidates: readonly Candidate[]): {
   pick: Candidate | null;
   tier?: MatchTier;
 } {
-  if (candidates.length === 0) return { pick: null };
-  if (candidates.length === 1) return { pick: candidates[0] as Candidate, tier: 'single' };
+  const eligible = candidates.filter((c) => !c.excluded);
+  if (eligible.length === 0) return { pick: null };
+  if (candidates.length === 1) return { pick: eligible[0] as Candidate, tier: 'single' };
   const tiers: [MatchTier, (c: Candidate) => boolean][] = [
-    ['CA', (c) => c.countries.includes('CA')],
-    ['brand-class', (c) => c.brand],
-    ['US', (c) => c.countries.includes('US')],
+    ['CA', (c) => tradesHere(c, 'CA')],
+    ['brand-class', (c) => c.brand && northAmerican(c)],
+    ['US', (c) => tradesHere(c, 'US')],
   ];
   for (const [tier, test] of tiers) {
-    const hits = candidates.filter(test);
+    const hits = eligible.filter(test);
     if (hits.length === 1) return { pick: hits[0] as Candidate, tier };
     if (hits.length > 1) return { pick: null };
   }
   return { pick: null };
 }
 
-/** Candidates per brand string from a match result, then one decision per brand string. */
-export function decideMatches(brands: readonly string[], result: unknown): MatchDecision[] {
+/**
+ * Brand strings of ≤ 2 letters ("PC", "D") match labels only: as aliases they're initialisms of
+ * too many things (D-066).
+ */
+export const isShortBrand = (brand: string) => (brand.match(/\p{L}/gu) ?? []).length <= 2;
+
+/** Whether a P31 class is excluded, and whether a P452 industry is a grocery trade (D-066). */
+export interface ClassFlags {
+  excluded: boolean;
+  trade: boolean;
+}
+export type ClassTable = Record<string, ClassFlags>;
+
+/** The P31 classes and P452 industries of a match result's candidates, sorted. */
+export function candidateClasses(result: unknown): string[] {
+  const out = new Set<string>();
+  for (const row of sparqlRows(result)) {
+    for (const t of [row.p31, row.ind]) {
+      const q = qidOf(t);
+      if (q) out.add(q);
+    }
+  }
+  return [...out].sort((a, b) => qidNumber(a) - qidNumber(b));
+}
+
+/** Flags for these QIDs from a classes-query result (one row per class and flag that holds). */
+export function classFlagsOf(result: unknown, qids: readonly string[]): ClassTable {
+  const out: ClassTable = Object.fromEntries(
+    qids.map((q) => [q, { excluded: false, trade: false }]),
+  );
+  for (const row of sparqlRows(result)) {
+    const f = out[qidOf(row.c) ?? ''];
+    const flag = row.flag?.value;
+    if (f && (flag === 'excluded' || flag === 'trade')) f[flag] = true;
+  }
+  return out;
+}
+
+/**
+ * Candidates per brand string from a match result, then one decision per brand string. `classes`
+ * holds the flags of the candidates' classes and industries; one that's missing counts as neither.
+ */
+export function decideMatches(
+  brands: readonly string[],
+  result: unknown,
+  classes: ClassTable = {},
+): MatchDecision[] {
   const byLabel = new Map<string, string[]>();
   for (const b of brands) {
     for (const v of labelVariants(b)) byLabel.set(v, [...(byLabel.get(v) ?? []), b]);
@@ -111,7 +173,11 @@ export function decideMatches(brands: readonly string[], result: unknown): Match
     const qid = qidOf(row.item);
     const label = row.label?.value;
     if (!qid || !label) continue;
+    const byAlias = row.how?.value === 'alias';
+    const p31 = qidOf(row.p31);
+    const ind = qidOf(row.ind);
     for (const b of byLabel.get(label) ?? []) {
+      if (byAlias && isShortBrand(b)) continue;
       const per = found.get(b) ?? new Map<string, Candidate>();
       found.set(b, per);
       const c = per.get(qid) ?? {
@@ -119,9 +185,13 @@ export function decideMatches(brands: readonly string[], result: unknown): Match
         countries: [],
         brand: row.brand?.value === 'true',
         business: row.business?.value === 'true',
+        excluded: false,
+        trade: false,
       };
       const cc = row.cc?.value;
       if (cc && !c.countries.includes(cc)) c.countries.push(cc);
+      if (p31 && classes[p31]?.excluded) c.excluded = true;
+      if (ind && classes[ind]?.trade) c.trade = true;
       per.set(qid, c);
     }
   }
@@ -129,7 +199,10 @@ export function decideMatches(brands: readonly string[], result: unknown): Match
     const candidates = [...(found.get(brand)?.values() ?? [])].sort(
       (a, b) => qidNumber(a.qid) - qidNumber(b.qid),
     );
-    if (candidates.length === 0) return { brand, status: 'unmatched', candidates: 0 };
+    // Only excluded-class items (a town, a school): nothing named this is a brand or business.
+    if (candidates.every((c) => c.excluded)) {
+      return { brand, status: 'unmatched', candidates: candidates.length };
+    }
     const { pick, tier } = pickCandidate(candidates);
     if (!pick) return { brand, status: 'ambiguous', candidates: candidates.length };
     return {
@@ -172,7 +245,17 @@ export type WdStep =
   | { kind: 'entities'; hop: number; items: ItemSpec[]; children: ChildSpec[] };
 
 export type Envelope =
-  | { kind: 'match'; brands: string[]; query: string; result: unknown }
+  | {
+      kind: 'match';
+      brands: string[];
+      query: string;
+      result: unknown;
+      /** Classes queries for the classes this run hadn't seen yet (none once they're all known). */
+      classQueries: string[];
+      classResults: unknown[];
+      /** Flags for every class and industry this batch's decisions used (looked up or cached). */
+      classes: ClassTable;
+    }
   | {
       kind: 'entities';
       hop: number;

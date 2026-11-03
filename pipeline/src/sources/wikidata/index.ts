@@ -1,7 +1,8 @@
 // Wikidata ownership source (SOURCES.md S17, PLAN P3.12, D-065).
 //
 //   plan     the OFF brand strings, most frequent first (public.off_brand_strings)
-//   match    ≤ 50 strings per SPARQL query → one item per string, or none (map.ts pickCandidate)
+//   match    ≤ 50 strings per SPARQL query → one item per string, or none (map.ts pickCandidate);
+//            the candidates' classes and industries this run hasn't seen get one more query
 //   entities ≤ 50 items per query: their facts and owner statements, plus the statements of the
 //            previous hop's items that point at them. Each response writes its items, then the
 //            edges from the previous hop, whose endpoints were written by an earlier response.
@@ -25,7 +26,9 @@ import type {
 } from '../source.ts';
 import {
   type BrandString,
+  type ClassTable,
   type Envelope,
+  MAX_CLASSES,
   MAX_LABELS,
   type MatchDecision,
   type MatchTier,
@@ -33,6 +36,8 @@ import {
   WD_KEY,
   WD_VERSION,
   type WdStep,
+  candidateClasses,
+  classFlagsOf,
   decideMatches,
   hitSteps,
   labelVariants,
@@ -41,7 +46,7 @@ import {
   recordsOf,
   usableBrand,
 } from './map.ts';
-import { WD_ENDPOINT, entitiesQuery, matchQuery } from './sparql.ts';
+import { WD_ENDPOINT, classQuery, entitiesQuery, matchQuery } from './sparql.ts';
 
 export { WD_JOB, WD_KEY, WD_VERSION } from './map.ts';
 
@@ -107,6 +112,8 @@ export function createWikidataSource(
   let matched = new Set<string>();
   let expanded = new Set<string>();
   let counts = emptyMatchCounts();
+  /** Class and industry flags looked up this run (D-066). */
+  let classCache: ClassTable = {};
   let entitySteps = 0;
   let maxHop = 0;
 
@@ -145,6 +152,7 @@ export function createWikidataSource(
       matched = new Set();
       expanded = new Set();
       counts = emptyMatchCounts();
+      classCache = {};
       entitySteps = 0;
       maxHop = 0;
       brands = (await loadBrands()).filter((b) => usableBrand(b.brand));
@@ -158,9 +166,27 @@ export function createWikidataSource(
         const sparql = matchQuery([...new Set(batch.flatMap((b) => labelVariants(b.brand)))]);
         const res = await query(ctx, sparql);
         const result: unknown = JSON.parse(res.body);
+
+        // Class and industry flags, asked only for the ones this run hasn't seen.
+        const used = candidateClasses(result);
+        const fresh = used.filter((q) => !(q in classCache));
+        const classQueries: string[] = [];
+        const classResults: unknown[] = [];
+        for (let i = 0; i < fresh.length; i += MAX_CLASSES) {
+          const chunk = fresh.slice(i, i + MAX_CLASSES);
+          const q = classQuery(chunk);
+          const r: unknown = JSON.parse((await query(ctx, q)).body);
+          classQueries.push(q);
+          classResults.push(r);
+          Object.assign(classCache, classFlagsOf(r, chunk));
+        }
+        const classes: ClassTable = Object.fromEntries(
+          used.map((q) => [q, classCache[q] ?? { excluded: false, trade: false }]),
+        );
         const decisions = decideMatches(
           batch.map((b) => b.brand),
           result,
+          classes,
         );
         const productsOf = new Map(batch.map((b) => [b.brand, b.products]));
 
@@ -197,6 +223,9 @@ export function createWikidataSource(
           brands: batch.map((b) => b.brand),
           query: sparql,
           result,
+          classQueries,
+          classResults,
+          classes,
         };
         const event: SourceEvent = {
           severity: 'info',
