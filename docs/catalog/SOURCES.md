@@ -95,6 +95,7 @@ This table is mirrored in the `public.sources` table (one row per S-id, joined o
 | Est. rows / size | About 129k Canadian products. The dump is several GB, processed on the runner only. A selected-column extract is roughly 0.5–1 KB per row, so about 65–130 MB before indexes. P0.11 must budget this, possibly importing only products with a name and a brand. |
 | Verdict | **use**. ODbL share-alike **accepted** (D1): keep OFF-derived tables separable, publish an ODbL extract, and show attribution in the app UI. |
 | Pipeline (P3.5) | Source `off`, email User-Agent (P3.1). Reads the CSV export; on 2026-10-30 it was **1.53 GB** compressed (the data page still says ~0.9 GB), tab-separated, 211 columns, no `product_quantity_unit` column (the unit comes from `quantity`, D-057). Terms re-checked 2026-10-30: no change, so `terms_checked_at` stays 2026-10-26. |
+| ODbL extract (P3.8) | Published as `public-exports/odbl/<export id>/` (`products.csv.gz`, plus the Open Prices `stores.csv.gz` and `price_observations.csv.gz`, and a `README.md` naming the ODbL, the sources and the date). Public URL: `<SUPABASE_URL>/storage/v1/object/public/public-exports/odbl/<export id>/<file>`; the latest 2 exports are kept (D-062). |
 
 ### S2 Open Food Facts: product API
 
@@ -168,6 +169,7 @@ This table is mirrored in the `public.sources` table (one row per S-id, joined o
 | Est. rows / size | Hundreds of Canadian rows today. Negligible size. |
 | Verdict | **use**: free, open and GTIN-keyed (ODbL accepted, D1). Too thin to rely on. Prices from consenting users' receipts may be contributed back (D7). |
 | Pipeline (P3.9) | Source `open-prices` (D-060). Reads both daily dumps; on 2026-11-03 prices.jsonl.gz was 22.6 MB (340,038 prices, 715 CAD) and locations.jsonl.gz 1.2 MB (7,781 locations, 100 Canadian OSM). Terms re-checked 2026-11-03: robots.txt still empty; the data guide still asks for ODbL compliance and adds "contributing back any product you add using this SDK" (we don't use their SDK). No change, so `terms_checked_at` stays 2026-10-26. Since P3.10a, price URLs are rebuilt from `url_template` `https://prices.openfoodfacts.org/prices/{external_id}` (D-061). |
+| ODbL extract (P3.8) | Published as `public-exports/odbl/<export id>/` (`products.csv.gz`, plus the Open Prices `stores.csv.gz` and `price_observations.csv.gz`, and a `README.md` naming the ODbL, the sources and the date). Public URL: `<SUPABASE_URL>/storage/v1/object/public/public-exports/odbl/<export id>/<file>`; the latest 2 exports are kept (D-062). |
 
 ### S6 Statistics Canada table 18-10-0245-01 (monthly average retail prices)
 

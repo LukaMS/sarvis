@@ -1070,7 +1070,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/off/*`.
 - **Verification:** the source-task rules, with `--mode delta` in place of the sample commands: one delta run, then a second that fetches no new files and writes nothing.
 
-### [ ] P3.8 Publish the ODbL extract
+### [x] P3.8 Publish the ODbL extract
 - **Slice:** exports.
 - **Goal:** meet the ODbL share-alike condition (D-013 D1) by publishing the OFF- and Open-Prices-derived tables.
 - **Deps:** P3.6, P3.10.

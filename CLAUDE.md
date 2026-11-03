@@ -63,6 +63,7 @@ Fill these in during Phase 1 and keep them current.
 | Run a scraper on a sample | `npm run pipeline -- run <source> --sample N` (dev project; add `--dry-run` to fetch, parse and validate without writing catalog rows or raw files; without `--sample`, `--mode full\|delta`). `npm run pipeline -- --help` lists the sources. Exit code 0 completed, 2 completed with errors, 1 failed, 130 cancelled |
 | OFF daily delta | `npm run pipeline -- run off --mode delta` (dev project; imports the delta files a completed delta run hasn't stored yet, so a re-run fetches only the index; never deactivates) |
 | Re-import legacy content | `npm run pipeline -- run legacy-import` (dev project; maps `docs/legacy/data/*.json` to pending facts with review-queue rows; idempotent, so a re-run inserts nothing) |
+| Publish the ODbL extract | `npm run pipeline -- export odbl` (dev project; OFF products and Open Prices stores and prices as CSV.gz plus a README, to the public `public-exports` bucket under `odbl/<UTC time>/`; keeps the latest 2 exports and deletes older ones; exit 0 or 1) |
 | Pipeline e2e (run twice) | `npm run e2e --workspace @sarvis/pipeline` (dev project; runs `pipeline run fixture` twice through a local HTTP server, checks run 2 inserts nothing, provenance, raw files and validation failures, then deletes everything; skipped in `npm test` without the dev key) |
 
 ## Verifying your work

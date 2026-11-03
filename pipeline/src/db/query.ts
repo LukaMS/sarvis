@@ -28,8 +28,10 @@ export interface LooseQuery extends PromiseLike<Result> {
   eq(column: string, value: unknown): LooseQuery;
   in(column: string, values: readonly unknown[]): LooseQuery;
   is(column: string, value: null): LooseQuery;
+  gt(column: string, value: unknown): LooseQuery;
   order(column: string, options?: { ascending?: boolean }): LooseQuery;
   range(from: number, to: number): LooseQuery;
+  limit(count: number): LooseQuery;
 }
 interface LooseTable {
   select(columns: string): LooseQuery;

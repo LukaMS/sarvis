@@ -24,7 +24,15 @@ describe('parseCliArgs', () => {
     });
   });
 
+  it('parses export odbl', () => {
+    expect(parseCliArgs(['export', 'odbl'])).toEqual({ command: 'export', target: 'odbl' });
+  });
+
   it.each([
+    [['export'], /Unknown export/],
+    [['export', 'csv'], /Unknown export/],
+    [['export', 'odbl', 'x'], /Unexpected arguments/],
+    [['export', 'odbl', '--sample', '5'], /takes no options/],
     [['sync', 'fixture'], /Unknown command/],
     [['run'], /Missing the source key/],
     [['run', 'a', 'b'], /Unexpected arguments/],

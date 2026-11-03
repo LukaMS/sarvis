@@ -2,6 +2,30 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.8 Publish the ODbL extract (done)
+
+**What changed**
+- Migration `20261103152120_public_exports_bucket`: public bucket `public-exports` (50 MB per file, gzip and markdown only, no `storage.objects` policies, so only the service role writes).
+- `pipeline/src/exports/odbl.ts` and test (11 cases), `npm run pipeline -- export odbl` in `cli.ts` (4 new parse tests). It reads OFF products and Open Prices stores and prices (keyset pages of 1,000), writes `products.csv.gz`, `stores.csv.gz`, `price_observations.csv.gz` and a `README.md` to `odbl/<UTC time>/`, then deletes the folders beyond the latest 2. `LooseQuery` gains `gt` and `limit`.
+- D-062; BUDGET "Actuals: ODbL extract" and the §6 egress note; SOURCES S1 and S5 say where the extract lives; CLAUDE.md command row.
+
+**Verification** (dev project)
+- **Export 1** `20261103T152135Z`: products 3,727,341 B (90,659 rows), stores 4,955 B (100), prices 10,917 B (521), README 1,561 B.
+- **Anonymous download:** all 4 files from `https://smqovgawfjmxernqlxjd.supabase.co/storage/v1/object/public/public-exports/odbl/20261103T152135Z/…` returned 200 with no auth header (`application/gzip`, `text/markdown`). Parsed with Python's `csv`: **90,659 product rows = the SQL count of OFF products (90,659)**, 100 stores, 521 prices, 0 rows with the wrong number of fields. All 521 prices have a store OSM id, a GTIN and a URL. The README names the ODbL (and DbCL), Open Food Facts, Open Prices, OpenStreetMap, the date and the counts.
+- **Export 2** `20261103T152225Z`: kept 2, deleted none. **Export 3** `20261103T152251Z`: deleted `20261103T152135Z`. `storage.objects` then held **exactly 2 exports (8 files, 7.49 MB)**. An uncached GET of a deleted file returns 400. A plain GET still got 200 from the CDN cache (up to 1 h, D-062).
+- **anon can't write:** with the publishable key, upload and overwrite were refused ("new row violates row-level security policy"), delete removed 0 objects, and list returned 0 entries. The public README still downloads.
+- **Advisors:** security unchanged (only `auth_leaked_password_protection`, as before). The migration adds no tables or indexes, so performance can't change: 58 `unused_index` INFO, as before.
+- **Checks:** `npm test` 461 passed, 1 skipped; typecheck, lint and `format:check` pass.
+
+**For you**
+- The extract is live at the public URL above. It's the dev project, so it's public but not linked anywhere yet (the Phase 10 About screen links it).
+- "A second export leaves exactly 2 files" is read as 2 exports, since each export is 4 files (D-062).
+- The export isn't scheduled yet (Phase 6). Run it by hand after a big import.
+
+**Next:** P3.11 StatCan reference prices.
+
+---
+
 ## 2026-11-03 — P3.10a Budget: store and price row widths (done)
 
 **What changed**

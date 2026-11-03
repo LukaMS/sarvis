@@ -1,11 +1,12 @@
 // The pipeline command line (PLAN P2.17). From the repo root:
 //
 //   npm run pipeline -- run <source> [--sample N] [--dry-run] [--mode full|delta]
+//   npm run pipeline -- export odbl
 //
 // `--sample N` runs the first N records; `--dry-run` fetches, parses and validates but writes no
 // catalog rows or raw files (the run row and its events are still recorded). Without either, the
 // run is `--mode` (default full). Exit codes: 0 completed, 2 completed with errors, 1 failed or a
-// bad command, 130 cancelled.
+// bad command, 130 cancelled. `export odbl` publishes the ODbL extract (P3.8): exit 0 or 1.
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
@@ -14,6 +15,7 @@ import type { RunMode } from '@sarvis/core';
 import { type ServiceClient, getServiceClient } from './db/client.ts';
 import { writerFor } from './db/writers/index.ts';
 import { parseContactEmail } from './env.ts';
+import { exportOdbl } from './exports/odbl.ts';
 import { ConfigurationError, classifyError } from './errors.ts';
 import { type Logger, logger as rootLogger } from './log.ts';
 import { type RunResult, runSource, storageRawWriter } from './runs/driver.ts';
@@ -22,15 +24,20 @@ import { createShutdownController } from './shutdown.ts';
 import { type Source, createSource, listSourceKeys, registerAllSources } from './sources/index.ts';
 
 export const USAGE = `Usage: npm run pipeline -- run <source> [--sample N] [--dry-run] [--mode full|delta]
+       npm run pipeline -- export odbl
 
   --sample N   Run the first N records only (mode sample).
   --dry-run    Fetch, parse and validate, but write no catalog rows or raw files.
                With --sample, a dry run of the first N records.
   --mode M     full (default) or delta. Not with --sample or --dry-run.
-  --help       Show this help.`;
+  --help       Show this help.
+
+  export odbl  Publish the ODbL extract (OFF products, Open Prices stores and prices) to the
+               public-exports bucket, keeping the latest 2 exports.`;
 
 export type CliCommand =
   | { command: 'help' }
+  | { command: 'export'; target: 'odbl' }
   | { command: 'run'; sourceKey: string; mode: RunMode; sampleSize: number | null };
 
 /** Parses argv (without node and the script). Throws ConfigurationError on a bad command. */
@@ -55,6 +62,16 @@ export function parseCliArgs(argv: string[]): CliCommand {
   if (values.help || positionals.length === 0) return { command: 'help' };
 
   const [command, sourceKey, ...extra] = positionals;
+  if (command === 'export') {
+    if (sourceKey !== 'odbl') {
+      throw new ConfigurationError(`Unknown export: ${sourceKey ?? '(none)'}. Exports: odbl.`);
+    }
+    if (extra.length > 0) throw new ConfigurationError(`Unexpected arguments: ${extra.join(' ')}`);
+    if (Object.keys(values).length > 0) {
+      throw new ConfigurationError('export odbl takes no options.');
+    }
+    return { command: 'export', target: 'odbl' };
+  }
   if (command !== 'run') throw new ConfigurationError(`Unknown command: ${command}\n\n${USAGE}`);
   if (!sourceKey) throw new ConfigurationError(`Missing the source key.\n\n${USAGE}`);
   if (extra.length > 0) throw new ConfigurationError(`Unexpected arguments: ${extra.join(' ')}`);
@@ -151,6 +168,31 @@ export async function main(argv: string[], log: Logger = rootLogger): Promise<nu
     registerAllSources();
     process.stdout.write(`${USAGE}\n\nSources: ${listSourceKeys().join(', ')}\n`);
     return 0;
+  }
+
+  if (cmd.command === 'export') {
+    try {
+      const result = await exportOdbl(getServiceClient(), { log });
+      const files = result.files.map(
+        (f) => `  ${f.path}  ${f.bytes} B${f.rows === undefined ? '' : `, ${f.rows} rows`}`,
+      );
+      process.stdout.write(
+        [
+          '',
+          `export odbl ${result.exportId}: completed`,
+          ...files,
+          `  kept    ${result.kept.join(', ')}`,
+          `  deleted ${result.pruned.join(', ') || '(none)'}`,
+          `  url     ${result.files[0]?.url.replace(/[^/]+$/, '') ?? ''}`,
+          '',
+        ].join('\n'),
+      );
+      return 0;
+    } catch (err) {
+      const c = classifyError(err);
+      log.error('ODbL export failed', { errorType: c.type, err });
+      return 1;
+    }
   }
 
   const shutdown = createShutdownController({ log });

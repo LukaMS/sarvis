@@ -186,6 +186,13 @@ Two full runs on the 2026-11-02 dumps (prices 22.6 MB gz, 340,038 rows, 715 CAD;
 
 The table totals are far under §3, but the two row widths are over by more than 20%, so P3.10a comes before these tables grow (receipts, Phase 8). It's placed before P3.11.
 
+### Actuals: ODbL extract (P3.8, 2026-11-03, dev project)
+
+| Measure | Actual | §5 estimate | Note |
+|---|---:|---:|---|
+| One export (gz) | 3.74 MB: products 3,727,341 B (90,659 rows), stores 4,955 B (100), prices 10,917 B (521), README 1,561 B | ≈ 8 MB | ✅ (gzip level 9; no internal ids) |
+| `public-exports` bucket (latest 2) | 7.49 MB, 8 files | 16 MB | ✅ |
+
 ### Actuals: Open Prices row widths (P3.10a, 2026-11-03, dev project)
 
 After `open-prices@1.0.1` (street-part `address`) and the price `url_template` migration (D-061). Two full runs on the same dumps (both 304).
@@ -236,6 +243,8 @@ Both widths are back within 20% of §3, so §3 isn't re-baselined. Stores sit ri
 | Storage | sum of `storage.objects.metadata->size` | 700 MB | 800 MB: run cleanup now; shorten retention |
 | OpenRouter spend | sum of `ai_calls.cost_usd` this month vs. the hard cap | 80% of cap | 95%: the spend guard blocks batch jobs (`status = budget_blocked`) |
 | Supabase egress | dashboard (free tier 5 GB a month) | 4 GB | stop serving the ODbL extract from Storage (move it elsewhere) |
+
+**Egress note (P3.8):** one full ODbL export is **3.74 MB** (products 3.73 MB, stores 5 KB, prices 11 KB, README 2 KB; 2026-11-03). About 1,070 full downloads a month reach the 4 GB warning, so the extract alone won't trigger it at today's traffic. The CDN caches files for 1 h (`cacheControl: 3600`), and cache hits may still count as egress.
 
 The `catalog_quality` view (DATA_MODEL §4) exposes the DB and storage numbers for the P5 dashboard.
 
