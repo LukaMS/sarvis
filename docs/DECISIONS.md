@@ -412,6 +412,10 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-064 `reference_prices` keeps its per-row `source_url` — Accepted (P3.11a)
+- BUDGET §3 is re-baselined from measurement (276 B heap + 97 B index per row, 11.2 MB at 30k rows) instead of moving the table URL to `url_template`.
+**Why:** the template route needs a new key column and a view change, and saves only ~53 B net per row (still +78% on the old estimate), about 1.6 MB in all. The old estimate had left out the +prov block. The table is complete and grows by ~0.9 MB a year.
+
 ## D-063 StatCan reference prices source — Accepted (P3.11)
 - **WDS, not the CSV ZIP:** `getCubeMetadata` (1 POST), then `getDataFromCubePidCoordAndLatestNPeriods` for 20 coordinates per POST, with `latestN` = the months from 2017-01 to the cube's end month (116 on 2026-11-03). Coordinates are `<geography member>.<product member>.0.0.0.0.0.0.0.0`; geographies Canada and Ontario by English member name; every product member. The HTTP client's robots handling plus the source row's 0.5 req/s keep to `Crawl-delay: 2`.
 - **Raw:** step 1 stores the metadata response verbatim (it yields no records). Each data step stores an envelope (`sarvis-statcan-data/1`): the WDS response as parsed JSON plus the series it asked for (coordinate, geography and product names), because the response carries only coordinates and vector ids. So each data file parses on its own (as with Open Prices' extracts, D-060).

@@ -10,13 +10,13 @@ Estimated 2026-10-26.
 
 | Budget | Limit | Estimate (target coverage, 12 months) | Status |
 |---|---|---|---|
-| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 294 MB** (267 MB plus 10%) | ✅ within budget, ~56 MB headroom |
+| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 300 MB** (273 MB plus 10%) | ✅ within budget, ~50 MB headroom |
 | User data (100 active users, 12 months, plus 10%) | — | ≈ 49 MB | — |
 | Platform overhead (auth, storage metadata, extensions) | — | ≈ 30 MB (assumed) | — |
-| **Whole database** | 500 MB, alarm 400 MB | **≈ 373 MB** | ✅ under the alarm, ~27 MB headroom |
+| **Whole database** | 500 MB, alarm 400 MB | **≈ 379 MB** | ✅ under the alarm, ~21 MB headroom |
 | **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 289 MB** (251 MB plus 15%) | ✅ within budget |
 
-A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md.
+A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), so the subtotal is now 273 MB.
 
 **Target coverage** means:
 - every OFF product sold in Canada that passes the import filter;
@@ -53,7 +53,7 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `price_observations` | 20,000 | 208 | 110 | 7.0 | non-receipt sources (Open Prices, manual), all time |
 | `price_points_weekly` | 30,000 | 108 | 70 | 5.8 | receipt aggregates per store × product × week, 90 days |
 | `price_points_monthly` | 80,000 | 98 | 60 | 13.8 | rollup per store × product × month for 12 months, then per banner |
-| `reference_prices` | 30,000 | 118 | 50 | 5.6 | StatCan 18-10-0245-01, Canada + Ontario, since 2017 |
+| `reference_prices` | 30,000 | 276 | 97 | 11.2 | StatCan 18-10-0245-01, Canada + Ontario, since 2017. **Measured** (P3.11a): the first estimate (118 / 50) left out the +prov block |
 | `price_sanity_bounds` | 5,000 | 88 | 40 | 0.7 | per category × unit basis |
 | `documents` | 40,000 | 328 | 110 | 19.5 | articles + other cited pages (title, URL, no full text) |
 | `document_entities` | 60,000 | 198 | 110 | 20.3 | document ↔ company/brand links with stance |
@@ -74,7 +74,7 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `validation_failures` | 12,000 | 308 | 60 | 5.0 | ≤ 50 per run, 30 days |
 | `ai_calls` | 30,000 | 168 | 70 | 7.9 | 13 months |
 | `audit_log` | 20,000 | 228 | 60 | 6.4 | manual edits |
-| **Subtotal** | | | | **267** | |
+| **Subtotal** | | | | **273** | |
 
 **User data (100 active users, 12 months)**
 
@@ -200,6 +200,12 @@ Full run `898792c1` on the cube released 2026-10-07 (end month 2026-08).
 | Whole DB | 96 MB | alarm 400 MB | ✅ |
 
 The table is complete (it grows by 220 rows a month), so P3.11a either trims the width or re-baselines §3.
+
+### Actuals: `reference_prices` re-baselined (P3.11a, 2026-11-03)
+
+§3 now uses the P3.11 measurement: **276 B heap and 97 B index per row** (7,045,120 B and 2,473,984 B over 25,520 rows), so **11.2 MB at 30,000 rows** (was 5.6 MB). The catalog subtotal goes from 267 to 273 MB (≈ 300 MB with bloat), and the whole DB estimate from 373 to 379 MB, still under the 400 MB alarm.
+
+Why re-baseline instead of trimming: the only per-row cut is `source_url` (65 B, the same table URL on every row). Rebuilding it from `url_template` needs a new key column (≈ 12 B), so a row would still be ≈ 210 B, +78% on the old 118 B, and still over the line. The old figure left out the +prov block that every fact table carries (D-032), so it was the estimate that was wrong. The table is complete at ~26k rows and grows by 220 rows a month (≈ 0.9 MB a year with indexes), so there's no scale-up left to protect (D-064).
 
 ### Actuals: ODbL extract (P3.8, 2026-11-03, dev project)
 

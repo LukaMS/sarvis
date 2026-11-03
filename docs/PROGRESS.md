@@ -2,6 +2,23 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.11a Budget: `reference_prices` row width (done)
+
+**What changed**
+- Docs only. BUDGET §3 `reference_prices` is re-baselined from the P3.11 measurement: 276 B heap + 97 B index per row, **11.2 MB at 30,000 rows** (was 118 + 50 B, 5.6 MB). The §3 subtotal goes 267 → 273 MB, §1 catalog ≈ 294 → 300 MB, and the whole DB estimate 373 → 379 MB (alarm 400 MB). New BUDGET section "Actuals: `reference_prices` re-baselined"; D-064.
+- Option (a), rebuilding the table URL from `url_template`, was rejected. It needs a new key column and a view change, and a row would still be ≈ 210 B (+78%), so it can't get back within 20%.
+
+**Verification**
+- The re-baselined §3 line and the Actuals section are in BUDGET. No schema or code change, so no pipeline runs.
+- `npm run typecheck`, `lint`, `format:check` and `npm test` pass (470 passed, 1 skipped).
+
+**For you**
+- The whole-DB estimate is now 379 MB, which leaves ~21 MB under the 400 MB alarm. That's still in budget, but the margin is shrinking; the §7 levers are unchanged.
+
+**Next:** P3.12 Wikidata (a): ownership sample.
+
+---
+
 ## 2026-11-03 — P3.11 StatCan reference prices (done)
 
 **What changed**

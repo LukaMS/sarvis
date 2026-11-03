@@ -1132,7 +1132,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/statcan/*` and tests, `pipeline/src/sources/registry.ts`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules for **both** a sample and a full run, including the budget check. Also: one series checked by hand against the StatCan table page (value, month, geography).
 
-### [ ] P3.11a Budget: `reference_prices` row width (added in P3.11)
+### [x] P3.11a Budget: `reference_prices` row width (added in P3.11)
 - **Slice:** source-statcan.
 - **Goal:** bring `reference_prices` back within 20% of BUDGET §3, or re-baseline §3 with a reason (the budget rule in "Rules for every source task").
 - **Deps:** P3.11.
