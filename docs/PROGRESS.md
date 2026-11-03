@@ -2,6 +2,35 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.11 StatCan reference prices (done)
+
+**What changed**
+- Source `statcan-18100245` (`pipeline/src/sources/statcan/{index,map}.ts`, registered): WDS cube metadata, then the Canada and Ontario series of all 110 products, 20 per POST, into `reference_prices` (D-063). Tests (9) on fixtures trimmed from real WDS responses, including a run through the driver with a fake HTTP client.
+- PLAN gains **P3.11a** (row width; see below). BUDGET "Actuals: StatCan reference prices"; SOURCES S6 pipeline row; CLAUDE.md command row; D-063.
+
+**Verification** (dev project; cube released 2026-10-07, end month 2026-08)
+- **Terms:** Open Licence page unchanged (modified 2025-07-10); robots.txt still `Crawl-delay: 2`, `/t1/wds/` not disallowed. `terms_checked_at` stays.
+- **Dry run** `d00b2f62` (`--dry-run --sample 100`): fetched 100, valid 100, nothing written.
+- **Sample** `71116a1e` (`--sample 100`): fetched 100, valid 100, **inserted 100**. **Again** `64c6b56e`: **inserted 0, unchanged 100**.
+- **Full** `898792c1-c1ca-4e6a-8941-b379962b16a3` (`--mode full`): completed. **Fetched 25,520, valid 25,520, invalid 0, inserted 25,420, unchanged 100** (the sample rows). Summary event: 220 series requested, 0 missing, 25,520 points, 0 dropped.
+- **Full again** `4d59addf-7d17-4222-bf8a-972fa3d3ff4a`: **inserted 0, updated 0, unchanged 25,520**.
+- **Validation failures by rule:** none (0 rows for the three writing runs).
+- **Rows:** 25,520 = 220 vectors × 116 months (2017-01 … 2026-08), 12,760 Canada and 12,760 Ontario; no null units.
+- **Provenance:** the SQL count of rows missing `fetched_at`, `method`, `method_version`, `ingestion_run_id`, `raw_object_id` or `source_url` is **0**.
+- **Raw:** 12 `raw_objects` for the full run (metadata 8,335 B, then 11 envelopes of 13.4–14.7 KB). `readRaw()` on all 12 re-parses to 25,520 records (all valid), equal to the stored rows (value, label, unit, geography) 25,520/25,520.
+- **Hand check:** Ontario, "Ground beef, per kilogram", `v1159447178`. The table's own CSV download (`dtl!downloadDbLoadingData-nonTraduit.action?pid=1810024501&latestN=6&selectedMembers=[[6],[4]]`) gives 2026-03 … 2026-08 = 15.26, 15.39, 16.15, 16.17, 16.63, 16.09, with the same vector and coordinate `6.4`. The stored rows match all six.
+- **Examples** (as stored; all `https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1810024501`, `api`, `statcan-18100245@1.0.0`, run `898792c1`, raw `88e59a46`, fetched 2026-11-03 15:53:34 UTC): `v1159447178` Ground beef / per kilogram / Ontario: 2026-03 15.26, 2026-04 15.39, 2026-06 16.17, 2026-07 16.63, 2026-08 16.09.
+- **Budget:** 25,520 rows vs 30,000 ✅, but **266 B per row vs 118 B (+125%)** and **9.56 MB vs 5.6 MB (+71%)**. That's over the 20% line, so it's **PLAN P3.11a**. Raw 172 KB per run ✅, raw bucket 13.2 MB, DB 96 MB.
+- **Checks:** `npm test` 470 passed, 1 skipped; typecheck, lint and `format:check` pass.
+
+**For you**
+- **P3.11a is new** (budget rule). The §3 estimate left out the provenance columns. The table is complete and small (≈ 0.7 MB a year of growth), so re-baselining is likely the cheap answer; trimming `source_url` needs a schema change.
+- No value was suppressed for Canada or Ontario, so the drop counters were all 0 on real data (they're tested on the fixture).
+
+**Next:** P3.11a Budget: `reference_prices` row width.
+
+---
+
 ## 2026-11-03 — P3.8 Publish the ODbL extract (done)
 
 **What changed**

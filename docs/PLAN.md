@@ -1120,7 +1120,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/open-prices/map.ts` and test, `docs/catalog/BUDGET.md`, possibly `supabase/migrations/*_open_prices_url_template.sql`.
 - **Verification:** the source-task rules for a scale-up (two `--mode full` runs: the first updates 100 stores and nothing else, the second writes nothing), the new widths in a BUDGET "Actuals" line, `npm run typecheck`, `lint` and `test` pass.
 
-### [ ] P3.11 StatCan reference prices
+### [x] P3.11 StatCan reference prices
 - **Slice:** source-statcan.
 - **Goal:** monthly average retail prices (table 18-10-0245-01) for Canada and Ontario, as the price-sanity reference.
 - **Deps:** P3.4.
@@ -1131,6 +1131,16 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** `price_sanity_bounds` (Phase 4).
 - **Files:** `pipeline/src/sources/statcan/*` and tests, `pipeline/src/sources/registry.ts`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules for **both** a sample and a full run, including the budget check. Also: one series checked by hand against the StatCan table page (value, month, geography).
+
+### [ ] P3.11a Budget: `reference_prices` row width (added in P3.11)
+- **Slice:** source-statcan.
+- **Goal:** bring `reference_prices` back within 20% of BUDGET §3, or re-baseline §3 with a reason (the budget rule in "Rules for every source task").
+- **Deps:** P3.11.
+- **Found in P3.11:** 25,520 rows (§3: 30,000) average **266 B** (`pg_column_size`) against 118 B heap (+125%); the table is **9.56 MB** (heap 7.0 + indexes 2.5) against 5.6 MB (+71%). The §3 figure left out the +prov block. Per row: `source_url` 65 B (the same table URL on every row), `method_version` 23 B, the +prov uuids and timestamps (~56 B), and `product_label` / `unit` / `geography` repeated per month (~31 B).
+- **In:** pick the cheaper of: (a) a `url_template` route for the table URL (it needs an `external_id`-like key, e.g. the vector id, so it's a schema change to `reference_prices` and the view); (b) re-baseline §3 at ≈ 270 B, since the table is complete at ~26k rows and grows by 220 rows a month (≈ 0.7 MB a year). Record the choice in DECISIONS.
+- **Out:** a series table for the repeated labels (only if (a) and (b) both fall short).
+- **Files:** `docs/catalog/BUDGET.md`, possibly `supabase/migrations/*_reference_prices_*.sql`, `pipeline/src/sources/statcan/map.ts`.
+- **Verification:** the new width or the re-baselined §3 line in a BUDGET "Actuals" line; if the schema changes, two `--mode full` runs (the first updates rows in place, the second writes nothing), `npm run typecheck`, `lint` and `test` pass.
 
 ### [ ] P3.12 Wikidata (a): ownership sample
 - **Slice:** source-wikidata.

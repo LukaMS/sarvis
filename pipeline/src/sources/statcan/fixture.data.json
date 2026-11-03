@@ -1,0 +1,151 @@
+[
+  {
+    "status": "SUCCESS",
+    "object": {
+      "responseStatusCode": 0,
+      "productId": 18100245,
+      "coordinate": "11.64.0.0.0.0.0.0.0.0",
+      "vectorId": 1353834334,
+      "vectorDataPoint": [
+        {
+          "refPer": "2026-07-01",
+          "refPer2": "",
+          "refPerRaw": "2026-07-01",
+          "refPerRaw2": "",
+          "value": 4.63,
+          "decimals": 2,
+          "scalarFactorCode": 0,
+          "symbolCode": 0,
+          "statusCode": 0,
+          "securityLevelCode": 0,
+          "releaseTime": "2026-09-02T08:30",
+          "frequencyCode": 6
+        },
+        {
+          "refPer": "2026-08-01",
+          "refPer2": "",
+          "refPerRaw": "2026-08-01",
+          "refPerRaw2": "",
+          "value": 4.4,
+          "decimals": 2,
+          "scalarFactorCode": 0,
+          "symbolCode": 0,
+          "statusCode": 0,
+          "securityLevelCode": 0,
+          "releaseTime": "2026-10-07T08:30",
+          "frequencyCode": 6
+        }
+      ]
+    }
+  },
+  {
+    "status": "SUCCESS",
+    "object": {
+      "responseStatusCode": 0,
+      "productId": 18100245,
+      "coordinate": "11.4.0.0.0.0.0.0.0.0",
+      "vectorId": 111,
+      "vectorDataPoint": [
+        {
+          "refPer": "2026-06-01",
+          "refPer2": "",
+          "refPerRaw": "2026-06-01",
+          "refPerRaw2": "",
+          "value": null,
+          "decimals": 2,
+          "scalarFactorCode": 0,
+          "symbolCode": 0,
+          "statusCode": 1,
+          "securityLevelCode": 0,
+          "releaseTime": "2026-08-05T08:30",
+          "frequencyCode": 6
+        },
+        {
+          "refPer": "2026-07-01",
+          "refPer2": "",
+          "refPerRaw": "2026-07-01",
+          "refPerRaw2": "",
+          "value": 16.63,
+          "decimals": 2,
+          "scalarFactorCode": 0,
+          "symbolCode": 0,
+          "statusCode": 0,
+          "securityLevelCode": 0,
+          "releaseTime": "2026-09-02T08:30",
+          "frequencyCode": 6
+        },
+        {
+          "refPer": "2026-08-01",
+          "refPer2": "",
+          "refPerRaw": "2026-08-01",
+          "refPerRaw2": "",
+          "value": 16.09,
+          "decimals": 2,
+          "scalarFactorCode": 0,
+          "symbolCode": 0,
+          "statusCode": 0,
+          "securityLevelCode": 0,
+          "releaseTime": "2026-10-07T08:30",
+          "frequencyCode": 6
+        }
+      ]
+    }
+  },
+  {
+    "status": "SUCCESS",
+    "object": {
+      "responseStatusCode": 0,
+      "productId": 18100245,
+      "coordinate": "6.4.0.0.0.0.0.0.0.0",
+      "vectorId": 1159447178,
+      "vectorDataPoint": [
+        {
+          "refPer": "2026-06-01",
+          "refPer2": "",
+          "refPerRaw": "2026-06-01",
+          "refPerRaw2": "",
+          "value": 16.17,
+          "decimals": 2,
+          "scalarFactorCode": 0,
+          "symbolCode": 0,
+          "statusCode": 0,
+          "securityLevelCode": 0,
+          "releaseTime": "2026-08-05T08:30",
+          "frequencyCode": 6
+        },
+        {
+          "refPer": "2026-07-01",
+          "refPer2": "",
+          "refPerRaw": "2026-07-01",
+          "refPerRaw2": "",
+          "value": 16.63,
+          "decimals": 2,
+          "scalarFactorCode": 0,
+          "symbolCode": 0,
+          "statusCode": 0,
+          "securityLevelCode": 0,
+          "releaseTime": "2026-09-02T08:30",
+          "frequencyCode": 6
+        },
+        {
+          "refPer": "2026-08-01",
+          "refPer2": "",
+          "refPerRaw": "2026-08-01",
+          "refPerRaw2": "",
+          "value": 16.09,
+          "decimals": 2,
+          "scalarFactorCode": 0,
+          "symbolCode": 0,
+          "statusCode": 0,
+          "securityLevelCode": 0,
+          "releaseTime": "2026-10-07T08:30",
+          "frequencyCode": 6
+        }
+      ]
+    }
+  },
+  {
+    "status": "FAILED",
+    "object": "Product: 18100245 does not exist for coordinate: 6.64.0.0.0.0.0.0.0.0"
+  }
+]

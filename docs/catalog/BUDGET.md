@@ -186,6 +186,21 @@ Two full runs on the 2026-11-02 dumps (prices 22.6 MB gz, 340,038 rows, 715 CAD;
 
 The table totals are far under §3, but the two row widths are over by more than 20%, so P3.10a comes before these tables grow (receipts, Phase 8). It's placed before P3.11.
 
+### Actuals: StatCan reference prices (P3.11, 2026-11-03, dev project)
+
+Full run `898792c1` on the cube released 2026-10-07 (end month 2026-08).
+
+| Measure | Actual | §3/§5 estimate | Note |
+|---|---:|---:|---|
+| `reference_prices` rows | 25,520 (220 series × 116 months) | 30,000 | ✅ |
+| `reference_prices` avg row width (`pg_column_size`) | **266 B** | 118 B heap | **+125%**: §3 left out the +prov block; `source_url` 65 B, `method_version` 23 B. PLAN P3.11a. |
+| `reference_prices` total | **9.56 MB** (heap 7.05 + indexes 2.47) | 5.6 MB | **+71%**. PLAN P3.11a. |
+| Raw per full run (gz) | 172 KB, 12 files (metadata 8.3 KB + 11 data envelopes ≈ 14 KB each) | 0.5 MB × last 3 | ✅ |
+| `raw` bucket total | 13.2 MB, 123 files | 700 MB | ✅ |
+| Whole DB | 96 MB | alarm 400 MB | ✅ |
+
+The table is complete (it grows by 220 rows a month), so P3.11a either trims the width or re-baselines §3.
+
 ### Actuals: ODbL extract (P3.8, 2026-11-03, dev project)
 
 | Measure | Actual | §5 estimate | Note |

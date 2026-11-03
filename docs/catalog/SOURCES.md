@@ -187,6 +187,7 @@ This table is mirrored in the `public.sources` table (one row per S-id, joined o
 | Key fields | **product name and unit (key)**, **geography (key)**, **reference month (key)**, **value (CAD, key)**, vector id. |
 | Est. rows / size | About 220 Ontario + Canada series × monthly values, a few thousand rows. Under 1 MB. |
 | Verdict | **use** as a **price-sanity reference** for validation (flag observations far from the Ontario average) and for context in the app. Not a store price. |
+| Pipeline (P3.11) | Source `statcan-18100245` (D-063). WDS `getCubeMetadata`, then `getDataFromCubePidCoordAndLatestNPeriods` for the Canada and Ontario series of all 110 products (220 series, 20 per POST, 12 requests a run at 0.5 req/s). On 2026-11-03: cube end 2026-08-01, release 2026-10-07; 25,520 values, none suppressed. Terms re-checked 2026-11-03: the Open Licence page (modified 2025-07-10) and robots.txt (`Crawl-delay: 2`, `/t1/wds/` allowed) are unchanged, so `terms_checked_at` stays 2026-10-26. Attribution: "Source: Statistics Canada, Table 18-10-0245-01, <reference month>." |
 
 ---
 

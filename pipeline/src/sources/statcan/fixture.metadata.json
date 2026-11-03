@@ -1,0 +1,116 @@
+[
+  {
+    "status": "SUCCESS",
+    "object": {
+      "responseStatusCode": 0,
+      "productId": "18100245",
+      "cansimId": null,
+      "cubeTitleEn": "Monthly average retail prices for selected products",
+      "cubeTitleFr": "Prix de détail moyens mensuels pour certains produits",
+      "cubeStartDate": "2017-01-01",
+      "cubeEndDate": "2026-08-01",
+      "frequencyCode": 6,
+      "nbSeriesCube": 1308,
+      "nbDatapointsCube": 141432,
+      "releaseTime": "2026-10-07T08:30",
+      "archiveStatusCode": "2",
+      "archiveStatusEn": "CURRENT - a cube available to the public and that is current",
+      "archiveStatusFr": "ACTIF - un cube qui est disponible au public et qui est toujours mise a jour",
+      "subjectCode": ["1802", "2001"],
+      "surveyCode": ["2301"],
+      "dimension": [
+        {
+          "dimensionPositionId": 1,
+          "dimensionNameEn": "Geography",
+          "dimensionNameFr": "Géographie",
+          "hasUom": false,
+          "member": [
+            {
+              "memberId": 11,
+              "parentMemberId": null,
+              "memberNameEn": "Canada",
+              "memberNameFr": "Canada",
+              "classificationCode": "11124",
+              "classificationTypeCode": "1",
+              "geoLevel": 0,
+              "vintage": 2021,
+              "terminated": 0,
+              "memberUomCode": null
+            },
+            {
+              "memberId": 5,
+              "parentMemberId": 11,
+              "memberNameEn": "Quebec",
+              "memberNameFr": "Québec",
+              "classificationCode": "24",
+              "classificationTypeCode": "1",
+              "geoLevel": 2,
+              "vintage": 2021,
+              "terminated": 0,
+              "memberUomCode": null
+            },
+            {
+              "memberId": 6,
+              "parentMemberId": 11,
+              "memberNameEn": "Ontario",
+              "memberNameFr": "Ontario",
+              "classificationCode": "35",
+              "classificationTypeCode": "1",
+              "geoLevel": 2,
+              "vintage": 2021,
+              "terminated": 0,
+              "memberUomCode": null
+            }
+          ]
+        },
+        {
+          "dimensionPositionId": 2,
+          "dimensionNameEn": "Products",
+          "dimensionNameFr": "Produits",
+          "hasUom": true,
+          "member": [
+            {
+              "memberId": 4,
+              "parentMemberId": null,
+              "memberNameEn": "Ground beef, per kilogram",
+              "memberNameFr": "Boeuf haché, par kilogramme",
+              "classificationCode": null,
+              "classificationTypeCode": null,
+              "geoLevel": null,
+              "vintage": null,
+              "terminated": 0,
+              "memberUomCode": 81
+            },
+            {
+              "memberId": 64,
+              "parentMemberId": null,
+              "memberNameEn": "Tea (20 bags)",
+              "memberNameFr": "Thé (20 sachets)",
+              "classificationCode": null,
+              "classificationTypeCode": null,
+              "geoLevel": null,
+              "vintage": null,
+              "terminated": 0,
+              "memberUomCode": 81
+            }
+          ]
+        }
+      ],
+      "footnote": [
+        {
+          "footnoteId": 1,
+          "footnotesEn": "Average price estimates for these products are derived using transaction data from Canadian grocery retailers. The composition of a given product category may change over time due to evolving consumer purchasing patterns and product availability. Therefore, users should exercise caution when comparing average prices over time as average prices may not be fully comparable from one month to another and should not be used as a representative measure of pure price change through time. Note: Data are subject to revision.",
+          "footnotesFr": "Les estimations du prix moyen de ces produits sont calculées à l’aide des données sur les transactions de détaillants en alimentation canadiens. La composition d’une catégorie de produit donnée peut changer avec le temps en raison de l’évolution des habitudes d’achat des consommateurs et de la disponibilité des produits.  Par conséquent, les utilisateurs doivent faire preuve de prudence lorsqu’ils comparent les prix moyens au fil du temps, car les prix moyens peuvent ne pas être entièrement comparables d’un mois à l’autre et ne doivent pas être utilisés comme une mesure représentative de la variation pure des prix au fil du temps. Remarque : Les données sont sujettes à révision.",
+          "link": {
+            "footnoteId": 1,
+            "dimensionPositionId": 0,
+            "memberId": 0
+          }
+        }
+      ],
+      "correctionFootnote": [],
+      "correction": [],
+      "issueDate": "2020-06-10"
+    }
+  }
+]
