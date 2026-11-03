@@ -2,6 +2,33 @@
 
 Newest entry first.
 
+## 2026-11-03 — IN PROGRESS: P3.13 Wikidata (b): ownership scale-up
+
+**Done** (`wikidata@1.4.0`, D-067)
+- The D-054 rule as code. `nextHop` computes each child's one current owner (`pickOwner`: preferred rank, then latest P580; same-edge statements count once; else a tie) and stores it on the `ChildSpec`. `recordsOf` marks the current owner edges that aren't the pick with `auto_hold: true` (a new optional edge-record field in core). Ended edges, minority stakes and the self edge are approved.
+- `AUTO_APPROVE` lists `wikidata` for companies, brands and both edge tables. Companies and brands are approved in `writeRecords`, edges in `approveEdges` (skips `auto_hold`, and skips anything the one-current-owner index would refuse). A stored row another source wrote is never approved (new guard, also covers OFF).
+- Fixes found in the first full run:
+  - `throttle` source option: Wikidata waits up to 5 min on a 429's `Retry-After`, or 60 s with none. The blocked error now names the `Retry-After`.
+  - A shared SEC CIK no longer loses the company (`withoutTakenCiks`).
+  - Auto-approved edges are no longer frozen against updates (`reviewed` needs `decision_method ≠ 'auto'`). Before, run 2 counted 893 of them `skipped_locked`, and Wikidata could never add an end date.
+- Tests: pick cases (one owner, rank, start date, tie, ended, minority, company parent, pre-1.4.0 envelope), `approveEdges` (pick, history, held, confirmed pending, admin-rejected, existing approved owner, no source), CIK guard, edge freeze, 429 without `Retry-After`. typecheck, lint, format:check and `npm test` pass (507 passed, 1 skipped).
+
+**Runs so far (none complete)**
+- `21a3c41c`: `failed` at 24 min, HTTP 429 with no usable `Retry-After`; 3,900 of 19,345 strings. WDQS answered again within 90 s. One company was lost to `companies_sec_cik_key` (fixed since).
+- `5c5318eb`: Claude Code stopped it for low system memory at 23:18 UTC after 9,550 strings (no 429). Its row is still `running`; the next run's start-up sweep marks it `failed` only after 6 h. Fix it by hand in SQL if needed.
+- DB after run 1: approved/auto: 693 companies, 690 brands, 593 brand edges, 300 company edges. Still `pending`: 21 companies, 20 brands, 26 brand edges, 59 company edges (stale sample rows plus held edges).
+
+**Next step (exact)**
+1. Ask the owner before re-running (the memory stop said not to restart on my own). Then run `npm run pipeline -- run wikidata --mode full` in the background. The cache covers the first ~half within 12 h of 22:42 UTC.
+2. Run it a second time: `inserted` must be 0. Then the source-task SQL checks: provenance missing = 0, orphan edges, cycles, at most one approved current owner per brand and per company, `review_queue` rows from Wikidata = 0. Also: the tie / lost / blocked counts (pending current Wikidata edges by child), the strings matched out of 19,345, 5 example records, and a `readRaw()` re-parse.
+3. Budget check (`brands`, `companies`, both ownership tables, `review_queue`, `pg_database_size`, `raw` bucket) in PROGRESS and in a BUDGET "Actuals" line. Then the SOURCES.md P3.13 line, tick, and commit.
+
+**Failing checks:** none in code. The full-run verification hasn't run yet.
+
+**Files touched:** `packages/core/src/records/ownership.ts`; `pipeline/src/db/writers/{common,ownership,ownership.test,products,review,review.test}.ts`; `pipeline/src/{errors,runs/driver,sources/source}.ts`; `pipeline/src/http/{client,client.test}.ts`; `pipeline/src/sources/wikidata/{index,map,wikidata.test}.ts`; `docs/DECISIONS.md` (D-067).
+
+---
+
 ## 2026-11-03 — P3.12c Wikidata: non-grocery retailers in the brand-class and US tiers (done)
 
 **Owner's decision:** P3.13 waits for this task (PLAN updated).

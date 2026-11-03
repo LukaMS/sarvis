@@ -1,7 +1,9 @@
 // Companies, brands and their ownership edges (DATA_MODEL §3.2). Companies and brands key on the
-// Wikidata QID, then the slug; the slug never changes once written. All of them arrive `pending`
-// and no import changes `review_status` (D-052). A reviewed company or brand still takes updates to
-// its unlocked fields; a reviewed edge is left alone.
+// Wikidata QID, then the slug; the slug never changes once written. All of them arrive `pending`.
+// Only the AUTO_APPROVE rule (Wikidata, D-054) changes `review_status`: on companies and brands
+// through writeRecords, on edges here, minus `auto_hold` edges and any the one-current-owner index
+// would refuse. A reviewed company or brand still takes updates to its unlocked fields; an edge a
+// person reviewed is left alone, and one the rule approved still takes updates.
 //
 // A second source (Wikipedia, SEC EDGAR, Corporations Canada) fills in fields on a company it
 // didn't create with company_enrichment records. The company keeps its own +prov block, and the
@@ -22,7 +24,7 @@ import {
   unknownRef,
   writeRecords,
 } from './common.ts';
-import { ReviewNotes, queueNotes } from './review.ts';
+import { OWNER_LIMITS, ReviewNotes, approveEdges, autoSourceIds, queueNotes } from './review.ts';
 
 /** Statuses only an admin sets. A row in one of them is frozen against imports. */
 const ADMIN_STATUSES = new Set(['merged', 'rejected']);
@@ -121,7 +123,47 @@ const COMPANY_COLUMNS =
   'id, slug, name, legal_name, aliases, kind, country, headquarters, founded_year, ownership_type, ' +
   'stock_ticker, website, description, logo_url, ceo, revenue_range, wikidata_qid, wikipedia_title, ' +
   'wikipedia_revision_id, sec_cik, corp_canada_number, opencorporates_id, status, locked_fields, ' +
-  'source_id, source_url, method';
+  'review_status, source_id, source_url, method';
+
+/**
+ * `companies.sec_cik` is unique, but Wikidata sometimes gives two items one CIK (a company and
+ * its renamed successor, or a duplicate item). The company that holds a CIK first keeps it; a
+ * later company with another QID is written without it, so one shared CIK doesn't lose the row
+ * and its edges (P3.13). `heldBy` maps a stored CIK to its company's QID (null for none).
+ * Only records with a QID are checked.
+ */
+export function withoutTakenCiks<
+  R extends { sec_cik?: string | null; wikidata_qid?: string | null },
+>(records: R[], heldBy: ReadonlyMap<string, string | null>): R[] {
+  const owner = new Map(heldBy);
+  return records.map((r) => {
+    // A record without a QID matches by slug and may hold its own CIK: the database decides.
+    const qid = r.wikidata_qid;
+    if (!r.sec_cik || !qid) return r;
+    if (!owner.has(r.sec_cik)) {
+      owner.set(r.sec_cik, qid);
+      return r;
+    }
+    return owner.get(r.sec_cik) === qid ? r : { ...r, sec_cik: null };
+  });
+}
+
+async function freeCiks<R extends { sec_cik?: string | null; wikidata_qid?: string | null }>(
+  db: ServiceClient,
+  records: R[],
+): Promise<R[]> {
+  const stored = await selectIn(
+    db,
+    'companies',
+    'sec_cik, wikidata_qid',
+    'sec_cik',
+    records.map((r) => r.sec_cik),
+  );
+  return withoutTakenCiks(
+    records,
+    new Map(stored.map((s) => [s.sec_cik as string, (s.wikidata_qid as string | null) ?? null])),
+  );
+}
 
 export function companyWriter(db: ServiceClient): DomainWriter<'company'> {
   const spec = entitySpec<TablesInsert<'companies'>>('companies', COMPANY_COLUMNS);
@@ -133,7 +175,7 @@ export function companyWriter(db: ServiceClient): DomainWriter<'company'> {
         db,
         kind: 'company',
         spec,
-        records: await assignEntitySlugs(db, 'companies', records),
+        records: await freeCiks(db, await assignEntitySlugs(db, 'companies', records)),
         refs,
         ctx,
         build: ({ source_key: _s, review_reason: _r, ...fields }, prov) => ({ ...fields, ...prov }),
@@ -144,7 +186,7 @@ export function companyWriter(db: ServiceClient): DomainWriter<'company'> {
 
 const BRAND_COLUMNS =
   'id, slug, name, aliases, wikidata_qid, website, logo_url, description, is_private_label, status, ' +
-  'locked_fields, source_id, source_url, method';
+  'locked_fields, review_status, source_id, source_url, method';
 
 export function brandWriter(db: ServiceClient): DomainWriter<'brand'> {
   const spec = entitySpec<TablesInsert<'brands'>>('brands', BRAND_COLUMNS);
@@ -166,9 +208,17 @@ export function brandWriter(db: ServiceClient): DomainWriter<'brand'> {
 }
 
 const EDGE_PROV = 'source_id, source_url, method';
-const reviewed = (stored: AnyRow) => stored.review_status !== 'pending';
+/** An edge's full match key (endpoints, relation and start); labels leave the start out. */
+const edgeKey = <P extends AnyRow>(spec: KeyedSpec<P>, p: P) => String(spec.keys(p)[0]);
+/**
+ * A person's approve or reject freezes an edge against imports. A rule's approval (D-054,
+ * `decision_method = 'auto'`) doesn't, so Wikidata can still add an end date to an edge it
+ * approved (P3.13).
+ */
+export const reviewed = (stored: AnyRow) =>
+  stored.review_status !== 'pending' && stored.decision_method !== 'auto';
 
-const BRAND_EDGE_COLUMNS = `id, brand_id, company_id, relation, valid_from, valid_to, confidence, ai_call_id, review_status, ${EDGE_PROV}`;
+const BRAND_EDGE_COLUMNS = `id, brand_id, company_id, relation, valid_from, valid_to, confidence, ai_call_id, review_status, decision_method, ${EDGE_PROV}`;
 
 const brandEdgeSpec: KeyedSpec<TablesInsert<'brand_ownership'>> = {
   table: 'brand_ownership',
@@ -212,6 +262,7 @@ export function brandOwnershipWriter(db: ServiceClient): DomainWriter<'brand_own
       );
       const result: WriteResult = emptyWriteResult();
       const notes = new ReviewNotes();
+      const held = new Set<string>();
       const payloads = records.flatMap((r): TablesInsert<'brand_ownership'>[] => {
         const key = keyOf('brand_ownership', r);
         const prov = provOf(r, refs, ctx);
@@ -239,16 +290,26 @@ export function brandOwnershipWriter(db: ServiceClient): DomainWriter<'brand_own
           ...prov,
         };
         notes.add(brandEdgeSpec.label(payload), r);
+        if (r.auto_hold) held.add(edgeKey(brandEdgeSpec, payload));
         return [payload];
       });
       const out = await upsertKeyed(db, brandEdgeSpec, payloads);
+      await approveEdges(
+        db,
+        OWNER_LIMITS.brand_ownership,
+        out.rows,
+        autoSourceIds(refs, 'brand_ownership'),
+        held,
+        (p) => edgeKey(brandEdgeSpec, p),
+        brandEdgeSpec.frozen,
+      );
       await queueNotes(db, brandEdgeSpec, notes, out);
       return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
     },
   };
 }
 
-const COMPANY_EDGE_COLUMNS = `id, parent_company_id, child_company_id, relation, share_pct, valid_from, valid_to, confidence, ai_call_id, review_status, ${EDGE_PROV}`;
+const COMPANY_EDGE_COLUMNS = `id, parent_company_id, child_company_id, relation, share_pct, valid_from, valid_to, confidence, ai_call_id, review_status, decision_method, ${EDGE_PROV}`;
 
 const companyEdgeSpec: KeyedSpec<TablesInsert<'company_ownership'>> = {
   table: 'company_ownership',
@@ -284,6 +345,7 @@ export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company
       );
       const result: WriteResult = emptyWriteResult();
       const notes = new ReviewNotes();
+      const held = new Set<string>();
       const payloads = records.flatMap((r): TablesInsert<'company_ownership'>[] => {
         const key = keyOf('company_ownership', r);
         const prov = provOf(r, refs, ctx);
@@ -318,9 +380,19 @@ export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company
           ...prov,
         };
         notes.add(companyEdgeSpec.label(payload), r);
+        if (r.auto_hold) held.add(edgeKey(companyEdgeSpec, payload));
         return [payload];
       });
       const out = await upsertKeyed(db, companyEdgeSpec, payloads);
+      await approveEdges(
+        db,
+        OWNER_LIMITS.company_ownership,
+        out.rows,
+        autoSourceIds(refs, 'company_ownership'),
+        held,
+        (p) => edgeKey(companyEdgeSpec, p),
+        companyEdgeSpec.frozen,
+      );
       await queueNotes(db, companyEdgeSpec, notes, out);
       return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
     },

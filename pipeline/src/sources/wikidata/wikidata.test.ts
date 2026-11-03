@@ -35,6 +35,7 @@ import {
   noFlags,
   parseEnvelope,
   pickCandidate,
+  pickOwner,
   recordsOf,
   sharePctOf,
   slugOf,
@@ -70,7 +71,7 @@ const HOP0_ENV = env({
 const HOP1_ENV = env({
   hop: 1,
   items: [{ qid: 'Q909856', brand: false, company: true, self: false, expand: true }],
-  children: [{ qid: 'Q845185', as: 'brand' }],
+  children: [{ qid: 'Q845185', as: 'brand', pick: 'Q909856:owner@' }],
   result: HOP1,
 });
 
@@ -337,7 +338,7 @@ describe('Entities', () => {
       source_url: 'https://www.wikidata.org/wiki/Q1145669',
       source_key: 'wikidata',
       method: 'api',
-      method_version: 'wikidata@1.3.0',
+      method_version: 'wikidata@1.4.0',
       fetched_at: FETCHED_AT,
     });
     expect(r.brandEdges).toEqual([
@@ -372,7 +373,11 @@ describe('Entities', () => {
         source_url: 'https://www.wikidata.org/wiki/Q845185#P127',
       }),
     ]);
+    expect(r.brandEdges[0]).not.toHaveProperty('auto_hold');
     expect(validateBatch('brand_ownership', r.brandEdges).stats.invalid).toBe(0);
+    // An envelope from before 1.4.0 has no pick: its current owner edges are held.
+    const old = recordsOf({ ...HOP1_ENV, children: [{ qid: 'Q845185', as: 'brand' }] }, FETCHED_AT);
+    expect(old.brandEdges[0]).toMatchObject({ auto_hold: true });
   });
 
   it('walks owners one hop at a time, each item once', () => {
@@ -382,7 +387,7 @@ describe('Entities', () => {
         kind: 'entities',
         hop: 1,
         items: [{ qid: 'Q909856', brand: false, company: true, self: false, expand: true }],
-        children: [{ qid: 'Q845185', as: 'brand' }],
+        children: [{ qid: 'Q845185', as: 'brand', pick: 'Q909856:owner@' }],
       },
     ]);
     // Loblaw's P127 and P749 name one parent: one item, Loblaw as its company child.
@@ -391,7 +396,7 @@ describe('Entities', () => {
         kind: 'entities',
         hop: 2,
         items: [{ qid: 'Q833217', brand: false, company: true, self: false, expand: true }],
-        children: [{ qid: 'Q909856', as: 'company' }],
+        children: [{ qid: 'Q909856', as: 'company', pick: 'Q833217:subsidiary@' }],
       },
     ]);
     // Already walked: still read (for the edge), not walked again.
@@ -437,6 +442,130 @@ describe('Entities', () => {
       ],
       [{ qid: 'Q3', brand: true, company: false, self: false, expand: false }],
     ]);
+  });
+});
+
+describe('One current owner (D-054)', () => {
+  const st = (
+    other: string,
+    o: Partial<Pick<Statement, 'rank' | 'start' | 'end' | 'sharePct' | 'prop'>> = {},
+  ): Statement => ({
+    prop: 'P127',
+    other,
+    rank: 'normal',
+    start: null,
+    end: null,
+    sharePct: null,
+    ...o,
+  });
+
+  it('picks the only current owner, and none when there is none', () => {
+    expect(pickOwner('Q9', [st('Q1')], 'brand')).toBe('Q1:owner@');
+    expect(pickOwner('Q9', [st('Q1', { end: '2018-01-01' })], 'brand')).toBeNull();
+    expect(pickOwner('Q9', [st('Q9')], 'brand')).toBeNull();
+    expect(pickOwner('Q9', [], 'brand')).toBeNull();
+  });
+
+  it('settles two owners by rank, then by the latest start', () => {
+    // Becel: Unilever (normal, no start) and Flora Food Group (preferred).
+    expect(pickOwner('Q9', [st('Q1'), st('Q2', { rank: 'preferred' })], 'brand')).toBe('Q2:owner@');
+    // Rank wins over a later start.
+    const ranked = [
+      st('Q1', { start: '2020-01-01' }),
+      st('Q2', { rank: 'preferred', start: '2001-01-01' }),
+    ];
+    expect(pickOwner('Q9', ranked, 'brand')).toBe('Q2:owner@2001-01-01');
+    // Same rank: the latest start, and a dated statement beats an undated one.
+    const dated = [st('Q1', { start: '2010-05-01' }), st('Q2', { start: '2018-07-02' })];
+    expect(pickOwner('Q9', dated, 'brand')).toBe('Q2:owner@2018-07-02');
+    const undated = [st('Q1'), st('Q2', { start: '1999-01-01' })];
+    expect(pickOwner('Q9', undated, 'brand')).toBe('Q2:owner@1999-01-01');
+  });
+
+  it('leaves a tie unpicked, but one owner named twice is no tie', () => {
+    expect(pickOwner('Q9', [st('Q1'), st('Q2')], 'brand')).toBeNull();
+    const sameStart = [st('Q1', { start: '2015-01-01' }), st('Q2', { start: '2015-01-01' })];
+    expect(pickOwner('Q9', sameStart, 'brand')).toBeNull();
+    expect(pickOwner('Q9', [st('Q1'), st('Q1', { prop: 'P749' })], 'company')).toBe(
+      'Q1:subsidiary@',
+    );
+  });
+
+  it('ignores ended edges and, for a company, minority stakes', () => {
+    const mixed = [st('Q1', { end: '2018-01-01' }), st('Q2'), st('Q3', { sharePct: 20 })];
+    expect(pickOwner('Q9', mixed, 'company')).toBe('Q2:subsidiary@');
+    // A brand's owners are all owners, whatever the share.
+    expect(pickOwner('Q9', [st('Q2'), st('Q3', { sharePct: 20 })], 'brand')).toBeNull();
+    expect(pickOwner('Q9', [st('Q3', { sharePct: 60 })], 'company')).toBe('Q3:majority_stake@');
+  });
+
+  // An entities response for owners Q1–Q3 with inbound statements from brand Q10 and company Q20.
+  const uri = (q: string) => ({
+    type: 'uri' as const,
+    value: `http://www.wikidata.org/entity/${q}`,
+  });
+  const lit = (value: string) => ({ type: 'literal' as const, value });
+  const label = (q: string) => ({
+    item: uri(q),
+    p: lit('label'),
+    v: { type: 'literal' as const, value: `Owner ${q}`, 'xml:lang': 'en' },
+  });
+  let n = 0;
+  const inbound = (
+    owner: string,
+    child: string,
+    o: { rank?: 'Preferred' | 'Normal'; start?: string; end?: string; share?: string } = {},
+  ) => ({
+    item: uri(owner),
+    p: lit('inP127'),
+    v: uri(child),
+    st: { type: 'uri' as const, value: `http://www.wikidata.org/entity/statement/S${++n}` },
+    rank: { type: 'uri' as const, value: `http://wikiba.se/ontology#${o.rank ?? 'Normal'}Rank` },
+    ...(o.start ? { start: lit(`+${o.start}T00:00:00Z`) } : {}),
+    ...(o.end ? { end: lit(`+${o.end}T00:00:00Z`) } : {}),
+    ...(o.share ? { share: lit(o.share) } : {}),
+  });
+  const owners = ['Q1', 'Q2', 'Q3'];
+  const OWNERS_ENV = env({
+    hop: 1,
+    items: owners.map((qid) => ({ qid, brand: false, company: true, self: false, expand: false })),
+    children: [
+      // Brand Q10: Q1 sold it in 2018 (history), Q2 owns it now (preferred), Q3 is outdated.
+      { qid: 'Q10', as: 'brand', pick: 'Q2:owner@2018-01-01' },
+      // Company Q20: Q1 and Q2 tie as parents; Q3 holds a minority stake.
+      { qid: 'Q20', as: 'company', pick: null },
+    ],
+    result: {
+      results: {
+        bindings: [
+          ...owners.map(label),
+          inbound('Q1', 'Q10', { start: '1990-01-01', end: '2018-01-01' }),
+          inbound('Q2', 'Q10', { rank: 'Preferred', start: '2018-01-01' }),
+          inbound('Q3', 'Q10'),
+          inbound('Q1', 'Q20'),
+          inbound('Q2', 'Q20'),
+          inbound('Q3', 'Q20', { share: '0.2' }),
+        ],
+      },
+    },
+  });
+
+  it('holds every current owner edge except the pick, and approves history', () => {
+    const r = recordsOf(OWNERS_ENV, FETCHED_AT);
+    const brand = r.brandEdges.map((e) => [e.company_qid, e.valid_to ?? null, !!e.auto_hold]);
+    expect(brand).toEqual([
+      ['Q1', '2018-01-01', false], // ended: approved as history
+      ['Q2', null, false], // the pick
+      ['Q3', null, true], // a current owner that lost
+    ]);
+    const company = r.companyEdges.map((e) => [e.parent_company_qid, e.relation, !!e.auto_hold]);
+    expect(company).toEqual([
+      ['Q1', 'subsidiary', true], // tie
+      ['Q2', 'subsidiary', true], // tie
+      ['Q3', 'minority_stake', false], // not an owner under the index: approved
+    ]);
+    expect(validateBatch('brand_ownership', r.brandEdges).stats.invalid).toBe(0);
+    expect(validateBatch('company_ownership', r.companyEdges).stats.invalid).toBe(0);
   });
 });
 

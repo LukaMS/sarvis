@@ -142,6 +142,11 @@ export interface Source<K extends RecordKind = RecordKind, Step = unknown> {
   /** The HTTP timeout per request, when the source's queries can take longer than the default. */
   readonly timeoutMs?: number;
   /**
+   * 429 handling when the host documents short throttles (HttpClientOptions): the longest
+   * Retry-After waited for, and the wait when a 429 has no Retry-After.
+   */
+  readonly throttle?: { maxRetryAfterMs: number; missingRetryAfterMs: number };
+  /**
    * Writer rejection reasons (`RejectedRecord.reason`) this source expects, e.g. a price for a
    * product the catalog doesn't have yet. Those records are counted in an info event named after
    * the reason, and in `skipped` on the run_finished event, instead of making the run

@@ -148,6 +148,9 @@ export function createWikidataSource(
       },
     ],
     timeoutMs: WD_TIMEOUT_MS,
+    // WDQS throttles a client that used its 60 s of query time a minute with a short 429 (P3.13:
+    // the full run drew one after ~340 queries, and the service answered again within 90 s).
+    throttle: { maxRetryAfterMs: 5 * 60_000, missingRetryAfterMs: 60_000 },
 
     async plan(ctx) {
       matched = new Set();

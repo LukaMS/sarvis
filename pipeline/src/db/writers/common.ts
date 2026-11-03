@@ -7,7 +7,7 @@ import type { ServiceClient } from '../client.ts';
 import { type KeyedSpec, type RecordProblem, type WriteResult, upsertKeyed } from '../keyed.ts';
 import type { AnyRow } from '../query.ts';
 import { RefResolver } from '../refs.ts';
-import { ReviewNotes, queueNotes } from './review.ts';
+import { ReviewNotes, approveAuto, autoApproveIds, autoSourceIds, queueNotes } from './review.ts';
 
 /** The +prov columns as written (DATA_MODEL §1.2). */
 export interface ProvColumns {
@@ -72,7 +72,8 @@ export function unknownRef(key: string, what: string): RecordProblem {
 
 /**
  * The common write path: build each record's payload (or name the reference it's missing),
- * upsert on the spec's keys, and queue the records that came with a review reason.
+ * upsert on the spec's keys, approve an auto-approved source's rows (AUTO_APPROVE), and queue the
+ * records that came with a review reason.
  */
 export async function writeRecords<K extends RecordKind, P extends AnyRow>(opts: {
   db: ServiceClient;
@@ -99,6 +100,8 @@ export async function writeRecords<K extends RecordKind, P extends AnyRow>(opts:
     return [payload];
   });
   const out = await upsertKeyed(db, spec, payloads);
+  const auto = autoSourceIds(refs, spec.table);
+  if (auto.size > 0) await approveAuto(db, spec.table, autoApproveIds(out.rows, auto, spec.frozen));
   await queueNotes(db, spec, notes, out);
   return { ...out.result, rejected: [...rejected, ...out.result.rejected] };
 }

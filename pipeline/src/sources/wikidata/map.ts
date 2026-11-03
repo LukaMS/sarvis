@@ -11,7 +11,7 @@ import { NAME_LANGS, type SparqlRow, dateOf, qidOf, rankOf, sparqlRows } from '.
 
 export const WD_KEY = 'wikidata';
 export const WD_JOB = 'wikidata-ownership';
-export const WD_VERSION = '1.3.0';
+export const WD_VERSION = '1.4.0';
 export const WD_METHOD_VERSION = `${WD_KEY}@${WD_VERSION}`;
 /** Labels per match query and items per entities query (PLAN P3.12: ≤ 50). */
 export const MAX_LABELS = 50;
@@ -274,6 +274,13 @@ export interface ItemSpec {
 export interface ChildSpec {
   qid: string;
   as: 'brand' | 'company';
+  /**
+   * The child's one current owner under D-054, as an `ownerKey`, or null when its current owner
+   * statements tie (or it has none). Computed from the child's own statements, which only its
+   * own response has, so the parent's envelope carries it. Absent in envelopes before 1.4.0:
+   * then every current owner edge is held.
+   */
+  pick?: string | null;
 }
 
 export type WdStep =
@@ -502,11 +509,49 @@ export function companyRelation(s: Statement): 'subsidiary' | 'majority_stake' |
   return s.sharePct > 50 ? 'majority_stake' : 'minority_stake';
 }
 
-/** Whether the walk goes on above this statement: a current, controlling owner. */
-export function walksUp(s: Statement, childAs: 'brand' | 'company'): boolean {
-  if (s.end) return false;
-  return childAs === 'brand' || companyRelation(s) !== 'minority_stake';
+/**
+ * Whether the statement is a current owner under the one-owner index: no end date, and for a
+ * company a controlling relation (a minority stake isn't an owner).
+ */
+export function currentOwner(s: Statement, childAs: 'brand' | 'company'): boolean {
+  return !s.end && (childAs === 'brand' || companyRelation(s) !== 'minority_stake');
 }
+
+/**
+ * The edge an owner statement becomes, as the pick names it: owner, relation and start. The
+ * owner is `s.other` in the child's own statements, and the parent item in an inbound one.
+ */
+export function ownerKey(owner: string, s: Statement, childAs: 'brand' | 'company'): string {
+  const relation = childAs === 'brand' ? 'owner' : companyRelation(s);
+  return `${owner}:${relation}@${s.start ?? ''}`;
+}
+
+const rankOrder = (s: Statement) => (s.rank === 'preferred' ? 1 : 0);
+
+/**
+ * D-054's one current owner: among the child's current owner statements, the preferred rank,
+ * then the latest P580 start (a statement without one starts earliest). Statements that make the
+ * same edge (P127 and P749 to one owner with one start) count once. Still a tie, or no current
+ * owner: null, and every current owner edge stays `pending`.
+ */
+export function pickOwner(
+  child: string,
+  statements: readonly Statement[],
+  childAs: 'brand' | 'company',
+): string | null {
+  const current = statements.filter((s) => s.other !== child && currentOwner(s, childAs));
+  if (current.length === 0) return null;
+  const better = (a: Statement, b: Statement) =>
+    rankOrder(a) - rankOrder(b) || (a.start ?? '').localeCompare(b.start ?? '');
+  const best = current.reduce((a, b) => (better(b, a) > 0 ? b : a));
+  const top = new Set(
+    current.filter((s) => better(s, best) === 0).map((s) => ownerKey(s.other, s, childAs)),
+  );
+  return top.size === 1 ? ([...top][0] as string) : null;
+}
+
+/** Whether the walk goes on above this statement: a current, controlling owner. */
+export const walksUp = currentOwner;
 
 // ---------------------------------------------------------------------------------------------
 // Records
@@ -545,7 +590,7 @@ export function recordsOf(
     companyEdges: [],
     unnamed: [],
   };
-  const childAs = new Map(env.children.map((c) => [c.qid, c.as]));
+  const childOf = new Map(env.children.map((c) => [c.qid, c]));
   const brandEdgeKeys = new Set<string>();
   const companyEdgeKeys = new Set<string>();
 
@@ -596,9 +641,15 @@ export function recordsOf(
       (a, b) => Number(b.rank === 'preferred') - Number(a.rank === 'preferred'),
     );
     for (const s of inbound) {
-      const as = childAs.get(s.other);
-      if (!as) continue;
+      const child = childOf.get(s.other);
+      if (!child) continue;
+      const as = child.as;
       const dates = { valid_from: s.start, valid_to: s.end };
+      // D-054: a current owner that isn't the child's pick stays pending; history is approved.
+      const hold =
+        currentOwner(s, as) && child.pick !== ownerKey(item.qid, s, as)
+          ? { auto_hold: true as const }
+          : {};
       const url = `${entityUrl(s.other)}#${s.prop}`;
       if (as === 'brand') {
         const key = `${s.other}>${item.qid}@${s.start ?? ''}`;
@@ -609,6 +660,7 @@ export function recordsOf(
           company_qid: item.qid,
           relation: 'owner',
           ...dates,
+          ...hold,
           source_url: url,
           ...prov,
         });
@@ -624,6 +676,7 @@ export function recordsOf(
           relation,
           share_pct: s.sharePct,
           ...dates,
+          ...hold,
           source_url: url,
           ...prov,
         });
@@ -650,11 +703,13 @@ export function nextHop(
   for (const item of env.items) {
     if (!item.expand) continue;
     const as = item.company ? 'company' : 'brand';
-    for (const s of facts.get(item.qid)?.owners ?? []) {
+    const statements = facts.get(item.qid)?.owners ?? [];
+    const pick = pickOwner(item.qid, statements, as);
+    for (const s of statements) {
       if (s.other === item.qid) continue;
       const o = owners.get(s.other) ?? { expand: false, children: new Map() };
       o.expand ||= walksUp(s, as) && hop < MAX_HOPS;
-      o.children.set(item.qid, { qid: item.qid, as });
+      o.children.set(item.qid, { qid: item.qid, as, pick });
       owners.set(s.other, o);
     }
   }

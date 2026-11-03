@@ -55,6 +55,11 @@ export interface HttpClientOptions {
   /** A 429's Retry-After longer than this isn't waited for: the source stops at once. */
   maxRetryAfterMs?: number;
   /**
+   * How long a 429 without a Retry-After header waits (once per request) before the retry.
+   * Unset: such a 429 stops the source at once.
+   */
+  missingRetryAfterMs?: number;
+  /**
    * Absolute URL prefixes whose robots.txt check is skipped: documented API endpoints the host
    * disallows for crawlers (D-065). Everything else about a request is unchanged.
    */
@@ -185,6 +190,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
   const defaultTtl = options.cacheTtlMs ?? 12 * 60 * 60 * 1000;
   const timeoutMs = options.timeoutMs ?? 30_000;
   const maxRetryAfterMs = options.maxRetryAfterMs ?? 60_000;
+  const missingRetryAfterMs = options.missingRetryAfterMs;
   const outer = options.signal;
   const log = options.log ?? createLogger();
   const limiter = new HostLimiter();
@@ -318,15 +324,20 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
 
     await res.body?.cancel();
     const retryAfterMs = parseRetryAfter(res.headers.get('retry-after'));
+    const waitMs = retryAfterMs ?? missingRetryAfterMs;
     if (
       res.status === 429 &&
       !state.retryAfterUsed &&
-      retryAfterMs !== undefined &&
-      retryAfterMs <= maxRetryAfterMs
+      waitMs !== undefined &&
+      waitMs <= maxRetryAfterMs
     ) {
       state.retryAfterUsed = true;
-      log.warn('http 429; waiting for Retry-After once', { ...fields, retryAfterMs });
-      await sleep(retryAfterMs, outer);
+      log.warn('http 429; waiting for Retry-After once', {
+        ...fields,
+        retryAfterMs: waitMs,
+        header: retryAfterMs !== undefined,
+      });
+      await sleep(waitMs, outer);
       return open(target, init, state, idle, hops);
     }
     throw errorFromStatus(res.status, target.href, { retryAfterMs });

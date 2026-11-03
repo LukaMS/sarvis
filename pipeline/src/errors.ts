@@ -52,11 +52,21 @@ export class SourceBlockedError extends CatalogError {
   readonly retryAfterMs: number | undefined;
 
   constructor(status: number, url?: string, options?: { retryAfterMs?: number; cause?: unknown }) {
-    super('source_blocked', `Source blocked the request (HTTP ${status})${url ? `: ${url}` : ''}`, {
-      retryable: false,
-      alert: true,
-      cause: options?.cause,
-    });
+    const wait =
+      status !== 429
+        ? ''
+        : options?.retryAfterMs === undefined
+          ? ', no Retry-After'
+          : `, Retry-After ${Math.round(options.retryAfterMs / 1000)} s`;
+    super(
+      'source_blocked',
+      `Source blocked the request (HTTP ${status}${wait})${url ? `: ${url}` : ''}`,
+      {
+        retryable: false,
+        alert: true,
+        cause: options?.cause,
+      },
+    );
     this.name = 'SourceBlockedError';
     this.status = status;
     this.url = url;

@@ -2,7 +2,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceClient } from '../client.ts';
-import { assignEntitySlugs, matchCompany, planEnrichment } from './ownership.ts';
+import {
+  assignEntitySlugs,
+  matchCompany,
+  planEnrichment,
+  reviewed,
+  withoutTakenCiks,
+} from './ownership.ts';
 
 describe('planEnrichment', () => {
   const stored = {
@@ -117,5 +123,45 @@ describe('assignEntitySlugs', () => {
   it('returns records unchanged when none has a QID', async () => {
     const records = [rec('a', null)];
     expect(await assignEntitySlugs(fakeDb([]), 'brands', records)).toBe(records);
+  });
+});
+
+describe('withoutTakenCiks (P3.13)', () => {
+  const rec = (wikidata_qid: string | null, sec_cik: string | null) => ({ wikidata_qid, sec_cik });
+
+  it('keeps a CIK for its holder and drops it from another QID, in the batch or stored', () => {
+    const out = withoutTakenCiks(
+      [
+        rec('Q1', '0000000001'), // stored under Q1: kept
+        rec('Q2', '0000000001'), // held by Q1: dropped
+        rec('Q3', '0000000003'), // new: kept
+        rec('Q4', '0000000003'), // the batch's Q3 holds it: dropped
+        rec('Q5', '0000000005'), // stored under a row without a QID: dropped
+        rec(null, '0000000005'), // no QID: left to the database
+        rec('Q6', null),
+      ],
+      new Map([
+        ['0000000001', 'Q1'],
+        ['0000000005', null],
+      ]),
+    );
+    expect(out.map((r) => r.sec_cik)).toEqual([
+      '0000000001',
+      null,
+      '0000000003',
+      null,
+      null,
+      '0000000005',
+      null,
+    ]);
+  });
+});
+
+describe('edge freeze (P3.13)', () => {
+  it("freezes a person's decision, not the rule's approval", () => {
+    expect(reviewed({ review_status: 'pending', decision_method: null })).toBe(false);
+    expect(reviewed({ review_status: 'approved', decision_method: 'auto' })).toBe(false);
+    expect(reviewed({ review_status: 'approved', decision_method: 'admin' })).toBe(true);
+    expect(reviewed({ review_status: 'rejected', decision_method: 'admin' })).toBe(true);
   });
 });

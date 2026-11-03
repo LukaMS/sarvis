@@ -226,6 +226,26 @@ describe('errors and backoff', () => {
     expect(hitsTo('/limited')).toHaveLength(1);
   }, 20_000);
 
+  it('waits once on a 429 without Retry-After when the source sets a wait (P3.13)', async () => {
+    routes.set('/throttled', (_req, res, count) => {
+      if (count === 1) res.writeHead(429).end();
+      else res.writeHead(200).end('ok');
+    });
+    const started = Date.now();
+    const res = await client({ missingRetryAfterMs: 300 }).get(at('127.0.0.1', '/throttled'));
+    expect(res).toMatchObject({ status: 200, body: 'ok' });
+    expect(Date.now() - started).toBeGreaterThanOrEqual(300);
+    expect(hitsTo('/throttled')).toHaveLength(2);
+    // A second 429 still stops the source, and the message names the missing header.
+    routes.set('/throttled2', (_req, res) => res.writeHead(429).end());
+    const err = await client({ missingRetryAfterMs: 10 })
+      .get(at('127.0.0.1', '/throttled2'))
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SourceBlockedError);
+    expect((err as Error).message).toContain('HTTP 429, no Retry-After');
+    expect(hitsTo('/throttled2')).toHaveLength(2);
+  }, 20_000);
+
   it('retries a dropped connection as a NetworkError', async () => {
     routes.set('/drop', (req, res, count) => {
       if (count === 1) req.socket.destroy();

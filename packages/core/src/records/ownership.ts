@@ -1,7 +1,8 @@
 // Company, brand and ownership-edge records (DATA_MODEL §3.2).
 // Status values a source can report only; `merged` and `rejected` are admin decisions.
-// Records carry no +review block: companies, brands and edges arrive `pending` (the column default),
-// and an import never changes `review_status` (D-050, D-052).
+// Records carry no +review block: companies, brands and edges arrive `pending` (the column default).
+// Only the writers' AUTO_APPROVE rule changes `review_status` (D-050, D-052, D-054), and an edge
+// can opt out of it with `auto_hold`.
 
 import { z } from 'zod';
 
@@ -112,6 +113,11 @@ const edgeShape = {
   valid_to: DateSchema.nullish(),
   confidence: ConfidenceSchema.nullish(),
   ai_call_id: z.number().int().positive().nullish(),
+  /**
+   * From an auto-approved source (D-054): its rule leaves this edge `pending`, e.g. a current
+   * owner that lost or tied the one-owner pick. Not a column; never queued.
+   */
+  auto_hold: z.literal(true).optional(),
   ...reviewNoteShape,
   ...provenanceShape,
 };

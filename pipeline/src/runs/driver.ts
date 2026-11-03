@@ -276,6 +276,8 @@ export async function runSource<K extends RecordKind>(
         userAgent: userAgent(undefined, contactEmail),
         robotsExempt: source.robotsExemptions?.map((e) => e.prefix),
         timeoutMs: source.timeoutMs,
+        maxRetryAfterMs: source.throttle?.maxRetryAfterMs,
+        missingRetryAfterMs: source.throttle?.missingRetryAfterMs,
         signal,
         log,
       }),

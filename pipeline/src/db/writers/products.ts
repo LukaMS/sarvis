@@ -23,7 +23,7 @@ import {
   resolverFor,
   unknownRef,
 } from './common.ts';
-import { AUTO_APPROVE, ReviewNotes, approveAuto, autoApproveIds, queueNotes } from './review.ts';
+import { ReviewNotes, approveAuto, autoApproveIds, autoSourceIds, queueNotes } from './review.ts';
 
 type ProductPayload = TablesInsert<'products'>;
 
@@ -238,9 +238,7 @@ export function productWriter(db: ServiceClient): DomainWriter<'product'> {
 
       const main = await upsertKeyed(db, productSpec, own);
       // Validated OFF products are approved by rule, not reviewed (D-050, D-054).
-      const autoSources = new Set(
-        (AUTO_APPROVE.products ?? []).flatMap((k) => refs.slug('sources', k) ?? []),
-      );
+      const autoSources = autoSourceIds(refs, 'products');
       await approveAuto(db, 'products', autoApproveIds(main.rows, autoSources, productSpec.frozen));
       await queueNotes(db, productSpec, notes, main);
       const extra = await upsertKeyed(db, productSourceSpec, secondary);
