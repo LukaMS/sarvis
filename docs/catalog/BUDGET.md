@@ -186,6 +186,22 @@ Two full runs on the 2026-11-02 dumps (prices 22.6 MB gz, 340,038 rows, 715 CAD;
 
 The table totals are far under §3, but the two row widths are over by more than 20%, so P3.10a comes before these tables grow (receipts, Phase 8). It's placed before P3.11.
 
+### Actuals: Open Prices row widths (P3.10a, 2026-11-03, dev project)
+
+After `open-prices@1.0.1` (street-part `address`) and the price `url_template` migration (D-061). Two full runs on the same dumps (both 304).
+
+| Measure | Actual | §3/§5 estimate | Note |
+|---|---:|---:|---|
+| `stores` avg row width | **333 B** (was 429 B) | 278 B | +19.8%, inside the line. `address` 21 B avg (was 117 B); the rest is the slug, name and stored `source_url` (D-061). |
+| `stores` total | 0.20 MB | 1.3 MB | ✅ (the 100 updates left dead tuples until autovacuum) |
+| `price_observations` avg row width | **211 B** (was 258 B) | 208 B | +1% ✅ (`source_url` null, rebuilt from `url_template`) |
+| `price_observations` total | 0.53 MB | 7.0 MB | ✅ (dead tuples from the migration's 521 updates, until autovacuum) |
+| Raw per full run (gz) | 20 KB, 2 files | 1 MB (× last 3) | ✅ |
+| `raw` bucket total | 12.9 MB, 95 files | 700 MB | ✅ |
+| Whole DB | 87 MB | alarm 400 MB | ✅ |
+
+Both widths are back within 20% of §3, so §3 isn't re-baselined. Stores sit right at the line: a source that stores long names or URLs per store will push it over.
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |

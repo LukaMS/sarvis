@@ -278,7 +278,7 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **The upsert only touches rows that differ.** `on conflict (key) do update … where (columns) is distinct from (excluded columns)`, so a re-run changes 0 rows and leaves `updated_at` alone. The seed mirrors SOURCES.md, verdict and `enabled` included: change a verdict in SOURCES.md first, then in a new migration.
 - **S24 is one umbrella row** (`rss-publishers`, verdict `use`, `enabled = false`), so every S-id is present and the verdict counts match SOURCES.md §1. No job may run it. Each feed gets its own row with `sources_md_id = 'S24'` when its terms are checked (D-013 D4).
 - **`rate_limit_per_sec` takes the stricter of 1 req/s and the published limit:** S2 0.25 (15/min), S6 0.5 (`Crawl-delay: 2`), S21 0.05 (`Crawl-delay: 20`), S3 and S13 0.1. Daily caps (S22) aren't modelled; the source is avoided.
-- **`url_template`** is set for OFF product pages (S1, S2) and Wikidata entities (S17, `https://www.wikidata.org/wiki/{external_id}`). Others have no exact URL rule yet.
+- **`url_template`** is set for OFF product pages (S1, S2) and Wikidata entities (S17, `https://www.wikidata.org/wiki/{external_id}`). Others have no exact URL rule yet. (P3.10a added Open Prices price pages, S5, D-061.)
 - **`refresh_interval` is left null** until the Phase 6 freshness policy.
 - **Internal sources** (`manual`, `legacy-import`, `receipts`, `derived`, `fixture`) have `access_method = internal`, verdict `use` and no licence or attribution. They pass the `source_attributions` filter (verdict ≠ `avoid`), so the About screen should list only rows with `attribution_text`. `fixture` is enabled on dev; whether it exists on production is a release question.
 - **Manual-only sources (S27–S29) stay enabled.** The verdict alone blocks jobs, and admins cite them by hand.
@@ -324,7 +324,7 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **`price_points_monthly`:** `banner_id` is nullable, because a store's banner can be unknown, but each row needs a store or a banner. The key is `unique nulls not distinct (store_id, banner_id, product_id, month)`. It has a `source_id` (the `derived` source), which DATA_MODEL left out, so every fact has one. It's fully public. Receipt-derived monthly rows need the Phase 8 k-anonymity rule too (noted in DATA_MODEL §9).
 - **Weekly and monthly dates:** `week_start` must be a Monday (ISO), and `month` / `ref_month` must be the first of the month. Weekly points have `n_receipts <= n_lines` and min ≤ median ≤ max.
 - **`price_sanity_bounds`:** one row per `(category_id, unit_basis)`, so a manual override replaces the derived row. `max > min > 0`. Admin only.
-- **Open Prices has no `url_template` yet,** so its observations must store `source_url` until Phase 3 adds a checked template to the `open-prices` source row.
+- **Open Prices has no `url_template` yet,** so its observations must store `source_url` until Phase 3 adds a checked template to the `open-prices` source row. (Done in P3.10a, D-061.)
 
 ## D-037 AI and audit schema details — Accepted (P2.7)
 - **`ai_calls` writers:** the OpenRouter module (D-009) logs with the service role. Admins get full read and write through RLS (for corrections and cleanup), and nobody else sees any row. That includes a user's own receipt-parse calls, because per-user rate limits are checked server-side.
@@ -411,6 +411,13 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Caps:** 49 events during the run plus the `run_finished` event, which carries `eventsDropped`. 50 `validation_failures` rows, with `counts.invalid` holding the full number. Counts are written after every step so a crash leaves progress visible.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
+
+## D-061 Open Prices: street-part address and price `url_template` — Accepted (P3.10a)
+- **Store `address` is the street part only** (`open-prices@1.0.1`): a leading house-number segment plus the road (`8683 Tenth Avenue`), else the first segment alone when it names a road (a street-type word in English or French, or a `-way` name). The neighbourhoods, city, regions, province, postal code and country are dropped: city, province and postal code have their own columns. Null when there's no road (1 of 100 today: a park with only "Downtown"). Amends the D-060 mapping line.
+- **Price `source_url` is null,** rebuilt from `sources.url_template = https://prices.openfoodfacts.org/prices/{external_id}` (checked 2026-11-03: the page answers 200 for stored ids). Amends D-060 ("no `url_template` migration") and closes the D-036 note.
+- **Existing rows were aligned by the migration,** not by a re-write: it clears `source_url` only where the template rebuilds the same URL, so `resolved_source_url` is unchanged (same md5 over all 521 rows before and after). The price writer doesn't compare `source_url`, so those rows keep `method_version = open-prices@1.0.0`; the only 1.0.1 change to a price is that column, which now matches.
+- **Store `source_url` stays stored** (`/locations/{id}`): `stores` has no `external_id` for a template, and there are only ~100 rows per source.
+**Why:** BUDGET row widths (P3.10 was +54% for stores, +24% for prices). After: stores 333 B (+20%, at the line) and prices 211 B (+1%).
 
 ## D-060 Open Prices source and expected rejections — Accepted (P3.9)
 - **Both dumps are read in `plan`** (`locations.jsonl.gz` ~1.2 MB, `prices.jsonl.gz` ~22.6 MB), through `download` so a re-run costs two conditional requests. CAD rows are scattered through the prices dump, so a sample can't stop early; it reads everything and then picks.

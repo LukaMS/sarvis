@@ -17,6 +17,7 @@ import { createMemoryRunStore } from '../../runs/store.ts';
 import type { SourceRow } from '../source.ts';
 import { createOpenPricesSource, sampleOf } from './index.ts';
 import {
+  addressOf,
   type OpLocation,
   type OpPrice,
   emptyLocationCounts,
@@ -107,9 +108,10 @@ describe('Open Prices mapping', () => {
       source_key: 'open-prices',
       source_url: 'https://prices.openfoodfacts.org/locations/604',
       method: 'import',
-      method_version: 'open-prices@1.0.0',
+      method_version: 'open-prices@1.0.1',
     });
-    expect(record.address).not.toMatch(/^Walmart,/);
+    // The street part only: the city, province and postal code have their own columns.
+    expect(record.address).toBe('Princess Street');
     expect(record.lat).toBeCloseTo(49.2, 0);
   });
 
@@ -125,7 +127,8 @@ describe('Open Prices mapping', () => {
       currency: 'CAD',
       price_kind: 'sale',
       is_discounted: true,
-      source_url: 'https://prices.openfoodfacts.org/prices/108266',
+      // Rebuilt from the source's url_template.
+      source_url: null,
     });
     expect(regular).toMatchObject({ price_kind: 'regular', is_discounted: false, price: 5.97 });
   });
@@ -153,6 +156,34 @@ describe('Open Prices mapping', () => {
     );
     // X is split between the Northwest Territories and Nunavut.
     expect(provinceOf('X1A 2P7', 'Store, Yellowknife, Canada')).toBeNull();
+  });
+
+  it('keeps the street part of the display name as the address', () => {
+    const at = (display: string) =>
+      addressOf({ osm_display_name: display } as OpLocation, 'Choices Market');
+    expect(
+      at(
+        'Choices Market, 8683, Tenth Avenue, Massey Victory Heights, Burnaby, ' +
+          'Metro Vancouver Regional District, British Columbia, V3N 2S9, Canada',
+      ),
+    ).toBe('8683 Tenth Avenue');
+    expect(at('Choices Market, 1440, 52 Street NE, Marlborough Park, Calgary, Canada')).toBe(
+      '1440 52 Street NE',
+    );
+    expect(at('Choices Market, 12A, Rue des Rocailles, Québec, Canada')).toBe(
+      '12A Rue des Rocailles',
+    );
+    // No house number: the road alone, in English or French.
+    expect(at('Choices Market, Grande Allée, Longueuil, Québec, J4K 1A1, Canada')).toBe(
+      'Grande Allée',
+    );
+    expect(at('Choices Market, Broadway, Vancouver, Canada')).toBe('Broadway');
+    // Starting with the house number when the display name has no place name.
+    expect(at('20499, 64 Avenue, Township of Langley, Canada')).toBe('20499 64 Avenue');
+    // No road: a neighbourhood isn't an address.
+    expect(at('Choices Market, Downtown, New Westminster, Canada')).toBeNull();
+    expect(at('Choices Market')).toBeNull();
+    expect(addressOf({ osm_display_name: null } as OpLocation, 'X')).toBeNull();
   });
 
   it('keeps slugs within 64 characters and ending in the OSM id', () => {

@@ -2,6 +2,38 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.10a Budget: store and price row widths (done)
+
+**What changed**
+- `open-prices@1.0.1` (`pipeline/src/sources/open-prices/map.ts`): store `address` is the street part only (`8683 Tenth Avenue`, `1033 Rue des Rocailles`, or the road alone); null when there's no road. Price `source_url` is null.
+- Migration `20261103150839_open_prices_url_template`: sets the `open-prices` `url_template` to `https://prices.openfoodfacts.org/prices/{external_id}` (checked: 200 for stored ids) and clears stored price URLs only where the template rebuilds the same one.
+- D-061; BUDGET "Actuals: Open Prices row widths"; a SOURCES S5 note. New unit test for `addressOf` (8 cases).
+
+**Verification** (dev project, same 2026-11-02 dumps, both 304)
+- **Migration:** md5 over all 521 `resolved_source_url` values is the same before and after (`f2d1f4a5…`); 521 of 521 now have `source_url` null.
+- **Run 1** `d6e39878-f3bb-4d84-a9d8-b77e059482c9` (`--mode full`): completed. **Fetched 792, valid 754, invalid 38, inserted 0, updated 100, unchanged 588**, skipped `unmatched_product` 66. The 100 updates are the stores, all now `open-prices@1.0.1`.
+- **Run 2** `2f2bf00a-b952-443d-9767-f549e8f9109e`: completed. **Inserted 0, updated 0, unchanged 688**, skipped 66, invalid 38.
+- **Validation failures by rule:** `gtin_check_digit` 25, `schema` 13 (same as P3.10).
+- **Addresses:** 99 street addresses and 1 null (Tipperary Park: OSM gives only "Downtown"). All 100 previous values were checked by hand against the rule.
+- **Provenance:** the SQL count of `open-prices` stores (100) and prices (521) missing `fetched_at`, `method`, `method_version`, `ingestion_run_id`, `raw_object_id`, or a URL (stored, or `url_template` + `external_id`) is **0**.
+- **Raw:** run 1 has 2 `raw_objects` (`50b30154` stores 7,845 B, `7b9c543b` prices 12,223 B). `readRaw()` re-parses them to 100 + 692 records (valid 100 + 654), and they match the stored rows: 100/100 stores (name, address, city, province, version) and 521/521 prices (price, date, kind, `source_url` null).
+- **Examples** (as stored):
+  - store `choices-market-burnaby-n1277743943`: address `8683 Tenth Avenue`, Burnaby, BC, V3N 2S9, `https://prices.openfoodfacts.org/locations/696`, `open-prices@1.0.1`, run `d6e39878`, raw `50b30154`;
+  - store `avril-quebec-n5970957885`: `1033 Rue des Rocailles`, Québec, QC, G2K 0L4, `/locations/7573`;
+  - store `tipperary-park-new-westminster-w50774233`: address null, New Westminster, BC, V3L 1G7, `/locations/2781`;
+  - price 108266: 3.97 sale, 2025-05-06, `source_url` null → `https://prices.openfoodfacts.org/prices/108266`, `open-prices@1.0.0`, run `5c261e72`;
+  - price 42277: 13.49 regular, 2024-10-26, null → `/prices/42277`.
+- **Budget:** stores **333 B** per row vs 278 B (+19.8%, was +54%), prices **211 B** vs 208 B (+1%, was +24%). Totals: stores 0.20 MB, prices 0.53 MB (dead tuples until autovacuum), raw bucket 12.9 MB (95 files), DB 87 MB. §3 isn't re-baselined.
+- **Checks:** `npm test` 445 passed, 1 skipped; typecheck, lint and `format:check` pass.
+
+**For you**
+- Prices keep `method_version = open-prices@1.0.0`: the writer doesn't compare `source_url`, so the migration aligned that column instead of a re-write (D-061).
+- Stores are right at the 20% line. The leftover is the slug, name and stored `/locations/{id}` URL.
+
+**Next:** P3.11 StatCan reference prices.
+
+---
+
 ## 2026-11-03 — P3.10 Open Prices (b): all Canadian prices (done)
 
 **What changed**

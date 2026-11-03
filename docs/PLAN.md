@@ -1108,7 +1108,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/open-prices/*`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check. Also: the count against the Open Prices API total for CAD on the same day.
 
-### [ ] P3.10a Budget: store and price row widths (added in P3.10)
+### [x] P3.10a Budget: store and price row widths (added in P3.10)
 - **Slice:** source-open-prices.
 - **Goal:** bring the `stores` and `price_observations` row widths back within 20% of BUDGET §3, or re-baseline §3 with a reason. P3.10 measured them over the line (the budget rule in "Rules for every source task").
 - **Deps:** P3.10.

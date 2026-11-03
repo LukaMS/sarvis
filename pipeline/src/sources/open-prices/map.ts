@@ -7,7 +7,7 @@ import { offGtin } from '../off/map.ts';
 
 export const OP_KEY = 'open-prices';
 export const OP_JOB = 'open-prices-import';
-export const OP_VERSION = '1.0.0';
+export const OP_VERSION = '1.0.1';
 export const OP_SITE = 'https://prices.openfoodfacts.org/';
 
 /** The location fields kept in the extract. */
@@ -254,12 +254,33 @@ export function storeSlugOf(loc: OpLocation, name: string): string {
   return base ? `${base}-${suffix}` : suffix;
 }
 
-/** The OSM display name without the leading place name: the address OSM shows for it. */
+// A house number as Nominatim puts it before the road: `8683`, `12A`, `100-2`, `3/4`.
+const HOUSE_NUMBER = /^\d+[A-Za-z]?(?:[-/]\d+[A-Za-z]?)?$/;
+// A segment that names a road: a street-type word (English or French), or a `-way` name.
+const STREET_WORD =
+  /(?<!\p{L})(street|st|avenue|ave|road|rd|way|boulevard|blvd|drive|dr|highway|hwy|lane|crescent|court|place|parkway|trail|line|sideroad|concession|circle|terrace|gate|square|row|close|grove|plaza|esplanade|rue|chemin|route|allée|montée|rang|côte|boul|promenade|carré|voie|autoroute)(?!\p{L})|way$/iu;
+
+/**
+ * The street part of the OSM display name: `8683 Tenth Avenue`, or the road alone when there's
+ * no house number. The segments after it (neighbourhoods, city, regions, province, postal code,
+ * country) are dropped: the city, province and postal code have their own columns (P3.10a).
+ * Null when the display name has no road, e.g. only a neighbourhood after the place name.
+ */
 export function addressOf(loc: OpLocation, name: string): string | null {
-  const parts = (loc.osm_display_name ?? '').split(',').map((p) => p.trim());
+  const parts = (loc.osm_display_name ?? '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (parts[0] === name) parts.shift();
-  const address = parts.filter(Boolean).join(', ');
-  return address ? address.slice(0, 300) : null;
+  const [first, second] = parts;
+  if (!first) return null;
+  const street =
+    HOUSE_NUMBER.test(first) && second
+      ? `${first} ${second}`
+      : STREET_WORD.test(first)
+        ? first
+        : null;
+  return street ? street.slice(0, 300) : null;
 }
 
 const num = (v: string | null): number | null => {
@@ -268,7 +289,7 @@ const num = (v: string | null): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-const prov = (url: string, fetchedAt: string) => ({
+const prov = (url: string | null, fetchedAt: string) => ({
   source_key: OP_KEY,
   source_url: url,
   fetched_at: fetchedAt,
@@ -316,6 +337,7 @@ export function toPriceRecord(p: OpPrice, fetchedAt: string): RecordInputOf<'pri
     is_discounted: p.price_is_discounted,
     price_without_discount: num(p.price_without_discount),
     price_per: p.price_per ? (PRICE_PER[p.price_per] ?? null) : null,
-    ...prov(new URL(`prices/${p.id}`, OP_SITE).href, fetchedAt),
+    // Rebuilt from sources.url_template (`…/prices/{external_id}`) + external_id (P3.10a).
+    ...prov(null, fetchedAt),
   };
 }
