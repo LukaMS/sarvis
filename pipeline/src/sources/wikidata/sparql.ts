@@ -3,8 +3,8 @@
 //
 // - match: which brand- or business-class items have one of these labels or aliases (en, fr, mul),
 //   whether by label or alias, their countries, P31 classes and P452 industries;
-// - classes: which of those classes are excluded or a grocery brand class, and which industries
-//   are a grocery trade;
+// - classes: which of those classes are excluded, a grocery brand class or a grocery store
+//   class, and which industries are a grocery trade or bare retail;
 // - entities: the facts for a set of items (labels, aliases, P31, country, website, enwiki title,
 //   SEC CIK, OpenCorporates id, P576), their own owner statements (P127 / P749, with rank, P580,
 //   P582 and P1107), and the statements of the given children that point at them.
@@ -41,15 +41,14 @@ export const EXCLUDED_CLASSES = [
   'Q19509097', // cigarette brand
 ] as const;
 /**
- * P452/P279* industries that count as grocery trade. A candidate picked only for its country (the
- * CA and US tiers) must be brand-class or in one of them (D-066).
+ * P452/P279* industries that count as grocery trade on their own (D-066). Bare retail isn't one
+ * of them: see RETAIL_INDUSTRIES (P3.12c).
  */
 export const TRADE_INDUSTRIES = [
   'Q540912', // food industry
   'Q627371', // food processing
   'Q4899370', // beverage industry
   'Q1187656', // fast-moving consumer goods
-  'Q126793', // retail
   'Q220695', // wholesale
   'Q11451', // agriculture
   'Q2095', // food
@@ -58,15 +57,31 @@ export const TRADE_INDUSTRIES = [
   'Q1295201', // grocery store
   'Q7361709', // convenience store
   'Q81799', // fast food
-  'Q484847', // e-commerce
   // Seen on grocery companies in the P3.12a sample but not under the roots above.
   'Q637776', // dairy
   'Q1445627', // ice cream manufacturer
   'Q1054321', // coffee production
   'Q107601756', // food and tobacco industry
   'Q396622', // agribusiness
+] as const;
+/**
+ * P452/P279* industries that say a company sells things but not what: clothing (Prana) and
+ * electronics (Best Buy) retailers have only these. They count as grocery evidence only on an
+ * item in a GROCERY_STORE_CLASSES class (D-066, P3.12c).
+ */
+export const RETAIL_INDUSTRIES = [
+  'Q126793', // retail
   'Q507619', // retail chain
   'Q16766413', // big-box store
+  'Q484847', // e-commerce
+] as const;
+/** P31/P279* store-chain classes that sell groceries (D-066, P3.12c). */
+export const GROCERY_STORE_CLASSES = [
+  'Q18043413', // supermarket chain
+  'Q132777643', // grocery store chain
+  'Q98555051', // food store chain
+  'Q76213979', // convenience store chain
+  'Q105615608', // hypermarket chain
 ] as const;
 /**
  * P31/P279* brand classes that are grocery brands (D-066, P3.12b). Being brand-class alone isn't
@@ -121,7 +136,7 @@ export function matchQuery(labels: readonly string[]): string {
 
 /**
  * For P31 classes and P452 industries: is it (a subclass of) an excluded class, a grocery brand
- * class, or a grocery trade. Asked once per class per run, so the subclass walks that would
+ * class, a grocery store class, a grocery trade, or bare retail. Asked once per class per run, so the subclass walks that would
  * slow every match query (US towns alone are thousands of classes deep) run only on new classes.
  */
 export function classQuery(qids: readonly string[]): string {
@@ -131,6 +146,8 @@ export function classQuery(qids: readonly string[]): string {
     ...EXCLUDED_CLASSES.map((q) => `(${wd(q)} "excluded")`),
     ...TRADE_INDUSTRIES.map((q) => `(${wd(q)} "trade")`),
     ...GROCERY_BRAND_CLASSES.map((q) => `(${wd(q)} "grocery")`),
+    ...RETAIL_INDUSTRIES.map((q) => `(${wd(q)} "retail")`),
+    ...GROCERY_STORE_CLASSES.map((q) => `(${wd(q)} "store")`),
   ].join(' ');
   return `SELECT DISTINCT ?c ?flag WHERE {
   VALUES ?c { ${qids.map(wd).join(' ')} }

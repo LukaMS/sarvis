@@ -1,8 +1,9 @@
 // Wikidata ownership on fixtures saved from real WDQS responses (2026-11-03, CC0): a match for
 // "President's Choice", "Metro", "Kellogg's" and "Kirkland", plus the five P3.12 wrong matches
 // ("Beatrice", "Avril", "Co-op", "PC", "Flamingo"), the P3.12a brand-class wrong picks ("Astro",
-// "Quest", "Jordans", "Chapman's"), "Oikos" and "Coop" (re-saved with the 1.2.0 query, P3.12b), and
-// the classes query for its candidates' classes and industries; the entities of President's Choice
+// "Quest", "Jordans", "Chapman's"), "Oikos", "Coop", the P3.12b retail wrong picks ("Prana",
+// "Best Buy") and two grocery chains ("Fresh Market", "7-Eleven") (re-saved with the 1.3.0 query,
+// P3.12c), and the classes query for its candidates' classes and industries; the entities of President's Choice
 // (a brand) and Metro Inc. (a business); and Loblaw Companies, read with President's Choice as a
 // child (its P127 statement names Loblaw).
 import { readFileSync } from 'node:fs';
@@ -31,6 +32,7 @@ import {
   labelVariants,
   nameOf,
   nextHop,
+  noFlags,
   parseEnvelope,
   pickCandidate,
   recordsOf,
@@ -122,6 +124,8 @@ describe('Matching', () => {
     excluded: false,
     trade: !brand,
     grocery: brand,
+    retail: false,
+    store: false,
     ...more,
   });
 
@@ -185,6 +189,25 @@ describe('Matching', () => {
     expect(pickCandidate([plain('Q1', ['FR'])])).toMatchObject({ tier: 'single' });
   });
 
+  it('counts bare retail only on a grocery store chain (P3.12c)', () => {
+    // Prana, Best Buy: brand/business items whose only industry is retail.
+    const shop = (qid: string, more: Partial<Candidate> = {}) =>
+      c(qid, ['US'], true, { grocery: false, retail: true, ...more });
+    expect(pickCandidate([shop('Q1'), c('Q2', ['GB'])]).pick).toBeNull();
+    // Eden: an e-commerce company doesn't win the US tier either.
+    expect(
+      pickCandidate([c('Q1', ['US'], false, { trade: false, retail: true }), c('Q2', ['GB'])]).pick,
+    ).toBeNull();
+    // The Fresh Market, 7-Eleven, Safeway Canada: retail on a supermarket or convenience chain.
+    expect(pickCandidate([shop('Q1', { store: true }), c('Q2', ['GB'])])).toMatchObject({
+      tier: 'brand-class',
+      pick: { qid: 'Q1' },
+    });
+    // Mars: a supermarket chain with no industry at all isn't evidence, so the food brand wins.
+    const chain = c('Q3', ['US'], false, { trade: false, store: true });
+    expect(pickCandidate([chain, c('Q4', [], true)])).toMatchObject({ pick: { qid: 'Q4' } });
+  });
+
   it('counts a country without an ISO code as not North American', () => {
     // Coop: a Dutch chain whose P17 is Q55 Netherlands, which has no P297.
     expect(pickCandidate([c('Q1', ['??'], true), c('Q2', ['GB'])]).pick).toBeNull();
@@ -209,6 +232,10 @@ describe('Matching', () => {
         "Chapman's",
         'Oikos',
         'Coop',
+        'Prana',
+        'Best Buy',
+        'Fresh Market',
+        '7-Eleven',
         'Nope',
       ],
       MATCH,
@@ -238,6 +265,12 @@ describe('Matching', () => {
       // A yogurt food brand beside a plain brand; a Dutch chain (no ISO code) among nine more.
       ['Oikos', 'matched', 'Q137798516', 'brand', 'brand-class'],
       ['Coop', 'ambiguous', null, null, null],
+      // A clothing and an electronics retailer (P452 retail only); two grocery chains with the
+      // same P452 that are supermarket or convenience store chains.
+      ['Prana', 'ambiguous', null, null, null],
+      ['Best Buy', 'ambiguous', null, null, null],
+      ['Fresh Market', 'matched', 'Q7735265', 'company', 'brand-class'],
+      ['7-Eleven', 'matched', 'Q259340', 'company', 'brand-class'],
       ['Nope', 'unmatched', null, null, null],
     ]);
     expect(d[1]?.candidates).toBeGreaterThan(10);
@@ -252,17 +285,22 @@ describe('Matching', () => {
     const used = candidateClasses(MATCH);
     const flags = classFlagsOf(CLASSES, used);
     expect(Object.keys(flags)).toHaveLength(used.length);
-    expect(flags.Q2085381).toEqual({ excluded: true, trade: false, grocery: false }); // publisher
+    expect(flags.Q2085381).toMatchObject({ excluded: true, trade: false, grocery: false }); // publisher
     expect(flags.Q15127012?.excluded).toBe(true); // town in the United States
     expect(flags.Q41298?.excluded).toBe(true); // magazine
-    expect(flags.Q126793).toEqual({ excluded: false, trade: true, grocery: false }); // retail
-    expect(flags.Q4830453).toEqual({ excluded: false, trade: false, grocery: false }); // business
-    expect(flags.Q16323605).toEqual({ excluded: false, trade: false, grocery: true }); // food brand
+    expect(flags.Q126793).toEqual({ ...noFlags(), retail: true }); // retail
+    expect(flags.Q4830453).toEqual(noFlags()); // business
+    expect(flags.Q16323605).toEqual({ ...noFlags(), grocery: true }); // food brand
+    // supermarket chain; also under retail chain, but `retail` is read from P452 values only.
+    expect(flags.Q18043413).toMatchObject({ store: true, grocery: false, trade: false });
+    expect(flags.Q180846?.trade).toBe(true); // supermarket (an industry)
     // Without the flags the publisher comes back (Beatrice stays out: its towns aren't a trade).
     const bare = decideMatches(['Flamingo', 'Beatrice'], MATCH);
     expect(bare.map((x) => x.status)).toEqual(['matched', 'ambiguous']);
     expect(classQuery(['Q1'])).toContain('(wd:Q486972 "excluded")');
     expect(classQuery(['Q1'])).toContain('(wd:Q16323605 "grocery")');
+    expect(classQuery(['Q1'])).toContain('(wd:Q126793 "retail")');
+    expect(classQuery(['Q1'])).toContain('(wd:Q18043413 "store")');
   });
 });
 
@@ -299,7 +337,7 @@ describe('Entities', () => {
       source_url: 'https://www.wikidata.org/wiki/Q1145669',
       source_key: 'wikidata',
       method: 'api',
-      method_version: 'wikidata@1.2.0',
+      method_version: 'wikidata@1.3.0',
       fetched_at: FETCHED_AT,
     });
     expect(r.brandEdges).toEqual([

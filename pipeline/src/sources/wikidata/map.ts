@@ -11,7 +11,7 @@ import { NAME_LANGS, type SparqlRow, dateOf, qidOf, rankOf, sparqlRows } from '.
 
 export const WD_KEY = 'wikidata';
 export const WD_JOB = 'wikidata-ownership';
-export const WD_VERSION = '1.2.0';
+export const WD_VERSION = '1.3.0';
 export const WD_METHOD_VERSION = `${WD_KEY}@${WD_VERSION}`;
 /** Labels per match query and items per entities query (PLAN P3.12: ≤ 50). */
 export const MAX_LABELS = 50;
@@ -69,6 +69,10 @@ export interface Candidate {
   trade: boolean;
   /** In a GROCERY_BRAND_CLASSES class (P31/P279*): food, drink, private label … brand. */
   grocery: boolean;
+  /** Has a RETAIL_INDUSTRIES industry (P452): retail, retail chain, big-box store, e-commerce. */
+  retail: boolean;
+  /** In a GROCERY_STORE_CLASSES class (P31/P279*): supermarket, grocery or convenience chain … */
+  store: boolean;
 }
 
 export type MatchTier = 'single' | 'CA' | 'brand-class' | 'US';
@@ -90,10 +94,12 @@ export interface MatchDecision {
 const northAmerican = (c: Candidate) =>
   c.countries.length === 0 || c.countries.includes('CA') || c.countries.includes('US');
 /**
- * Grocery evidence: a grocery brand class or a grocery trade. Brand-class alone isn't enough,
- * since Wikidata files gas station chains, department stores and shoes under brand (P3.12b).
+ * Grocery evidence: a grocery brand class, a grocery trade, or bare retail on a grocery store
+ * chain. Brand-class alone isn't enough, since Wikidata files gas station chains, department
+ * stores and shoes under brand (P3.12b), and nor is bare retail, which clothing and electronics
+ * retailers have too (P3.12c).
  */
-const grocer = (c: Candidate) => c.grocery || c.trade;
+const grocer = (c: Candidate) => c.grocery || c.trade || (c.retail && c.store);
 /** A country alone isn't evidence: the item must also show grocery evidence. */
 const tradesHere = (c: Candidate, country: string) => c.countries.includes(country) && grocer(c);
 
@@ -103,7 +109,7 @@ const tradesHere = (c: Candidate, country: string) => c.countries.includes(count
  * candidate is in it: the only candidate (excluded classes count here, so a French commune keeps
  * a French chain from winning by default); else the only Canadian one; else the only North
  * American brand-class one; else the only US one. Every tier after `single` needs grocery
- * evidence (a grocery brand class or a grocery trade), so a brand the brand-class tier rejects
+ * evidence (see `grocer`), so a brand the brand-class tier rejects
  * can't come back through the US tier. Excluded-class items are never picked. Anything else is
  * ambiguous and skipped (the P4 resolver can try later).
  */
@@ -134,14 +140,25 @@ export function pickCandidate(candidates: readonly Candidate[]): {
 export const isShortBrand = (brand: string) => (brand.match(/\p{L}/gu) ?? []).length <= 2;
 
 /**
- * Whether a P31 class is excluded or a grocery brand class, and whether a P452 industry is a
- * grocery trade (D-066).
+ * Whether a P31 class is excluded, a grocery brand class or a grocery store class, and whether a
+ * P452 industry is a grocery trade or bare retail (D-066).
  */
 export interface ClassFlags {
   excluded: boolean;
   trade: boolean;
   grocery: boolean;
+  retail: boolean;
+  store: boolean;
 }
+const FLAGS = ['excluded', 'trade', 'grocery', 'retail', 'store'] as const;
+/** All flags false: a class the classes query hasn't flagged. */
+export const noFlags = (): ClassFlags => ({
+  excluded: false,
+  trade: false,
+  grocery: false,
+  retail: false,
+  store: false,
+});
 export type ClassTable = Record<string, ClassFlags>;
 
 /** The P31 classes and P452 industries of a match result's candidates, sorted. */
@@ -158,13 +175,12 @@ export function candidateClasses(result: unknown): string[] {
 
 /** Flags for these QIDs from a classes-query result (one row per class and flag that holds). */
 export function classFlagsOf(result: unknown, qids: readonly string[]): ClassTable {
-  const out: ClassTable = Object.fromEntries(
-    qids.map((q) => [q, { excluded: false, trade: false, grocery: false }]),
-  );
+  const out: ClassTable = Object.fromEntries(qids.map((q) => [q, noFlags()]));
   for (const row of sparqlRows(result)) {
     const f = out[qidOf(row.c) ?? ''];
     const flag = row.flag?.value;
-    if (f && (flag === 'excluded' || flag === 'trade' || flag === 'grocery')) f[flag] = true;
+    const known = FLAGS.find((k) => k === flag);
+    if (f && known) f[known] = true;
   }
   return out;
 }
@@ -202,11 +218,15 @@ export function decideMatches(
         excluded: false,
         trade: false,
         grocery: false,
+        retail: false,
+        store: false,
       };
       const cc = row.cc?.value;
       if (cc && !c.countries.includes(cc)) c.countries.push(cc);
       if (p31 && classes[p31]?.excluded) c.excluded = true;
       if (p31 && classes[p31]?.grocery) c.grocery = true;
+      if (p31 && classes[p31]?.store) c.store = true;
+      if (ind && classes[ind]?.retail) c.retail = true;
       if (ind && classes[ind]?.trade) c.trade = true;
       per.set(qid, c);
     }

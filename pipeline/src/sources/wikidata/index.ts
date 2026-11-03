@@ -42,6 +42,7 @@ import {
   hitSteps,
   labelVariants,
   nextHop,
+  noFlags,
   parseEnvelope,
   recordsOf,
   usableBrand,
@@ -181,7 +182,7 @@ export function createWikidataSource(
           Object.assign(classCache, classFlagsOf(r, chunk));
         }
         const classes: ClassTable = Object.fromEntries(
-          used.map((q) => [q, classCache[q] ?? { excluded: false, trade: false, grocery: false }]),
+          used.map((q) => [q, classCache[q] ?? noFlags()]),
         );
         const decisions = decideMatches(
           batch.map((b) => b.brand),

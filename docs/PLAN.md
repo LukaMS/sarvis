@@ -1185,10 +1185,10 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/wikidata/*` and tests, `docs/DECISIONS.md`.
 - **Verification:** the source-task rules for a sample, plus the brand-class picks listed with right/wrong in PROGRESS.
 
-### [ ] P3.12c Wikidata: non-grocery retailers in the brand-class and US tiers (added in P3.12b)
+### [x] P3.12c Wikidata: non-grocery retailers in the brand-class and US tiers (added in P3.12b)
 - **Slice:** source-wikidata.
 - **Goal:** after P3.12b, 2 of the sample's 18 brand-class picks are still wrong, and both get in through P452 *retail*: Prana → an American clothing company, and Best Buy → the electronics retailer (the OFF products are Sobeys' "Best Buy / Value Plus" private label). Both would also win the US tier. P3.13 would auto-approve them.
-- **Deps:** P3.12b. **Owner to decide** whether P3.13 waits for it. It's 2 items in 100, and P3.13 doesn't depend on it today.
+- **Deps:** P3.12b. ✅ **Decided (owner, 2026-11-03): P3.13 waits for it.**
 - **In:**
   - Measure on the top 400 OFF strings (the P3.12b method) before choosing. Options: (a) bare `retail` / `retail chain` / `big-box store` / `e-commerce` count as grocery evidence only together with a food-side industry or a grocery store class (supermarket, grocery or convenience store chain); (b) exclude P452 industries that are clearly not grocery (clothing, consumer electronics, …) the way D-066 excludes classes. Report right picks lost (e.g. The Fresh Market, 7-Eleven, Starbucks).
   - Bump `wikidata@1.3.0` and re-run `--sample 100` twice.
@@ -1199,9 +1199,9 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 ### [ ] P3.13 Wikidata (b): ownership scale-up
 - **Slice:** source-wikidata.
 - **Goal:** Wikidata ownership for every OFF brand string that has a match (budget: ~20k brands, ~5k companies).
-- **Deps:** P3.12, P3.12a, P3.12b and D-054.
+- **Deps:** P3.12, P3.12a, P3.12b, P3.12c and D-054.
 - ✅ **Decided (D-054): no manual review for Wikidata.** Every Wikidata brand, company, brand → owner edge and company → parent edge is auto-approved, with no queue row. Where several current owners are listed, one is picked by rule (preferred rank, then the latest start date). Remaining ties stay `pending` with no queue row, and the count goes in PROGRESS. Ended edges are approved as history. Admin decisions are never overridden.
-- **In:** `--mode full`, plus the D-054 rule as code. It's applied through the per-batch `AUTO_APPROVE` path, so it covers only rows this run writes or confirms (D-066). P3.12 sample rows the full run still produces get approved, and stale ones (58 after P3.12b) stay `pending`. Tests cover each case: a stale `pending` row from an earlier run left alone, one current owner, two owners settled by rank, two settled by start date, a tie left `pending`, an ended edge approved as history, a company → parent edge, and an admin-rejected row left alone. No `review_queue` rows are written.
+- **In:** `--mode full`, plus the D-054 rule as code. It's applied through the per-batch `AUTO_APPROVE` path, so it covers only rows this run writes or confirms (D-066). P3.12 sample rows the full run still produces get approved, and stale ones (66 after P3.12c) stay `pending`. Tests cover each case: a stale `pending` row from an earlier run left alone, one current owner, two owners settled by rank, two settled by start date, a tie left `pending`, an ended edge approved as history, a company → parent edge, and an admin-rejected row left alone. No `review_queue` rows are written.
 - **Out:** as P3.12.
 - **Files:** `pipeline/src/sources/wikidata/*`, `docs/DECISIONS.md`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`brands`, `companies`, both ownership tables, `review_queue`). Also: the number of OFF brand strings matched, out of the total.

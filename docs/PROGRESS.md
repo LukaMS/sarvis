@@ -2,6 +2,62 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.12c Wikidata: non-grocery retailers in the brand-class and US tiers (done)
+
+**Owner's decision:** P3.13 waits for this task (PLAN updated).
+
+**What changed** (`wikidata@1.3.0`, D-066 amended)
+- **Bare retail is no longer grocery evidence on its own.** Retail, retail chain, big-box store and e-commerce moved from `TRADE_INDUSTRIES` to a new `RETAIL_INDUSTRIES`. They count only on an item in a grocery store class (supermarket, grocery, food, convenience or hypermarket chain, `GROCERY_STORE_CLASSES`). The classes query gains two flags, `retail` (P452) and `store` (P31). Food-side industries still count alone.
+- Tests: 21 Wikidata tests (1 new). Fixtures re-saved with the 1.3.0 queries, plus Prana, Best Buy, Fresh Market and 7-Eleven (`fixture.match.json` is 220 KB).
+
+**Measured on the top 400 OFF strings** (offline, today's Wikidata; scratch script, not committed)
+
+| rule | matched | wrong removed | right lost |
+|---|---|---|---|
+| 1.2.0 | 172 | — | — |
+| (a) retail only with a food industry or store class | 168 | Prana, Best Buy, Eden | Mars (ambiguous) |
+| (b) exclude non-grocery industries | 172 | none (Prana's and Best Buy's only P452 is *retail*) | — |
+| **(a) with the store class only together with retail (chosen)** | **169** | **Prana, Best Buy, Eden** | **none** |
+
+Eden → an e-commerce company won the US tier in 1.2.0. Under plain (a), a US supermarket chain named Mars, with no P452, made Mars ambiguous.
+
+**Verification**
+- Terms: unchanged (same day as P3.12b).
+- `--dry-run --sample 100` `27da2b22`: completed, 511 fetched, 0 invalid. Then `--sample 100` twice:
+
+  | run | status | fetched | valid | invalid | inserted | updated | unchanged |
+  |---|---|---|---|---|---|---|---|
+  | `86dc8057` | completed | 511 | 511 | 0 | 7 | 0 | 504 |
+  | `1f964672` | completed | 511 | 511 | 0 | **0** | 0 | 511 |
+
+  22 raw files per run, no 429. `validation_failures`: none.
+- Match: 226 strings tried, 107 matched (100 items: 32 brands, 68 businesses), 33 ambiguous, 86 unmatched. Tiers: 80 single, 16 brand-class, 7 CA, 4 US.
+- **Brand-class picks (16, all right):** Kellogg's, Lay's, Knorr, Cadbury, Starbucks, Pillsbury, Tropicana, Kashi, Coca-Cola, Dr. Oetker, Oikos, Kinder, Pepsi, Philadelphia, Mars, Classico. Prana and Best Buy are ambiguous now.
+- **US picks (4, right item):** Christie → Mondelez, Campbells → Campbell's; Kraft → Kraft Foods Group and Heinz → H. J. Heinz Company are the right items but the pre-2015 companies (merged into Kraft Heinz). Whether the chain reaches Kraft Heinz is left to D-054 and P3.13's report.
+- **CA picks (7, all right):** Safeway (Canada), Metro, Foodland, Walmart Canada, Vega, Neilson Dairy, Circle K.
+- **Re-parse:** all 22 raw files of `1f964672` re-parse to 511 records (identical on a second parse). Produced but not stored: 0 in all four tables.
+
+  | table | stored | produced by `1f964672` | stale (all `pending`) |
+  |---|---|---|---|
+  | companies | 171 | 148 | 23 |
+  | brands | 120 | 100 | 20 |
+  | brand edges | 111 | 96 | 15 |
+  | company edges | 131 | 123 | 8 |
+
+  New stale rows: Prana, its owner Columbia Sportswear, and Best Buy. P3.13's text is updated from 58 to 66.
+- Rows missing `source_url`, `fetched_at`, `method`, `method_version` or `ingestion_run_id`: 0 in all four tables. Orphan edges: 0. Cycles: 0. Longest chain 3. All 533 Wikidata rows are `pending`. New `review_queue` rows: 0.
+- Examples (1.3.0 rows, `method api`, run `86dc8057`, raw `8872e6d5`; they took the sample slots Prana and Best Buy freed):
+  - brand + company `haribo` Q169552, `…/wiki/Q169552`, with its self edge.
+  - brand + company `pepperidge-farm` Q2069747, `…/wiki/Q2069747`, with its self edge.
+- `npm run typecheck`, `lint`, `format:check` and `npm test` pass (495 passed, 1 skipped).
+
+**For you**
+- Nothing blocking. The matcher has now lost Castello, French's, Perrier and the foreign-country brands (Red Bull, Maggi, Magnum) for precision. They're left to Phase 4's resolver.
+
+**Next:** P3.13 Wikidata (b): ownership scale-up.
+
+---
+
 ## 2026-11-03 — P3.12b Wikidata: brand-class tier precision (done)
 
 **What changed** (`wikidata@1.2.0`, D-066 amended)
