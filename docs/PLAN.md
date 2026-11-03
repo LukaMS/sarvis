@@ -1099,7 +1099,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/open-prices/*` and tests, `pipeline/src/sources/registry.ts`.
 - **Verification:** the source-task rules. Also: the unmatched-product count and the store count.
 
-### [ ] P3.10 Open Prices (b): all Canadian prices
+### [x] P3.10 Open Prices (b): all Canadian prices
 - **Slice:** source-open-prices.
 - **Goal:** every CAD price (697 on 2026-10-26).
 - **Deps:** P3.9.
@@ -1107,6 +1107,18 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** contributing receipt prices back (Phase 8, D-013 D7).
 - **Files:** `pipeline/src/sources/open-prices/*`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check. Also: the count against the Open Prices API total for CAD on the same day.
+
+### [ ] P3.10a Budget: store and price row widths (added in P3.10)
+- **Slice:** source-open-prices.
+- **Goal:** bring the `stores` and `price_observations` row widths back within 20% of BUDGET §3, or re-baseline §3 with a reason. P3.10 measured them over the line (the budget rule in "Rules for every source task").
+- **Deps:** P3.10.
+- **Found in P3.10:** `stores` rows average **429 B** (`pg_column_size`) against 278 B (+54%); at the §3 row count (3,000) that projects to 1.8 MB against 1.3 MB. Most of it is `address` (117 B on average), which is the whole OSM display name: it repeats the city, region, province, postal code and country that have their own columns. `price_observations` rows average **258 B** against 208 B (+24%); that projects to 8.1 MB against 7.0 MB (+16%, inside the line), mostly the per-row `source_url` (~48 B).
+- **In:**
+  - Open Prices `address`: keep only the street part (house number and street), dropping the segments that repeat `city`, `province`, `postal_code` and the country, and the regions in between. `open-prices@1.0.1`; a re-run updates the 100 stores in place.
+  - Re-measure both tables. If `price_observations` is still over 20%, either add the checked `url_template` to the `open-prices` source row (a `sources` migration; `source_url` then null, D-032) or re-baseline §3 with the reason.
+- **Out:** banner linking (P4).
+- **Files:** `pipeline/src/sources/open-prices/map.ts` and test, `docs/catalog/BUDGET.md`, possibly `supabase/migrations/*_open_prices_url_template.sql`.
+- **Verification:** the source-task rules for a scale-up (two `--mode full` runs: the first updates 100 stores and nothing else, the second writes nothing), the new widths in a BUDGET "Actuals" line, `npm run typecheck`, `lint` and `test` pass.
 
 ### [ ] P3.11 StatCan reference prices
 - **Slice:** source-statcan.

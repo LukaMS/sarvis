@@ -168,6 +168,24 @@ First delta run over the 13 files listed (2026-10-17 → 2026-10-30): 104,412 ch
 | Download per day | ~22 MB streamed, not stored | — | not counted against Supabase |
 | Rows written | 1 updated | — | the export is newer than most deltas (D-059) |
 
+### Actuals: Open Prices full import (P3.10, 2026-11-03, dev project)
+
+Two full runs on the 2026-11-02 dumps (prices 22.6 MB gz, 340,038 rows, 715 CAD; locations 1.2 MB gz, 7,781 rows).
+
+| Measure | Actual | §3/§5 estimate | Note |
+|---|---:|---:|---|
+| `stores` rows (Open Prices) | 100 (28 in Ontario) | 3,000 (all sources) | ✅ |
+| `stores` avg row width (`pg_column_size`) | **429 B** | 278 B | **+54%**: `address` is the whole OSM display name (117 B avg). PLAN P3.10a. |
+| `stores` total (heap + indexes) | 0.19 MB | 1.3 MB | ✅ (mostly empty index pages at this size) |
+| `price_observations` rows | 521 | 20,000 (all time) | ✅ |
+| `price_observations` avg row width | **258 B** | 208 B | **+24%**: per-row `source_url` (~48 B). Projected line at 20k rows: 8.1 MB vs 7.0 MB (+16%). PLAN P3.10a. |
+| `price_observations` total | 0.38 MB | 7.0 MB | ✅ |
+| Raw extract per full run (gz) | 20 KB, 2 files (7.8 KB stores + 12.2 KB prices) | 1 MB (× last 3) | ✅ |
+| `raw` bucket total | 12.9 MB, 91 files | 700 MB | ✅ |
+| Whole DB (`pg_database_size`) | 91.3 MB | alarm 400 MB | ✅ |
+
+The table totals are far under §3, but the two row widths are over by more than 20%, so P3.10a comes before these tables grow (receipts, Phase 8). It's placed before P3.11.
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |

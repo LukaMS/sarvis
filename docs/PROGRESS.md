@@ -2,6 +2,35 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.10 Open Prices (b): all Canadian prices (done)
+
+**What changed**
+- No code change: `--mode full` runs the P3.9 source over every kept store and price. A full run took 11 s, so the D-046 "latest per series" RPC isn't needed.
+- PLAN gains **P3.10a** (store and price row widths; see below). BUDGET gets an "Actuals: Open Prices full import" section.
+
+**Verification** (dev project, 2026-11-02 dumps, both revalidated by 304)
+- **Run 1** `10a5fe58-58bd-40b8-aaa8-ebe08c2b90f5` (`--mode full`): completed. **Fetched 792 (100 stores + 692 prices), valid 754, invalid 38, inserted 534, updated 0, unchanged 154, skipped `unmatched_product` 66.**
+- **Run 2** `9a065a93-7291-49c1-a349-a00909b6021d`: completed. **Inserted 0, updated 0, unchanged 688**, skipped 66, invalid 38.
+- **Against the Open Prices API** (`/api/v1/prices?currency=CAD`, 14:42 UTC the same day): **total 715** (700 of them product prices), the same as the dump's 715 CAD rows. Of those:
+  - 23 filtered out: 15 category prices (no product code), 3 marked duplicates, 5 not at a Canadian store (4 online, 1 at a US Costco);
+  - 692 kept → 654 valid → **521 rows stored**. Another 67 are repeat readings (same store, product and price) that moved an existing row's `last_confirmed_on` (39 rows have one), and 66 are unmatched products.
+- **Validation failures by rule:** `gtin_check_digit` 25, `schema` 13. All 13 `schema` failures are "A price needs a product or a listing": their codes are restricted-circulation (prefix 02/2x, in-store variable-weight barcodes, e.g. `0211028810476`). They have no GTIN, and there's no banner to scope a store code to.
+- **Stores:** 100 (QC 38, ON 28, BC 26, AB 5, NL, NB, MB 1 each); 79 have prices. Prices at Ontario stores: 64.
+- **Prices:** 320 regular, 201 sale; by year 2020: 4, 2024: 172, 2025: 284, 2026: 61.
+- **Provenance:** a SQL count of `open-prices` stores (100) and prices (521) missing `source_id`, `fetched_at`, `method`, `method_version`, `ingestion_run_id`, `source_url` or `raw_object_id` is **0**.
+- **Raw:** 2 `raw_objects` for run 1 (7,845 B stores, 12,223 B prices). `readRaw()` on both re-parses to 792 records. They validate to 100 + 654, and match the stored rows field for field: 100/100 stores, and 521/521 stored prices.
+- **5 examples:** the P3.9 examples are unchanged (42277, 108266, 29460, 30103, 30104, run `5c261e72`); this run's rows have the same shape, `open-prices@1.0.0`, raw `d23033e6`.
+- **Budget** (BUDGET "Actuals: Open Prices full import"): `stores` 0.19 MB, `price_observations` 0.38 MB, raw 20 KB per run, `raw` bucket 12.9 MB (91 files), DB 91.3 MB. The table totals are far under §3, but the **row widths are over by more than 20%**: stores 429 B vs 278 B (+54%, the full OSM display name in `address`), prices 258 B vs 208 B (+24%, the per-row `source_url`). Per the scale-up rule this is **PLAN P3.10a**, placed before P3.11.
+- **Checks:** `npm test` 444 passed, 1 skipped; typecheck, lint and `format:check` pass.
+
+**For you**
+- **P3.10a is new** (budget rule). It's small: shorten the stored store address to the street part, and maybe use a URL template for price URLs. The absolute sizes are tiny (under 0.6 MB together), so it only matters once receipts add stores and prices.
+- In-store meat and deli barcodes (13 prices) can't be linked until stores have banners (P4). They stay in the raw extract.
+
+**Next:** P3.10a Budget: store and price row widths.
+
+---
+
 ## 2026-11-03 — P3.9 Open Prices (a): Canadian sample (done)
 
 **What changed**
