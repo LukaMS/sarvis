@@ -167,6 +167,7 @@ This table is mirrored in the `public.sources` table (one row per S-id, joined o
 | Key fields | **`product_code` (GTIN, key)**, **`price` (key)**, **`currency` (key)**, **`date` (key)**, **`price_is_discounted` (key)**, `price_without_discount`, `price_per`, **`location_osm_id` / `location_osm_type` (key)**, `proof_id`, `source`. |
 | Est. rows / size | Hundreds of Canadian rows today. Negligible size. |
 | Verdict | **use**: free, open and GTIN-keyed (ODbL accepted, D1). Too thin to rely on. Prices from consenting users' receipts may be contributed back (D7). |
+| Pipeline (P3.9) | Source `open-prices` (D-060). Reads both daily dumps; on 2026-11-03 prices.jsonl.gz was 22.6 MB (340,038 prices, 715 CAD) and locations.jsonl.gz 1.2 MB (7,781 locations, 100 Canadian OSM). Terms re-checked 2026-11-03: robots.txt still empty; the data guide still asks for ODbL compliance and adds "contributing back any product you add using this SDK" (we don't use their SDK). No change, so `terms_checked_at` stays 2026-10-26. |
 
 ### S6 Statistics Canada table 18-10-0245-01 (monthly average retail prices)
 

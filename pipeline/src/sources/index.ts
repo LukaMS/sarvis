@@ -4,6 +4,7 @@
 import { FIXTURE_KEY, createFixtureSource } from './fixture/index.ts';
 import { LEGACY_KEY, createLegacyImportSource } from './legacy-import/index.ts';
 import { OFF_KEY, createOffSource } from './off/index.ts';
+import { OP_KEY, createOpenPricesSource } from './open-prices/index.ts';
 import { registerSource } from './registry.ts';
 
 let registered = false;
@@ -14,6 +15,7 @@ export function registerAllSources(): void {
   registerSource(FIXTURE_KEY, () => createFixtureSource());
   registerSource(LEGACY_KEY, () => createLegacyImportSource());
   registerSource(OFF_KEY, () => createOffSource());
+  registerSource(OP_KEY, () => createOpenPricesSource());
 }
 
 export * from './registry.ts';

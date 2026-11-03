@@ -1087,7 +1087,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `anon` can't write to the bucket. `get_advisors` shows no new warnings.
   - `npm run typecheck`, `lint` and `test` pass.
 
-### [ ] P3.9 Open Prices (a): Canadian sample
+### [x] P3.9 Open Prices (a): Canadian sample
 - **Slice:** source-open-prices.
 - **Goal:** the first real store prices, from Open Prices' daily dump.
 - **Deps:** P3.3, P3.6.

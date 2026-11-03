@@ -120,6 +120,13 @@ export interface Source<K extends RecordKind = RecordKind, Step = unknown> {
   readonly capabilities: SourceCapabilities;
   /** Extra milliseconds between fetches, on top of the HTTP client's per-host limit. */
   readonly politenessDelayMs?: number;
+  /**
+   * Writer rejection reasons (`RejectedRecord.reason`) this source expects, e.g. a price for a
+   * product the catalog doesn't have yet. Those records are counted in an info event named after
+   * the reason, and in `skipped` on the run_finished event, instead of making the run
+   * `completed_with_errors`.
+   */
+  readonly expectedRejections?: readonly string[];
 
   /** Cheap check of static configuration. Throws ConfigurationError. */
   validateConfiguration?(): Promise<void> | void;

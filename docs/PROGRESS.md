@@ -2,6 +2,49 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.9 Open Prices (a): Canadian sample (done)
+
+**What changed**
+- **Terms check:** robots.txt still empty (200, 0 B). The data guide still asks for ODbL compliance; it now also mentions contributing back products added "using this SDK" (we don't use it). No change, so no migration. Noted in SOURCES S5.
+- **Source `open-prices`** (`pipeline/src/sources/open-prices/`, D-060):
+  - downloads both daily dumps to the dump cache in `plan` and keeps Canadian OSM locations, plus CAD product prices at them (no category prices, no duplicates);
+  - raw: one JSONL extract of stores, then price extracts (10k lines), kept fields only (no contributor, comment or proof);
+  - `parse` gives stores, then prices, as batches, so prices resolve their store by OSM key;
+  - mapping: store slug `<name>-<city>-<n|w|r><osm_id>`, province from the postal code, banner null; price `external_id` = Open Prices id, product by GTIN (OFF rule), `price_kind` member/sale/regular, `source_url` = the Open Prices page.
+- **Generic: expected rejections.** `RejectedRecord.reason` + `Source.expectedRejections`. The driver counts expected ones in an info event and in `skipped` on `run_finished` instead of ending `completed_with_errors`. The price writer tags an unknown product (store known, no listing) as `unmatched_product`.
+- **Tests:** `open-prices.test.ts` on real dump slices (fixture rows with contributor fields nulled): filter counts, mapping, validation (one real bad check digit), slug and province rules, sample picking, a driver run (stores before prices, unmatched skipped and the run still `completed`, any other rejection still errors), and re-parse.
+
+**Verification** (dev project)
+- **Dry run** `52f34a1b-f31e-4b5e-8d5d-1d94dfc6a13f` (`--dry-run --sample 100`): completed. Fetched 100, valid 95, invalid 5, nothing written.
+- **Filter** (2026-11-02 dumps; prices sha `6b217a1bf802…`, locations `5d008fe0f461…`):
+  - locations: 7,781 scanned, **100 kept**; dropped 143 not OSM (online), 7,538 outside Canada (incl. 50 OSM places with no country yet);
+  - prices: 340,038 scanned, **692 kept**; dropped 339,323 not CAD, 15 without a product code (category prices), 3 duplicates, 5 not at a Canadian store (4 online, 1 at a US Costco).
+  - Total CAD: 715 (the plan's 697 was 2026-10-26).
+- **Run 1** `5c261e72-5e06-47f9-9095-1092f37d3597` (`--sample 100`): completed. 21 stores + 79 prices. **Fetched 100, valid 95, invalid 5, inserted 87 (21 stores, 66 prices), unchanged 1, skipped `unmatched_product` 7.** The 1 unchanged is a second reading of the same price at the same store, which moved the first row's `last_confirmed_on` (2024-10-26 → 10-28) as designed.
+- **Run 2** `244ec6bc-2eec-4f6e-aaef-7897759f337c` (same command; dumps revalidated by 304): completed. **Inserted 0, updated 0, unchanged 88**, skipped 7, invalid 5.
+- **Validation failures by rule:** `gtin_check_digit` 5 (prices 30225, 30226, 30227, 32838, 39061: the codes as Open Prices has them). Nothing else.
+- **Unmatched products:** 7 of 74 valid prices (the barcode isn't in our OFF set). Across all 692 kept prices, 419 of 493 unique valid barcodes are in `products` today.
+- **Stores:** 21 (BC, NL, ON, QC), all `banner_id` null, `active`.
+- **Provenance:** a SQL count of `open-prices` stores (21) and prices (66) missing `source_id`, `fetched_at`, `method`, `method_version`, `ingestion_run_id`, `source_url` or `raw_object_id` is **0**.
+- **Raw:** 2 `raw_objects` per run (4,185 B). `readRaw()` on both files of run 1 re-parses to 100 records (21 + 79). They validate to 21 + 74, and match the stored rows: 21/21 stores, 66/66 prices (the other 8 are the 7 unmatched and the 1 collapsed reading).
+- **5 examples** (as stored; all `import`, `open-prices@1.0.0`, run `5c261e72`, raw `b15b158b`, source_url `https://prices.openfoodfacts.org/prices/<id>`):
+  - `42277` Roasted Seaweed (Yaki Nori) `00074410518790`, 13.49 regular, observed 2024-10-26, **confirmed 2024-10-28**, `t-and-t-supermarket-coquitlam-w192575052`;
+  - `108266` Butter Chicken Cooking Sauce `00069276130088`, 3.97 sale (discounted, no regular price given), 2025-05-06, `walmart-new-westminster-r7391902`;
+  - `29460` Protein Soy Unsweetened `00025293000735`, 3.49 sale, was 4.98, 2024-06-25, Walmart New Westminster;
+  - `30103` Lentil Soup, Lower Sodium `00042272905836`, 3.75 sale, 2024-07-10, `london-drugs-new-westminster-n1015563079`;
+  - `30104` Pomegranate Juice, Cold Pressed `00627987298888`, 6.39 sale, 2024-07-10, London Drugs.
+  - Store example: `walmart-new-westminster-r7391902` Walmart, New Westminster, BC, V3M 6T9, 49.211951/-122.923577, relation 7391902, `/locations/604`, 18 prices.
+- **Checks:** `npm test` 444 passed, 1 skipped; typecheck, lint and `format:check` pass.
+
+**For you**
+- **Most Canadian Open Prices data is BC and Quebec, not Ontario.** Of the 100 Canadian locations, 28 are in Ontario (38 QC, 26 BC), and only 72 of the 715 CAD prices are at Ontario stores.
+- **Open Prices prices are old**: 9 from 2020, 210 from 2024, 402 from 2025, 94 from 2026. They show as point observations with their date. Nothing is shown in the app before Phase 8.
+- **Stores and prices are public by RLS** (DATA_MODEL §3.4). That's open data, not legacy, so the legacy-review rule doesn't apply.
+
+**Next:** P3.10 Open Prices (b): all Canadian prices.
+
+---
+
 ## 2026-10-30 — P3.7 OFF: daily deltas (done)
 
 **What changed**

@@ -27,6 +27,9 @@ import {
   writeRecords,
 } from './common.ts';
 
+/** `RejectedRecord.reason` for a price whose product (and no listing) isn't in the catalog. */
+export const UNMATCHED_PRODUCT = 'unmatched_product';
+
 type PricePayload = TablesInsert<'price_observations'> & PriceFields & { observed_on: string };
 
 const PRICE_COLUMNS =
@@ -64,7 +67,12 @@ export function priceObservationWriter(db: ServiceClient): DomainWriter<'price_o
         const listingId = refs.listing(r.listing) ?? null;
         if (!prov || !storeId || (!productId && !listingId)) {
           const what = !prov ? `source ${r.source_key}` : !storeId ? 'store' : 'product or listing';
-          result.rejected.push(unknownRef(key, what));
+          // Only a product the catalog doesn't have yet: a source may expect that (D-060).
+          const unmatched = prov && storeId && r.product && !r.listing;
+          result.rejected.push({
+            ...unknownRef(key, what),
+            ...(unmatched ? { reason: UNMATCHED_PRODUCT } : {}),
+          });
           return [];
         }
         return [

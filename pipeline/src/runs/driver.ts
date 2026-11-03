@@ -84,6 +84,8 @@ export interface WriteContext {
 export interface RejectedRecord {
   key: string;
   message: string;
+  /** A machine-readable cause a source can list in `expectedRejections` (e.g. `unmatched_product`). */
+  reason?: string;
 }
 
 /** The domain writes for one record kind (src/db/writers). */
@@ -284,6 +286,9 @@ export async function runSource<K extends RecordKind>(
 
   let counts = emptyRunCounts();
   let duplicates = 0;
+  // Records a writer turned away for a reason the source expects, by reason.
+  const skipped: Record<string, number> = {};
+  const expectedReasons = new Set(source.expectedRejections ?? []);
   let expectedTotal: number | null = null;
   let failuresStored = 0;
   let cancelled = false;
@@ -423,7 +428,23 @@ export async function runSource<K extends RecordKind>(
           if (!writer) throw new ConfigurationError(`No writer for ${kind} records.`);
           const written = await writer.upsert(batch.valid, { runId, source: row, rawObjectId });
           counts = addCounts(counts, written);
-          const rejected = written.rejected ?? [];
+          const all = written.rejected ?? [];
+          const rejected = all.filter((r) => !r.reason || !expectedReasons.has(r.reason));
+          const expected = new Map<string, RejectedRecord[]>();
+          for (const r of all) {
+            if (!r.reason || !expectedReasons.has(r.reason)) continue;
+            expected.set(r.reason, [...(expected.get(r.reason) ?? []), r]);
+          }
+          for (const [reason, list] of expected) {
+            skipped[reason] = (skipped[reason] ?? 0) + list.length;
+            await event('info', reason, `${list.length} records skipped: ${reason}.`, {
+              seq,
+              kind,
+              rawObjectId,
+              count: list.length,
+              examples: list.slice(0, 5),
+            });
+          }
           if (rejected.length > 0) {
             // Valid but unwritten: the run can't end clean, and the first few say why.
             hadErrors = true;
@@ -519,7 +540,14 @@ export async function runSource<K extends RecordKind>(
     status === 'completed' ? 'info' : status === 'failed' ? 'error' : 'warn',
     'run_finished',
     `Run ${status}.`,
-    { counts, expectedTotal, deactivated, eventsDropped, validationFailuresStored: failuresStored },
+    {
+      counts,
+      expectedTotal,
+      deactivated,
+      eventsDropped,
+      validationFailuresStored: failuresStored,
+      ...(Object.keys(skipped).length > 0 ? { skipped } : {}),
+    },
     true,
   );
   return { runId, status, counts, expectedTotal, errorSummary, deactivated, sweptStaleRuns };
