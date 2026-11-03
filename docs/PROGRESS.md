@@ -2,6 +2,68 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.12b Wikidata: brand-class tier precision (done)
+
+**What changed** (`wikidata@1.2.0`, D-066 amended)
+- **Grocery evidence after `single`:** the CA, brand-class and US tiers count a candidate only if it's in a grocery brand class (food, alcohol, tea, private label, store, generic or pet food brand, `P31/P279*`) or has a `TRADE_INDUSTRIES` P452. Brand-class alone no longer counts. The flag is a third one (`grocery`) in the cached classes query.
+- **Why the country tiers too:** the plan's rule touched only the brand-class tier. Measured that way, a rejected brand fell through to the US tier: Astro, Chapman's and Jordans → Air Jordan came back, and Coop → a Dutch chain and Wonder → a ghost kitchen were new.
+- **A country without an ISO code isn't North American:** Q55 Netherlands has no P297, so the Dutch Coop counted as "no country". The match query now reads P17 and P297 separately (`??` when there's no code).
+- Tests: 20 Wikidata tests (2 new). The match fixture is re-saved with the 1.2.0 query, plus Astro, Quest, Jordans, Chapman's, Oikos and Coop, and the classes fixture with the `grocery` roots.
+
+**Measured on the top 400 OFF strings** (offline, today's Wikidata; scratch script, not committed)
+
+| rule | matched | brand-class picks |
+|---|---|---|
+| 1.1.0 | 181 | 34 |
+| brand-class tier only (the plan's rule) | 179 | 26 |
+| **all tiers after `single` + ISO fix (chosen)** | **172** | **25** |
+
+- Wrong picks removed: Primo, Quest, Chapman's, Astro, Jordans, Ghost (a London clothing brand). Doubtful removed: Prime (Prime Hydration), Coop (an international co-op brand).
+- Right picks lost: Castello, French's (P31 plain "brand"), Perrier. Right picks gained: Mars, Oikos.
+- The grocery class alone, without trade, lost the same and picked IGA → a beer style. Adding P31 food/drink changed nothing.
+
+**Verification**
+- Terms: robots.txt unchanged (`Disallow: /sparql`, D-065 exemption); SOURCES S17 unchanged since P3.12 (same day).
+- `--dry-run --sample 100` `e444846d`: completed, 511 fetched, 0 invalid. Then `--sample 100` twice:
+
+  | run | status | fetched | valid | invalid | inserted | updated | unchanged |
+  |---|---|---|---|---|---|---|---|
+  | `63cc8faf` | completed | 511 | 511 | 0 | 19 | 0 | 492 |
+  | `1940bbba` | completed | 511 | 511 | 0 | **0** | 0 | 511 |
+
+  22 raw files per run, no 429. `validation_failures`: none.
+- Match: 219 strings tried, 107 matched (100 items: 32 brands, 68 businesses), 29 ambiguous, 83 unmatched. Tiers: 78 single, **18 brand-class** (21 in P3.12a), 7 CA, 4 US.
+- **Brand-class picks, right/wrong (16 right, 2 wrong):**
+  - Right: Kellogg's, Lay's, Knorr, Cadbury, Starbucks, Pillsbury, Tropicana, Kashi, Coca-Cola, Dr. Oetker, Oikos (yogurt), Kinder, Pepsi, Philadelphia, Mars (chocolate bar), Classico.
+  - Wrong: **Prana** → an American clothing company; **Best Buy** → the electronics retailer (the OFF products are Sobeys' "Best Buy / Value Plus" private label). Both get in through P452 *retail*.
+  - The 5 P3.12a wrong picks: Primo, Quest, Chapman's and Astro are ambiguous now. Prana stays, as the plan predicted.
+- **Re-parse:** all 22 raw files of `1940bbba` read back with `readRaw()` re-parse to 511 records (the same on a second parse). Produced but not stored: 0 in all four tables.
+
+  | table | stored | produced by `1940bbba` | stale (all `pending`) |
+  |---|---|---|---|
+  | companies | 169 | 149 | 20 |
+  | brands | 118 | 100 | 18 |
+  | brand edges | 109 | 96 | 13 |
+  | company edges | 130 | 123 | 7 |
+
+  The 13 new stale rows are the dropped picks (Astro, Primo, Quest, Chapman's, Castello, French's) and the owners only they reached (Arla Foods, McCormick). P3.13's text is updated from 45 to 58.
+- Rows missing `source_url`, `fetched_at`, `method`, `method_version` or `ingestion_run_id`: 0 in all four tables. Orphan edges: 0. Cycles among live company edges: 0. Longest chain 3. All 526 Wikidata rows are `pending`. New `review_queue` rows: 0.
+- Examples (1.2.0 rows, `method api`, run `63cc8faf`):
+  - brand `mars` Q31305, `…/wiki/Q31305`, raw `db8a1fda`; brand edge `mars` → `mars-incorporated`, `…/wiki/Q31305#P127`, raw `23cf4ce3`.
+  - brand `oykos` Q137798516 (Oikos), raw `db8a1fda`.
+  - company `jack-links` Q1677100, US, raw `d3a65576`, with its self edge.
+  - company `diageo` Q161140, GB, raw `8b20f046` (owner of Smirnoff).
+  - company `mfs-investment-management` Q6715642, US, raw `f7cd020e`: a 4.99% `minority_stake` in Diageo. It's recorded, not walked.
+- `npm run typecheck`, `lint`, `format:check` and `npm test` pass (494 passed, 1 skipped).
+
+**For you**
+- **Prana and Best Buy** would be auto-approved by P3.13 with the wrong company. I added **P3.12c** (non-grocery retailers via P452 retail). **Your call:** should P3.13 wait for it? Today P3.13 doesn't depend on it.
+- Coverage cost: 9 fewer matches in the top 400. Castello, French's and Perrier are left to Phase 4's resolver.
+
+**Next:** P3.12c, or P3.13 if you decide it shouldn't wait.
+
+---
+
 ## 2026-11-03 — P3.12a Wikidata: tighten the match and clear stale sample rows (done)
 
 **What changed** (`wikidata@1.1.0`, D-066)

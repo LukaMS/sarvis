@@ -181,7 +181,7 @@ export function createWikidataSource(
           Object.assign(classCache, classFlagsOf(r, chunk));
         }
         const classes: ClassTable = Object.fromEntries(
-          used.map((q) => [q, classCache[q] ?? { excluded: false, trade: false }]),
+          used.map((q) => [q, classCache[q] ?? { excluded: false, trade: false, grocery: false }]),
         );
         const decisions = decideMatches(
           batch.map((b) => b.brand),

@@ -2,8 +2,9 @@
 // and a reader for the SPARQL 1.1 JSON results format. Three queries:
 //
 // - match: which brand- or business-class items have one of these labels or aliases (en, fr, mul),
-//   whether by label or alias, and their P31 classes and P452 industries;
-// - classes: which of those classes are excluded, and which industries are a grocery trade;
+//   whether by label or alias, their countries, P31 classes and P452 industries;
+// - classes: which of those classes are excluded or a grocery brand class, and which industries
+//   are a grocery trade;
 // - entities: the facts for a set of items (labels, aliases, P31, country, website, enwiki title,
 //   SEC CIK, OpenCorporates id, P576), their own owner statements (P127 / P749, with rank, P580,
 //   P582 and P1107), and the statements of the given children that point at them.
@@ -67,6 +68,22 @@ export const TRADE_INDUSTRIES = [
   'Q507619', // retail chain
   'Q16766413', // big-box store
 ] as const;
+/**
+ * P31/P279* brand classes that are grocery brands (D-066, P3.12b). Being brand-class alone isn't
+ * evidence: Wikidata files gas station chains, department stores, cigarettes and shoes under
+ * brand. A brand-class candidate needs one of these or a TRADE_INDUSTRIES industry.
+ */
+export const GROCERY_BRAND_CLASSES = [
+  'Q16323605', // food brand (drink, coffee, ice cream, chocolate brand …)
+  'Q80359036', // alcohol brand (beer, wine, whisky brand)
+  'Q105975861', // tea brand
+  'Q722080', // private label
+  'Q3749157', // store brand
+  'Q1378329', // generic brand
+  'Q136305047', // pet food brand
+] as const;
+/** The `cc` value for a country with no ISO alpha-2 code (P297), e.g. Q55 Netherlands. */
+export const NO_CODE = '??';
 /** Label languages for matching OFF brand strings, and for aliases. */
 export const MATCH_LANGS = ['en', 'fr', 'mul'] as const;
 /** Name languages, most preferred first; owners are often only labelled in their own language. */
@@ -96,15 +113,15 @@ export function matchQuery(labels: readonly string[]): string {
   BIND(EXISTS { VALUES ?bc { ${BRAND_CLASSES.map(wd).join(' ')} } ?item wdt:P31/wdt:P279* ?bc } AS ?brand)
   BIND(EXISTS { VALUES ?oc { ${BUSINESS_CLASSES.map(wd).join(' ')} } ?item wdt:P31/wdt:P279* ?oc } AS ?business)
   FILTER(?brand || ?business)
-  OPTIONAL { ?item wdt:P17/wdt:P297 ?cc }
+  OPTIONAL { ?item wdt:P17 ?country . OPTIONAL { ?country wdt:P297 ?code } BIND(COALESCE(?code, "${NO_CODE}") AS ?cc) }
   OPTIONAL { ?item wdt:P31 ?p31 }
   OPTIONAL { ?item wdt:P452 ?ind }
 }`;
 }
 
 /**
- * For P31 classes and P452 industries: is it (a subclass of) an excluded class, and is it (a
- * subclass of) a grocery trade. Asked once per class per run, so the subclass walks that would
+ * For P31 classes and P452 industries: is it (a subclass of) an excluded class, a grocery brand
+ * class, or a grocery trade. Asked once per class per run, so the subclass walks that would
  * slow every match query (US towns alone are thousands of classes deep) run only on new classes.
  */
 export function classQuery(qids: readonly string[]): string {
@@ -113,6 +130,7 @@ export function classQuery(qids: readonly string[]): string {
   const roots = [
     ...EXCLUDED_CLASSES.map((q) => `(${wd(q)} "excluded")`),
     ...TRADE_INDUSTRIES.map((q) => `(${wd(q)} "trade")`),
+    ...GROCERY_BRAND_CLASSES.map((q) => `(${wd(q)} "grocery")`),
   ].join(' ');
   return `SELECT DISTINCT ?c ?flag WHERE {
   VALUES ?c { ${qids.map(wd).join(' ')} }

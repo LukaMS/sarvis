@@ -1,7 +1,8 @@
 // Wikidata ownership on fixtures saved from real WDQS responses (2026-11-03, CC0): a match for
 // "President's Choice", "Metro", "Kellogg's" and "Kirkland", plus the five P3.12 wrong matches
-// ("Beatrice", "Avril", "Co-op", "PC", "Flamingo"; re-saved with the 1.1.0 query, P3.12a) and the
-// classes query for its candidates' classes and industries; the entities of President's Choice
+// ("Beatrice", "Avril", "Co-op", "PC", "Flamingo"), the P3.12a brand-class wrong picks ("Astro",
+// "Quest", "Jordans", "Chapman's"), "Oikos" and "Coop" (re-saved with the 1.2.0 query, P3.12b), and
+// the classes query for its candidates' classes and industries; the entities of President's Choice
 // (a brand) and Metro Inc. (a business); and Loblaw Companies, read with President's Choice as a
 // child (its P127 statement names Loblaw).
 import { readFileSync } from 'node:fs';
@@ -107,7 +108,7 @@ describe('Brand strings', () => {
 });
 
 describe('Matching', () => {
-  // A business in a grocery trade by default; `brand` makes it brand-class instead.
+  // A business in a grocery trade by default; `brand` makes it a grocery brand-class item instead.
   const c = (
     qid: string,
     countries: string[],
@@ -120,6 +121,7 @@ describe('Matching', () => {
     business: !brand,
     excluded: false,
     trade: !brand,
+    grocery: brand,
     ...more,
   });
 
@@ -162,6 +164,33 @@ describe('Matching', () => {
     expect(pickCandidate([c('Q1', ['CA'], true), c('Q2', ['GB'])])).toMatchObject({ tier: 'CA' });
   });
 
+  it('needs a grocery brand class or a grocery trade after `single` (P3.12b)', () => {
+    // Quest: a plain-brand cigarette item isn't a grocery brand; nothing else is either.
+    const plain = (qid: string, countries: string[]) => c(qid, countries, true, { grocery: false });
+    expect(pickCandidate([plain('Q1', []), c('Q2', ['GB'])]).pick).toBeNull();
+    // Astro, Jordans: a US brand the brand-class tier rejects doesn't come back in the US tier.
+    expect(pickCandidate([plain('Q1', ['US']), c('Q2', ['GB'])]).pick).toBeNull();
+    // Chapman's: the same for a CA or US brand-class store chain with no grocery trade.
+    expect(pickCandidate([plain('Q1', ['CA']), plain('Q2', ['US'])]).pick).toBeNull();
+    // A grocery brand beside a plain one wins the brand-class tier (Oikos, Mars).
+    expect(pickCandidate([plain('Q1', []), c('Q2', [], true)])).toMatchObject({
+      tier: 'brand-class',
+      pick: { qid: 'Q2' },
+    });
+    // A brand-class item with a grocery trade counts (Fresh Market, 7-Eleven).
+    expect(
+      pickCandidate([c('Q1', [], true, { grocery: false, trade: true }), c('Q2', ['GB'])]),
+    ).toMatchObject({ tier: 'brand-class', pick: { qid: 'Q1' } });
+    // The only candidate needs no evidence.
+    expect(pickCandidate([plain('Q1', ['FR'])])).toMatchObject({ tier: 'single' });
+  });
+
+  it('counts a country without an ISO code as not North American', () => {
+    // Coop: a Dutch chain whose P17 is Q55 Netherlands, which has no P297.
+    expect(pickCandidate([c('Q1', ['??'], true), c('Q2', ['GB'])]).pick).toBeNull();
+    expect(matchQuery(['Coop'])).toContain('COALESCE(?code, "??")');
+  });
+
   it('decides each brand string from a real match result', () => {
     const d = decideMatches(
       [
@@ -174,6 +203,12 @@ describe('Matching', () => {
         'Co-op',
         'PC',
         'Flamingo',
+        'Astro',
+        'Quest',
+        'Jordans',
+        "Chapman's",
+        'Oikos',
+        'Coop',
         'Nope',
       ],
       MATCH,
@@ -194,6 +229,15 @@ describe('Matching', () => {
       ['Co-op', 'ambiguous', null, null, null],
       ['PC', 'unmatched', null, null, null],
       ['Flamingo', 'unmatched', null, null, null],
+      // The P3.12a brand-class wrong picks: a US gas station chain, a cigarette brand, Air
+      // Jordan, a US department store chain. None is a grocery brand or in a grocery trade.
+      ['Astro', 'ambiguous', null, null, null],
+      ['Quest', 'ambiguous', null, null, null],
+      ['Jordans', 'ambiguous', null, null, null],
+      ["Chapman's", 'ambiguous', null, null, null],
+      // A yogurt food brand beside a plain brand; a Dutch chain (no ISO code) among nine more.
+      ['Oikos', 'matched', 'Q137798516', 'brand', 'brand-class'],
+      ['Coop', 'ambiguous', null, null, null],
       ['Nope', 'unmatched', null, null, null],
     ]);
     expect(d[1]?.candidates).toBeGreaterThan(10);
@@ -208,15 +252,17 @@ describe('Matching', () => {
     const used = candidateClasses(MATCH);
     const flags = classFlagsOf(CLASSES, used);
     expect(Object.keys(flags)).toHaveLength(used.length);
-    expect(flags.Q2085381).toEqual({ excluded: true, trade: false }); // publishing house
+    expect(flags.Q2085381).toEqual({ excluded: true, trade: false, grocery: false }); // publisher
     expect(flags.Q15127012?.excluded).toBe(true); // town in the United States
     expect(flags.Q41298?.excluded).toBe(true); // magazine
-    expect(flags.Q126793).toEqual({ excluded: false, trade: true }); // retail
-    expect(flags.Q4830453).toEqual({ excluded: false, trade: false }); // business
+    expect(flags.Q126793).toEqual({ excluded: false, trade: true, grocery: false }); // retail
+    expect(flags.Q4830453).toEqual({ excluded: false, trade: false, grocery: false }); // business
+    expect(flags.Q16323605).toEqual({ excluded: false, trade: false, grocery: true }); // food brand
     // Without the flags the publisher comes back (Beatrice stays out: its towns aren't a trade).
     const bare = decideMatches(['Flamingo', 'Beatrice'], MATCH);
     expect(bare.map((x) => x.status)).toEqual(['matched', 'ambiguous']);
     expect(classQuery(['Q1'])).toContain('(wd:Q486972 "excluded")');
+    expect(classQuery(['Q1'])).toContain('(wd:Q16323605 "grocery")');
   });
 });
 
@@ -253,7 +299,7 @@ describe('Entities', () => {
       source_url: 'https://www.wikidata.org/wiki/Q1145669',
       source_key: 'wikidata',
       method: 'api',
-      method_version: 'wikidata@1.1.0',
+      method_version: 'wikidata@1.2.0',
       fetched_at: FETCHED_AT,
     });
     expect(r.brandEdges).toEqual([

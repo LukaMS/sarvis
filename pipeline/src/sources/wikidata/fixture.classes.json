@@ -1,338 +1,182 @@
 {
-  "head": {
-    "vars": ["c", "flag"]
-  },
+  "head": { "vars": ["c", "flag"] },
   "results": {
     "bindings": [
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q484170"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q189004" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q540912"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q192283" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q189004"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q180846" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q192283"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q3914" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q180846"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q41298" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q3914"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q62049" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q41298"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q11707" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q62049"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q484170" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q9826"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q331814" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q514989"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q540912" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q1193236"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q9826" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q1336920"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q514989" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q847906"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q847906" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q1093829"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q64027599" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q6540832"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1093829" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q1187656"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1137109" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q7835189"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1193236" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q23002039"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1336920" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q23002054"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q220695" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q15825471"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q106071004" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q18043413"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q110071217" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q15127012"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q2085381" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q106071004"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q2549179" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q110071217"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q507619" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q2085381"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q613142" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q126793"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q627371" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q18127"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q7835189" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q41253"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q76213979" },
+        "flag": { "type": "literal", "value": "trade" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q46970"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q6540832" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q220695"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q722080" },
+        "flag": { "type": "literal", "value": "grocery" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q507619"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q11396960" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q613142"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "excluded"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q23002039" },
+        "flag": { "type": "literal", "value": "excluded" }
       },
       {
-        "c": {
-          "type": "uri",
-          "value": "http://www.wikidata.org/entity/Q627371"
-        },
-        "flag": {
-          "type": "literal",
-          "value": "trade"
-        }
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q23002054" },
+        "flag": { "type": "literal", "value": "excluded" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q15825471" },
+        "flag": { "type": "literal", "value": "trade" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q18043413" },
+        "flag": { "type": "literal", "value": "trade" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q15127012" },
+        "flag": { "type": "literal", "value": "excluded" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q18127" },
+        "flag": { "type": "literal", "value": "excluded" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1187656" },
+        "flag": { "type": "literal", "value": "trade" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q41253" },
+        "flag": { "type": "literal", "value": "excluded" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q46970" },
+        "flag": { "type": "literal", "value": "excluded" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q126793" },
+        "flag": { "type": "literal", "value": "trade" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1378329" },
+        "flag": { "type": "literal", "value": "grocery" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q210167" },
+        "flag": { "type": "literal", "value": "excluded" }
+      },
+      {
+        "c": { "type": "uri", "value": "http://www.wikidata.org/entity/Q16323605" },
+        "flag": { "type": "literal", "value": "grocery" }
       }
     ]
   }
