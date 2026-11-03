@@ -7,6 +7,7 @@
 // didn't create with company_enrichment records. The company keeps its own +prov block, and the
 // enriching source's provenance goes to company_sources (P3.4).
 import type { CompanyEnrichmentRecord, TablesInsert } from '@sarvis/core';
+import { uniqueSlug } from '@sarvis/core';
 
 import type { ServiceClient } from '../client.ts';
 import { byteaHash, roundTo, sameValue } from '../change.ts';
@@ -67,6 +68,55 @@ function entitySpec<P extends AnyRow & { slug: string; wikidata_qid?: string | n
   };
 }
 
+/** Slugs tried for one base, in uniqueSlug's order; enough that a miss is a real anomaly. */
+function slugCandidates(base: string, country?: string | null): string[] {
+  const out = [base];
+  const stem = country ? `${base}-${country.toLowerCase()}` : base;
+  if (country) out.push(stem);
+  for (let n = 2; n <= 50; n++) out.push(`${stem}-${n}`);
+  return out;
+}
+
+/**
+ * A record with a Wikidata QID is matched by its QID only (D-065): it never merges into a row
+ * that lacks that QID (a legacy row with the same name stays separate until an admin merges
+ * them). So its slug is the stored row's when the QID is known, and otherwise the first free one
+ * in the DATA_MODEL §1.3 order (`base`, `base-{country}`, then `-2` …). Records without a QID
+ * keep the slug they came with.
+ */
+export async function assignEntitySlugs<
+  R extends { slug: string; wikidata_qid?: string | null; country?: string | null },
+>(db: ServiceClient, table: 'companies' | 'brands', records: R[]): Promise<R[]> {
+  const withQid = records.filter((r) => r.wikidata_qid);
+  if (withQid.length === 0) return records;
+  const byQid = new Map(
+    (
+      await selectIn(
+        db,
+        table,
+        'slug, wikidata_qid',
+        'wikidata_qid',
+        withQid.map((r) => r.wikidata_qid),
+      )
+    ).map((row) => [row.wikidata_qid as string, row.slug as string]),
+  );
+  const candidates = withQid.flatMap((r) =>
+    byQid.has(r.wikidata_qid as string) ? [] : slugCandidates(r.slug, r.country),
+  );
+  const taken = new Set(
+    (await selectIn(db, table, 'slug', 'slug', candidates)).map((row) => row.slug as string),
+  );
+  for (const r of records) if (!r.wikidata_qid) taken.add(r.slug);
+  for (const slug of byQid.values()) taken.add(slug);
+  return records.map((r) => {
+    if (!r.wikidata_qid) return r;
+    const stored = byQid.get(r.wikidata_qid);
+    const slug = stored ?? uniqueSlug(r.slug, taken, r.country);
+    taken.add(slug);
+    return slug === r.slug ? r : { ...r, slug };
+  });
+}
+
 const COMPANY_COLUMNS =
   'id, slug, name, legal_name, aliases, kind, country, headquarters, founded_year, ownership_type, ' +
   'stock_ticker, website, description, logo_url, ceo, revenue_range, wikidata_qid, wikipedia_title, ' +
@@ -83,7 +133,7 @@ export function companyWriter(db: ServiceClient): DomainWriter<'company'> {
         db,
         kind: 'company',
         spec,
-        records,
+        records: await assignEntitySlugs(db, 'companies', records),
         refs,
         ctx,
         build: ({ source_key: _s, review_reason: _r, ...fields }, prov) => ({ ...fields, ...prov }),
@@ -106,7 +156,7 @@ export function brandWriter(db: ServiceClient): DomainWriter<'brand'> {
         db,
         kind: 'brand',
         spec,
-        records,
+        records: await assignEntitySlugs(db, 'brands', records),
         refs,
         ctx,
         build: ({ source_key: _s, review_reason: _r, ...fields }, prov) => ({ ...fields, ...prov }),
@@ -152,19 +202,27 @@ export function brandOwnershipWriter(db: ServiceClient): DomainWriter<'brand_own
         'companies',
         records.map((r) => r.company_slug),
       );
+      await refs.loadQids(
+        'brands',
+        records.map((r) => r.brand_qid),
+      );
+      await refs.loadQids(
+        'companies',
+        records.map((r) => r.company_qid),
+      );
       const result: WriteResult = emptyWriteResult();
       const notes = new ReviewNotes();
       const payloads = records.flatMap((r): TablesInsert<'brand_ownership'>[] => {
         const key = keyOf('brand_ownership', r);
         const prov = provOf(r, refs, ctx);
-        const brandId = refs.slug('brands', r.brand_slug);
-        const companyId = refs.slug('companies', r.company_slug);
+        const brandId = refs.entity('brands', { qid: r.brand_qid, slug: r.brand_slug });
+        const companyId = refs.entity('companies', { qid: r.company_qid, slug: r.company_slug });
         const missing = !prov
           ? `source ${r.source_key}`
           : !brandId
-            ? `brand ${r.brand_slug}`
+            ? `brand ${r.brand_qid ?? r.brand_slug}`
             : !companyId
-              ? `company ${r.company_slug}`
+              ? `company ${r.company_qid ?? r.company_slug}`
               : null;
         if (missing || !prov || !brandId || !companyId) {
           result.rejected.push(unknownRef(key, missing ?? 'reference'));
@@ -220,19 +278,29 @@ export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company
         'companies',
         records.flatMap((r) => [r.parent_company_slug, r.child_company_slug]),
       );
+      await refs.loadQids(
+        'companies',
+        records.flatMap((r) => [r.parent_company_qid, r.child_company_qid]),
+      );
       const result: WriteResult = emptyWriteResult();
       const notes = new ReviewNotes();
       const payloads = records.flatMap((r): TablesInsert<'company_ownership'>[] => {
         const key = keyOf('company_ownership', r);
         const prov = provOf(r, refs, ctx);
-        const parentId = refs.slug('companies', r.parent_company_slug);
-        const childId = refs.slug('companies', r.child_company_slug);
+        const parentId = refs.entity('companies', {
+          qid: r.parent_company_qid,
+          slug: r.parent_company_slug,
+        });
+        const childId = refs.entity('companies', {
+          qid: r.child_company_qid,
+          slug: r.child_company_slug,
+        });
         const missing = !prov
           ? `source ${r.source_key}`
           : !parentId
-            ? `company ${r.parent_company_slug}`
+            ? `company ${r.parent_company_qid ?? r.parent_company_slug}`
             : !childId
-              ? `company ${r.child_company_slug}`
+              ? `company ${r.child_company_qid ?? r.child_company_slug}`
               : null;
         if (missing || !prov || !parentId || !childId) {
           result.rejected.push(unknownRef(key, missing ?? 'reference'));

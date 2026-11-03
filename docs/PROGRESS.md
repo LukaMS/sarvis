@@ -2,6 +2,47 @@
 
 Newest entry first.
 
+## 2026-11-03 — P3.12 Wikidata (a): ownership sample (done)
+
+**What changed**
+- **robots.txt exemption (your decision this session):** `query.wikidata.org/robots.txt` disallows `/sparql` for every agent. Sources can now list `robotsExemptions`: documented API prefixes where only the robots check is skipped. The rate limit, User-Agent and 429 handling are unchanged. There's one so far, WDQS `/sparql`, recorded in SOURCES.md S17. D-065.
+- New source `wikidata` (`pipeline/src/sources/wikidata/{sparql,map,index}.ts`). It reads the OFF brand strings from a new service-role-only RPC `public.off_brand_strings()` (migration `20261103162552`; types regenerated), matches ≤ 50 strings per SPARQL POST with a tiered pick (single → only CA → only brand-class → only US → else skipped as ambiguous), then walks P127/P749 owners ≤ 5 hops. Each response writes its items, then the edges from the hop below.
+- Edge records can name endpoints by QID (`brand_qid`, `company_qid`, `parent_/child_company_qid`). Company and brand records with a QID key on the QID only and never merge into a row without it. The writer picks a free slug on a clash (Nestlé → `nestle-ch`, because the legacy `nestle` row stays separate).
+- Driver: `capabilities.samplesItself`, so the Wikidata sample counts brand items, not records. Source-level `timeoutMs` (75 s for WDQS).
+- Tests: 14 Wikidata tests on fixtures saved from real WDQS responses, plus robots exemption, `assignEntitySlugs` and QID edge schema tests.
+
+**Verification**
+- Terms re-checked: the WDQS limits and robots.txt are unchanged, so `terms_checked_at` stays 2026-10-26.
+- `--dry-run --sample 100` (`ab117c92`): 481 fetched, 1 invalid. It was a same-name `duplicate` (two "Berkshire Hathaway" items), fixed by keying QID records on the QID. Then `--sample 100`:
+
+  | run | status | fetched | valid | invalid | inserted | updated | unchanged |
+  |---|---|---|---|---|---|---|---|
+  | `efd261a6` | completed | 481 | 481 | 0 | 450 | 0 | 31 |
+  | `863cdd80` | completed | 481 | 481 | 0 | **0** | 0 | 481 |
+
+  `validation_failures`: none in either run. 18 requests per run. Match: 192 strings tried, 107 matched (100 items: 34 brands, 66 businesses), 17 ambiguous, 68 unmatched. Tiers: 70 single, 9 CA, 25 brand-class, 3 US.
+- Rows (all `pending`, 0 `review_queue` rows): 147 companies (139 company, 6 individual, 2 nonprofit), 100 brands, 93 brand edges (66 self edges from business matches), 110 company edges (65 subsidiary, 45 minority stake; 6 ended). Rows missing `source_url`, `fetched_at`, `method`, `method_version` or `ingestion_run_id`: 0 in all four tables. Edges with a missing endpoint: 0. Cycles among live company edges: 0. Longest chain 3. Anon sees 0 companies and brands.
+- Raw: 18 `raw_objects` per run (979 KB of envelopes). `readRaw()` on all 18 from run 1 re-parses to 481 records, equal to the stored rows: 147/147 companies (name and country), 100/100 brands, 93 brand edges, 110 company edges.
+- Examples (as stored; all `method api`, `wikidata@1.0.0`, run `efd261a6`):
+  - brand `presidents-choice` "President's Choice" Q845185, `https://www.wikidata.org/wiki/Q845185`, raw `e6924908`.
+  - company `nestle-ch` Nestlé Q160746, CH, CIK 0000792990, enwiki "Nestlé", raw `e6924908`.
+  - company `loblaw-companies` Q909856, CA, raw `cdb104af`.
+  - brand edge `presidents-choice` → `loblaw-companies` `owner`, `…/wiki/Q845185#P127`, raw `cdb104af`.
+  - company edge `george-weston-limited` → `loblaw-companies` `subsidiary` (P127 and P749 folded into one), `…/wiki/Q909856#P127`, raw `d780f4d8`.
+- **Precision check, 50 brand → owner edges** (all 27 to another owner plus 23 random self edges): **50/50 match Wikidata. 42/50 (84%) are right in the real world.**
+  - 5 wrong matches: Beatrice → a GB magazine, Avril → a FR cosmetics chain, Co-op → the UK Co-operative Group, PC → The Canadian Press, Flamingo → a publisher.
+  - 3 outdated in Wikidata itself: Becel → Unilever (sold 2018; also → Flora Food Group), Breyers → Unilever, Canada Dry → Dr Pepper Snapple Group.
+  - Right, for example: Activia → Danone, Cadbury and Oreo → Mondelez (Oreo → Nabisco ended 2016), Doritos/Cheetos → Frito-Lay, Kirkland Signature → Costco, No Name and PC → Loblaw, Pringles → Kellanova, Metro, Sobeys, Farm Boy.
+- `npm run typecheck`, `lint`, `format:check` and `npm test` pass (488 passed, 1 skipped).
+
+**For you**
+- The match errors follow a pattern: 3 of the 5 come from the brand-class tier and are all non-North-American items for common words. I've added **P3.12a** to tighten the pick, and to make sure the stale sample rows aren't approved by P3.13's auto-approve. P3.13 now depends on it. This isn't a decision for you unless you want a different precision/coverage trade-off.
+- The 3 outdated owners are Wikidata data. Under D-054 they'll be settled by rank and start date, not by hand.
+
+**Next:** P3.12a Wikidata: tighten the match and clear stale sample rows.
+
+---
+
 ## 2026-11-03 — P3.11a Budget: `reference_prices` row width (done)
 
 **What changed**

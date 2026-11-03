@@ -21,11 +21,14 @@ export const listingRefKey = (r: ListingRef): string =>
     ? `sku:${r.banner_slug}:${r.external_sku}`
     : `name:${r.banner_slug}:${listingKeyOf(r.listing_name, r.size_text)}`;
 
+type QidTable = 'companies' | 'brands';
+
 type SlugTable = Extract<TableName, 'sources' | 'companies' | 'brands' | 'banners' | 'categories'>;
 
 /** Resolves keys to ids for one batch. Unknown keys resolve to undefined. */
 export class RefResolver {
   private readonly slugs = new Map<SlugTable, Map<string, string>>();
+  private readonly qids = new Map<QidTable, Map<string, string>>();
   private readonly labels = new Map<string, number>();
   private readonly products = new Map<string, string>();
   private readonly stores = new Map<string, string>();
@@ -50,6 +53,25 @@ export class RefResolver {
 
   slug(table: SlugTable, slug: string | null | undefined): string | undefined {
     return slug ? this.slugs.get(table)?.get(slug) : undefined;
+  }
+
+  /** Loads ids by `wikidata_qid`. */
+  async loadQids(table: QidTable, qids: Iterable<string | null | undefined>): Promise<void> {
+    const cache = this.qids.get(table) ?? new Map<string, string>();
+    this.qids.set(table, cache);
+    const missing = [...new Set(qids)].filter((q): q is string => !!q && !cache.has(q));
+    if (missing.length === 0) return;
+    for (const row of await selectIn(this.db, table, 'id, wikidata_qid', 'wikidata_qid', missing))
+      cache.set(row.wikidata_qid as string, row.id as string);
+  }
+
+  qid(table: QidTable, qid: string | null | undefined): string | undefined {
+    return qid ? this.qids.get(table)?.get(qid) : undefined;
+  }
+
+  /** An entity by QID when given, else by slug. */
+  entity(table: QidTable, ref: { qid?: string | null; slug?: string | null }): string | undefined {
+    return ref.qid ? this.qid(table, ref.qid) : this.slug(table, ref.slug);
   }
 
   /** Seeds a known source id (the run's own source) so no read is needed. */

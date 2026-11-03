@@ -1142,7 +1142,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/catalog/BUDGET.md`, possibly `supabase/migrations/*_reference_prices_*.sql`, `pipeline/src/sources/statcan/map.ts`.
 - **Verification:** the new width or the re-baselined §3 line in a BUDGET "Actuals" line; if the schema changes, two `--mode full` runs (the first updates rows in place, the second writes nothing), `npm run typecheck`, `lint` and `test` pass.
 
-### [ ] P3.12 Wikidata (a): ownership sample
+### [x] P3.12 Wikidata (a): ownership sample
 - **Slice:** source-wikidata.
 - **Goal:** brands, owner companies and parent chains for OFF brand strings, from SPARQL.
 - **Deps:** P3.2, P3.6.
@@ -1155,10 +1155,28 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/wikidata/{index,sparql,map}.ts` and tests, `pipeline/src/sources/registry.ts`.
 - **Verification:** the source-task rules (`--sample 100` counts brand items). Also: the 50-edge precision check in PROGRESS, and a SQL check that every edge's endpoints exist and no cycle was written.
 
+### [ ] P3.12a Wikidata: tighten the match and clear stale sample rows (added in P3.12)
+- **Slice:** source-wikidata.
+- **Goal:** fix the precision problems the P3.12 check found before P3.13 auto-approves anything. Of 50 brand → owner edges, 42 were right, 5 were wrong matches and 3 were outdated in Wikidata itself.
+- **Deps:** P3.12.
+- **Found in P3.12:**
+  - Wrong items: Beatrice → a GB magazine, Avril → a FR cosmetics chain, Co-op → the UK Co-operative Group (all three from the *brand-class* tier, and all have a non-CA/US country), PC → The Canadian Press (*CA* tier, a 2-letter alias), and Flamingo → a publisher (single candidate, P31 publisher).
+  - Outdated owners, i.e. Wikidata data with no end date: Becel → Unilever (sold 2018; Becel also → Flora Food Group), Breyers → Unilever, Canada Dry → Dr Pepper Snapple Group.
+- **In:**
+  - In the brand-class and US tiers, drop candidates whose country is set and isn't CA or US.
+  - Don't match strings of ≤ 2 letters by alias, only by label.
+  - Restrict the business classes so publishers and media don't count, e.g. require a food, beverage, retail or consumer-goods P452 industry, or exclude publisher/media P31 classes. Pick whichever the sample shows is more precise.
+  - Bump `wikidata@1.1.0` and re-run `--sample 100` twice.
+  - **Stale rows:** P3.12 left 100 brands, 147 companies and 203 edges `pending`. Rows a fresh run no longer produces (an item that's no longer matched, or an edge no longer stated) must not be approved by P3.13. Either delete Wikidata rows not seen in the latest completed run, or make the D-054 approval cover only rows written or confirmed by that run. Record the choice in DECISIONS.
+  - Outdated Wikidata owners are left to the D-054 rule (preferred rank, then latest start) and reported. Don't hand-edit them.
+- **Out:** fuzzy matching (Phase 4).
+- **Files:** `pipeline/src/sources/wikidata/*` and tests, `docs/DECISIONS.md`.
+- **Verification:** the source-task rules for a sample. The 5 wrong matches above no longer match, a fresh 50-edge precision check is reported, and the stale-row rule is shown on SQL counts.
+
 ### [ ] P3.13 Wikidata (b): ownership scale-up
 - **Slice:** source-wikidata.
 - **Goal:** Wikidata ownership for every OFF brand string that has a match (budget: ~20k brands, ~5k companies).
-- **Deps:** P3.12 and D-054.
+- **Deps:** P3.12, P3.12a and D-054.
 - ✅ **Decided (D-054): no manual review for Wikidata.** Every Wikidata brand, company, brand → owner edge and company → parent edge is auto-approved, with no queue row. Where several current owners are listed, one is picked by rule (preferred rank, then the latest start date). Remaining ties stay `pending` with no queue row, and the count goes in PROGRESS. Ended edges are approved as history. Admin decisions are never overridden.
 - **In:** `--mode full`, plus the D-054 rule as code, applied to the P3.12 sample rows too. Tests cover each case: one current owner, two owners settled by rank, two settled by start date, a tie left `pending`, an ended edge approved as history, a company → parent edge, and an admin-rejected row left alone. No `review_queue` rows are written.
 - **Out:** as P3.12.
@@ -1239,7 +1257,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M2 Open Food Facts | P3.5 (sample, row width, auto-approve), P3.6 (full), P3.7 (deltas), P3.8 (ODbL extract) |
 | M3 Open Prices | P3.9 (sample), P3.10 (full) |
 | M4 StatCan | P3.11 (sample and full) |
-| M5 Wikidata | P3.12 (sample, precision check), P3.13 (scale-up) |
+| M5 Wikidata | P3.12 (sample, precision check), P3.12a (match precision, stale rows), P3.13 (scale-up) |
 | M6 Wikipedia | P3.14 (sample), P3.15 (full) |
 | M7 SEC EDGAR | P3.16 (sample), P3.17 (full) |
 | M8 Corporations Canada | P3.18 (sample and full) |

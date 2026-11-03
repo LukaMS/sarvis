@@ -292,6 +292,23 @@ describe('robots.txt', () => {
     expect(hitsTo('/private/2')).toHaveLength(0);
   }, 20_000);
 
+  it('skips the check only under an exempt API prefix (D-065)', async () => {
+    const http = client({ robotsExempt: [at('127.0.0.1', '/private/api')] });
+    await expect(http.get(at('127.0.0.1', '/private/api?q=1'))).resolves.toMatchObject({
+      status: 200,
+    });
+    expect(hitsTo('/robots.txt')).toHaveLength(0);
+    // A sibling path that only shares the prefix's characters is still checked.
+    await expect(http.get(at('127.0.0.1', '/private/apix'))).rejects.toBeInstanceOf(
+      RobotsDisallowedError,
+    );
+    await expect(http.get(at('127.0.0.1', '/private/other'))).rejects.toBeInstanceOf(
+      RobotsDisallowedError,
+    );
+    expect(hitsTo('/private/apix')).toHaveLength(0);
+    expect(hitsTo('/robots.txt')).toHaveLength(1);
+  }, 20_000);
+
   it('follows an allowed redirect and reports the final URL', async () => {
     routes.set('/old', (_req, res) => res.writeHead(301, { location: '/new' }).end());
     const res = await client().get(at('127.0.0.1', '/old'));

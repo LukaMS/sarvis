@@ -24,11 +24,16 @@ const listingRefKey = (r: ListingRef) =>
     : listingKey(r.banner_slug, r.listing_name, r.size_text);
 
 const KEYS: { [K in RecordKind]: (r: RecordOf<K>) => (string | false | null | undefined)[] } = {
-  company: (r) => [r.slug, r.wikidata_qid && `qid:${r.wikidata_qid}`],
-  brand: (r) => [r.slug, r.wikidata_qid && `qid:${r.wikidata_qid}`],
-  brand_ownership: (r) => [`${r.brand_slug}>${r.company_slug}:${r.relation}@${r.valid_from ?? ''}`],
+  // A record with a QID is that item, whatever its slug: two items may share a name, and the
+  // writer gives the second a free slug (D-065).
+  company: (r) => (r.wikidata_qid ? [`qid:${r.wikidata_qid}`] : [r.slug]),
+  brand: (r) => (r.wikidata_qid ? [`qid:${r.wikidata_qid}`] : [r.slug]),
+  // An endpoint by QID keys on the QID, so a Wikidata edge's key survives a renamed label.
+  brand_ownership: (r) => [
+    `${r.brand_qid ?? r.brand_slug}>${r.company_qid ?? r.company_slug}:${r.relation}@${r.valid_from ?? ''}`,
+  ],
   company_ownership: (r) => [
-    `${r.parent_company_slug}>${r.child_company_slug}:${r.relation}@${r.valid_from ?? ''}`,
+    `${r.parent_company_qid ?? r.parent_company_slug}>${r.child_company_qid ?? r.child_company_slug}:${r.relation}@${r.valid_from ?? ''}`,
   ],
   // One enrichment per company per source in a batch; the first match key names the company.
   company_enrichment: (r) => [

@@ -4266,6 +4266,13 @@ export type Database = {
       gtin_is_valid: { Args: { value: string }; Returns: boolean }
       gtin_normalize: { Args: { value: string }; Returns: string }
       normalize_match_text: { Args: { value: string }; Returns: string }
+      off_brand_strings: {
+        Args: never
+        Returns: {
+          brand: string
+          products: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

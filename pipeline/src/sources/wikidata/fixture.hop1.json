@@ -1,0 +1,142 @@
+{
+  "head": { "vars": ["item", "p", "v", "st", "rank", "start", "end", "share"] },
+  "results": {
+    "bindings": [
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q891723" },
+        "p": { "type": "literal", "value": "P31" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q4830453" },
+        "p": { "type": "literal", "value": "P31" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q18043413" },
+        "p": { "type": "literal", "value": "P31" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "type": "uri", "value": "http://www.loblaw.ca/" },
+        "p": { "type": "literal", "value": "website" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "st": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/statement/Q845185-10F0AC7C-F427-4A75-B19C-4FC04C0F4E24"
+        },
+        "rank": { "type": "uri", "value": "http://wikiba.se/ontology#NormalRank" },
+        "p": { "type": "literal", "value": "inP127" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "type": "literal", "value": "CA" },
+        "p": { "type": "literal", "value": "country" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "st": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/statement/Q909856-63EC785E-1B22-46BA-B389-651BA29B7459"
+        },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q833217" },
+        "rank": { "type": "uri", "value": "http://wikiba.se/ontology#NormalRank" },
+        "p": { "type": "literal", "value": "P127" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "st": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/statement/Q909856-5186eac8-4a85-068d-8ce8-fd7d40790fbb"
+        },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q833217" },
+        "rank": { "type": "uri", "value": "http://wikiba.se/ontology#NormalRank" },
+        "p": { "type": "literal", "value": "P749" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "en", "type": "literal", "value": "Loblaw Companies Limited" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Compagnies Loblaw limitée" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Companies Loblaw Limitee" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Companies Loblaw Limitée" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Les Compagnies Loblaw Limitee" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Les Compagnies Loblaw Limitée" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Loblaw Companies Limited" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Loblaw Companies Ltd." },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Loblaw" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "de", "type": "literal", "value": "Loblaw Companies" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "en", "type": "literal", "value": "Loblaw Companies" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "es", "type": "literal", "value": "Loblaw Companies" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "it", "type": "literal", "value": "Loblaw Companies" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "nl", "type": "literal", "value": "Loblaw Companies" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "zh", "type": "literal", "value": "羅布勞公司" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "v": { "xml:lang": "en", "type": "literal", "value": "Loblaw Companies" },
+        "p": { "type": "literal", "value": "enwiki" }
+      }
+    ]
+  }
+}

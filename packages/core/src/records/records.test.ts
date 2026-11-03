@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { RECORD_KINDS, RECORD_SCHEMAS, type RecordInputOf, type RecordKind } from './index.ts';
+import { recordKeys } from '../validation/keys.ts';
 
 const prov = {
   source_key: 'fixture',
@@ -381,6 +382,31 @@ describe('shared rules', () => {
         rubric_version: 'v1',
       }),
     ).toBe(false);
+  });
+});
+
+describe('ownership edges by QID', () => {
+  it('accepts QID endpoints, keys on them, and needs one ref per endpoint', () => {
+    const brandEdge = { brand_qid: 'Q845185', company_qid: 'Q909856', relation: 'owner', ...prov };
+    expect(RECORD_SCHEMAS.brand_ownership.safeParse(brandEdge).success).toBe(true);
+    const { company_qid: _c, ...noCompany } = brandEdge;
+    const missing = RECORD_SCHEMAS.brand_ownership.safeParse(noCompany);
+    expect(missing.error?.issues.map((i) => i.path[0])).toEqual(['company_slug']);
+    const edge = {
+      parent_company_qid: 'Q833217',
+      child_company_qid: 'Q909856',
+      relation: 'subsidiary',
+      ...prov,
+    };
+    expect(RECORD_SCHEMAS.company_ownership.safeParse(edge).success).toBe(true);
+    const self = RECORD_SCHEMAS.company_ownership.safeParse({
+      ...edge,
+      parent_company_qid: 'Q909856',
+    });
+    expect(self.error?.issues.map((i) => i.message)).toContain('A company cannot own itself');
+    expect(recordKeys('company_ownership', RECORD_SCHEMAS.company_ownership.parse(edge))).toEqual([
+      'Q833217>Q909856:subsidiary@',
+    ]);
   });
 });
 

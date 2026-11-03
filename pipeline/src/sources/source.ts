@@ -27,6 +27,23 @@ export interface SourceCapabilities {
    * run needs `PIPELINE_CONTACT_EMAIL`. Default `url`: the repo URL only (D-015).
    */
   contact?: 'url' | 'email';
+  /**
+   * The source applies `sampleSize` itself, counting its own unit (Wikidata: matched brands, not
+   * the companies and edges each one brings), so the driver doesn't stop at that many records.
+   */
+  samplesItself?: boolean;
+}
+
+/**
+ * A documented API path that the host's robots.txt disallows for crawlers (D-065, owner-approved
+ * 2026-11-03). Requests under `prefix` skip the robots check only; the rate limit, User-Agent and
+ * 429 handling still apply. Every exemption is listed in SOURCES.md with the operator's own docs.
+ */
+export interface RobotsExemption {
+  /** An absolute URL prefix, e.g. `https://query.wikidata.org/sparql`. */
+  prefix: string;
+  /** The operator's documentation for programmatic use of this endpoint. */
+  docs: string;
 }
 
 /** The `sources` row fields the driver and sources need. */
@@ -120,6 +137,10 @@ export interface Source<K extends RecordKind = RecordKind, Step = unknown> {
   readonly capabilities: SourceCapabilities;
   /** Extra milliseconds between fetches, on top of the HTTP client's per-host limit. */
   readonly politenessDelayMs?: number;
+  /** Documented API endpoints that robots.txt disallows (D-065). */
+  readonly robotsExemptions?: readonly RobotsExemption[];
+  /** The HTTP timeout per request, when the source's queries can take longer than the default. */
+  readonly timeoutMs?: number;
   /**
    * Writer rejection reasons (`RejectedRecord.reason`) this source expects, e.g. a price for a
    * product the catalog doesn't have yet. Those records are counted in an info event named after

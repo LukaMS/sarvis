@@ -391,6 +391,8 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Key fields | **QID (key)**, **label / aliases (key)**, **P127 / P749 / P355 edges (key)**, **P580 / P582 dates (key)**, P17 country, P856 website, P1320 / P5531 cross-IDs. |
 | Est. rows / size | Targeted queries for brands matched from S1 brand strings: a few thousand items and edges. Under 5 MB. |
 | Verdict | **use**: the main ownership source (PLAN Phase 3). |
+| robots.txt exemption (D-065) | `https://query.wikidata.org/sparql` is a documented API endpoint (https://www.mediawiki.org/wiki/Wikidata_Query_Service/User_Manual) that robots.txt disallows for crawlers. The owner approved skipping the robots check for this prefix only (2026-11-03). Rate limit, User-Agent and 429 handling still apply. |
+| Pipeline (P3.12) | Source `wikidata` (D-065). It reads the OFF brand strings (`public.off_brand_strings()`, 19,376 on 2026-11-03), matches ≤ 50 per SPARQL POST, then walks P127/P749 owners up to 5 hops, one query at a time, with a 75 s timeout. Sample of 100 brand items: 18 requests, 147 companies, 100 brands, 93 brand edges, 110 company edges. Terms re-checked 2026-11-03: the query-service limits (60 s per 60 s per client, 5 parallel, 30 errors/min, 429 + Retry-After, User-Agent policy) and robots.txt (`/sparql` and `/bigdata` disallowed for `*`) are unchanged, so `terms_checked_at` stays 2026-10-26. |
 
 ### S18 Wikidata: dumps
 

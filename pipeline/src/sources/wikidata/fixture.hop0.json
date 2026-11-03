@@ -1,0 +1,147 @@
+{
+  "head": { "vars": ["item", "p", "v", "st", "rank", "start", "end", "share"] },
+  "results": {
+    "bindings": [
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q722080" },
+        "p": { "type": "literal", "value": "P31" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1378329" },
+        "p": { "type": "literal", "value": "P31" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q16323605" },
+        "p": { "type": "literal", "value": "P31" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q891723" },
+        "p": { "type": "literal", "value": "P31" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q18043413" },
+        "p": { "type": "literal", "value": "P31" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "type": "literal", "value": "0001718420" },
+        "p": { "type": "literal", "value": "P5531" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "type": "uri", "value": "https://www.metro.ca/en" },
+        "p": { "type": "literal", "value": "website" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "type": "uri", "value": "https://www.metro.ca/fr" },
+        "p": { "type": "literal", "value": "website" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "xml:lang": "en", "type": "literal", "value": "President's Choice" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "xml:lang": "es", "type": "literal", "value": "President's Choice" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Le Choix du Président" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "xml:lang": "nl", "type": "literal", "value": "President's Choice Cola" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "xml:lang": "en", "type": "literal", "value": "Metro" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Metro" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "xml:lang": "ja", "type": "literal", "value": "メトロ" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "xml:lang": "de", "type": "literal", "value": "Metro Inc." },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "xml:lang": "nl", "type": "literal", "value": "Metro Inc." },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "xml:lang": "zh", "type": "literal", "value": "Metro (加拿大公司)" },
+        "p": { "type": "literal", "value": "label" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "xml:lang": "en", "type": "literal", "value": "Metro Inc." },
+        "p": { "type": "literal", "value": "enwiki" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "xml:lang": "en", "type": "literal", "value": "President's Choice" },
+        "p": { "type": "literal", "value": "enwiki" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Choix du President" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "Choix du Président" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "xml:lang": "fr", "type": "literal", "value": "President's Choice" },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "xml:lang": "en", "type": "literal", "value": "Metro Inc." },
+        "p": { "type": "literal", "value": "alias" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "st": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/statement/Q845185-10F0AC7C-F427-4A75-B19C-4FC04C0F4E24"
+        },
+        "v": { "type": "uri", "value": "http://www.wikidata.org/entity/Q909856" },
+        "rank": { "type": "uri", "value": "http://wikiba.se/ontology#NormalRank" },
+        "p": { "type": "literal", "value": "P127" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q845185" },
+        "v": { "type": "literal", "value": "CA" },
+        "p": { "type": "literal", "value": "country" }
+      },
+      {
+        "item": { "type": "uri", "value": "http://www.wikidata.org/entity/Q1145669" },
+        "v": { "type": "literal", "value": "CA" },
+        "p": { "type": "literal", "value": "country" }
+      }
+    ]
+  }
+}

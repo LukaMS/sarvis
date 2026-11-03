@@ -121,8 +121,11 @@ const aiNeedsConfidence = (r: { method: string; confidence?: number | null }) =>
 
 export const CompanyOwnershipEdgeRecordSchema = z
   .strictObject({
-    parent_company_slug: SlugSchema,
-    child_company_slug: SlugSchema,
+    parent_company_slug: SlugSchema.optional(),
+    child_company_slug: SlugSchema.optional(),
+    /** Endpoints by QID instead of slug (Wikidata); the writer prefers the QID when both are set. */
+    parent_company_qid: WikidataQidSchema.optional(),
+    child_company_qid: WikidataQidSchema.optional(),
     relation: z.enum([
       'subsidiary',
       'majority_stake',
@@ -133,20 +136,41 @@ export const CompanyOwnershipEdgeRecordSchema = z
     share_pct: z.number().positive().max(100).nullish(),
     ...edgeShape,
   })
-  .refine((r) => r.parent_company_slug !== r.child_company_slug, {
-    message: 'A company cannot own itself',
+  .refine((r) => !!(r.parent_company_slug ?? r.parent_company_qid), {
+    message: 'Name the parent by slug or QID',
+    path: ['parent_company_slug'],
+  })
+  .refine((r) => !!(r.child_company_slug ?? r.child_company_qid), {
+    message: 'Name the child by slug or QID',
     path: ['child_company_slug'],
   })
+  .refine(
+    (r) =>
+      (r.parent_company_qid ?? r.parent_company_slug) !==
+      (r.child_company_qid ?? r.child_company_slug),
+    { message: 'A company cannot own itself', path: ['child_company_slug'] },
+  )
   .refine(validRangeOk, { message: 'valid_to is before valid_from', path: ['valid_to'] })
   .refine(aiNeedsConfidence, { message: 'AI edges need a confidence', path: ['confidence'] });
 export type CompanyOwnershipEdgeRecord = z.infer<typeof CompanyOwnershipEdgeRecordSchema>;
 
 export const BrandOwnershipEdgeRecordSchema = z
   .strictObject({
-    brand_slug: SlugSchema,
-    company_slug: SlugSchema,
+    brand_slug: SlugSchema.optional(),
+    company_slug: SlugSchema.optional(),
+    /** Endpoints by QID instead of slug (Wikidata); the writer prefers the QID when both are set. */
+    brand_qid: WikidataQidSchema.optional(),
+    company_qid: WikidataQidSchema.optional(),
     relation: z.enum(['owner', 'licensee', 'private_label_of']),
     ...edgeShape,
+  })
+  .refine((r) => !!(r.brand_slug ?? r.brand_qid), {
+    message: 'Name the brand by slug or QID',
+    path: ['brand_slug'],
+  })
+  .refine((r) => !!(r.company_slug ?? r.company_qid), {
+    message: 'Name the company by slug or QID',
+    path: ['company_slug'],
   })
   .refine(validRangeOk, { message: 'valid_to is before valid_from', path: ['valid_to'] })
   .refine(aiNeedsConfidence, { message: 'AI edges need a confidence', path: ['confidence'] });

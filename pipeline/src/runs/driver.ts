@@ -274,6 +274,8 @@ export async function runSource<K extends RecordKind>(
       createHttpClient({
         sourceRateLimitPerSec: Number(row.rate_limit_per_sec),
         userAgent: userAgent(undefined, contactEmail),
+        robotsExempt: source.robotsExemptions?.map((e) => e.prefix),
+        timeoutMs: source.timeoutMs,
         signal,
         log,
       }),
@@ -320,9 +322,11 @@ export async function runSource<K extends RecordKind>(
     const validateOptions = source.validateOptions?.() ?? {};
     let seq = 0;
 
+    // A source that samples itself stops on its own; otherwise the cap counts records.
+    const cap = source.capabilities.samplesItself ? null : sampleSize;
     while (queue.length > 0) {
       if (signal.aborted) throw new CancelledError();
-      if (sampleSize !== null && counts.fetched >= sampleSize) break;
+      if (cap !== null && counts.fetched >= cap) break;
       if (seq > 0 && delayMs > 0) await sleep(jitteredDelayMs(delayMs, delayMs * 1.5), signal);
       const step = queue.shift();
       seq++;
@@ -375,9 +379,8 @@ export async function runSource<K extends RecordKind>(
       ];
       for (const group of groups) {
         const { kind } = group;
-        if (sampleSize !== null && counts.fetched >= sampleSize) break;
-        const records =
-          sampleSize === null ? group.records : group.records.slice(0, sampleSize - counts.fetched);
+        if (cap !== null && counts.fetched >= cap) break;
+        const records = cap === null ? group.records : group.records.slice(0, cap - counts.fetched);
         if (deactivates && kind === source.recordKind) {
           for (const r of records) {
             const id = (r as { external_id?: unknown } | null)?.external_id;

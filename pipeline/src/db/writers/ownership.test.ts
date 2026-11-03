@@ -1,7 +1,8 @@
 // The pure parts of company enrichment: which company a record names, and what it may write.
 import { describe, expect, it } from 'vitest';
 
-import { matchCompany, planEnrichment } from './ownership.ts';
+import type { ServiceClient } from '../client.ts';
+import { assignEntitySlugs, matchCompany, planEnrichment } from './ownership.ts';
 
 describe('planEnrichment', () => {
   const stored = {
@@ -72,5 +73,49 @@ describe('matchCompany', () => {
     expect(matchCompany({ wikidata_qid: 'Q9', slug: 'mars' }, byKey)).toEqual({
       problem: expect.stringContaining('different companies'),
     });
+  });
+});
+
+describe('assignEntitySlugs', () => {
+  /** A stand-in for the two `.in()` reads: rows by QID, then rows by candidate slug. */
+  function fakeDb(rows: { slug: string; wikidata_qid: string | null }[]): ServiceClient {
+    const query = (column: 'slug' | 'wikidata_qid', values: readonly unknown[]) => {
+      const data = rows.filter((r) => values.includes(r[column]));
+      const q = {
+        in: (c: 'slug' | 'wikidata_qid', v: readonly unknown[]) => query(c, v),
+        order: () => q,
+        range: () => Promise.resolve({ data, error: null }),
+      };
+      return q;
+    };
+    return {
+      from: () => ({ select: () => ({ in: query }) }),
+    } as unknown as ServiceClient;
+  }
+  const rec = (slug: string, wikidata_qid: string | null, country?: string) => ({
+    slug,
+    wikidata_qid,
+    country,
+  });
+
+  it('keeps a stored QID slug, and never takes a slug another row holds', async () => {
+    const db = fakeDb([
+      { slug: 'nestle', wikidata_qid: null }, // a legacy row: not merged into
+      { slug: 'loblaw', wikidata_qid: 'Q909856' },
+      { slug: 'dove', wikidata_qid: 'Q1' },
+    ]);
+    const out = await assignEntitySlugs(db, 'companies', [
+      rec('nestle', 'Q160746', 'CH'),
+      rec('loblaw-companies', 'Q909856', 'CA'),
+      rec('dove', 'Q2'),
+      rec('dove', 'Q3'),
+      rec('legacy', null),
+    ]);
+    expect(out.map((r) => r.slug)).toEqual(['nestle-ch', 'loblaw', 'dove-2', 'dove-3', 'legacy']);
+  });
+
+  it('returns records unchanged when none has a QID', async () => {
+    const records = [rec('a', null)];
+    expect(await assignEntitySlugs(fakeDb([]), 'brands', records)).toBe(records);
   });
 });

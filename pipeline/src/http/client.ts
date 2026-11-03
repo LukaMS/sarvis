@@ -54,6 +54,11 @@ export interface HttpClientOptions {
   maxDelayMs?: number;
   /** A 429's Retry-After longer than this isn't waited for: the source stops at once. */
   maxRetryAfterMs?: number;
+  /**
+   * Absolute URL prefixes whose robots.txt check is skipped: documented API endpoints the host
+   * disallows for crawlers (D-065). Everything else about a request is unchanged.
+   */
+  robotsExempt?: readonly string[];
   /** Per request. For `stream` and `download`: the longest wait for the headers or the next chunk. */
   timeoutMs?: number;
   /** Where `download` keeps files. Defaults to the repo-root .cache/dumps/. */
@@ -184,6 +189,24 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
   const log = options.log ?? createLogger();
   const limiter = new HostLimiter();
   const robots = new Map<string, Promise<RobotsPolicy>>();
+  const exempt = (options.robotsExempt ?? []).map((p) => parseUrl(p).href);
+  const exemptNoted = new Set<string>();
+
+  /** Whether `url` is under an exempt prefix (same origin, path at a segment boundary). */
+  function isExempt(url: URL): boolean {
+    return exempt.some((p) => {
+      if (!url.href.startsWith(p)) return false;
+      const rest = url.href.slice(p.length);
+      return rest === '' || p.endsWith('/') || /^[/?#]/.test(rest);
+    });
+  }
+
+  function noteExemption(url: URL): void {
+    const prefix = exempt.find((p) => url.href.startsWith(p)) as string;
+    if (exemptNoted.has(prefix)) return;
+    exemptNoted.add(prefix);
+    log.info('robots.txt check skipped for a documented API endpoint (D-065)', { prefix });
+  }
 
   /**
    * One HTTP request, after waiting for the host's slot. Network failures become NetworkError.
@@ -260,12 +283,18 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
     idle?: IdleTimer,
     hops = 0,
   ): Promise<{ target: URL; res: Response; fields: Record<string, unknown> }> {
-    const policy = await robotsFor(target);
-    if (!policy.isAllowed(target.pathname + target.search)) {
-      throw new RobotsDisallowedError(target.href);
+    let crawlDelayMs = 0;
+    if (isExempt(target)) {
+      noteExemption(target);
+    } else {
+      const policy = await robotsFor(target);
+      if (!policy.isAllowed(target.pathname + target.search)) {
+        throw new RobotsDisallowedError(target.href);
+      }
+      crawlDelayMs = policy.crawlDelayMs;
     }
     const started = Date.now();
-    const res = await send(target, { ...init, redirect: 'manual' }, policy.crawlDelayMs, idle);
+    const res = await send(target, { ...init, redirect: 'manual' }, crawlDelayMs, idle);
     const fields = { url: target.href, status: res.status, durationMs: Date.now() - started };
 
     if (REDIRECTS.has(res.status)) {

@@ -7,6 +7,7 @@ import { OFF_KEY, createOffSource } from './off/index.ts';
 import { OP_KEY, createOpenPricesSource } from './open-prices/index.ts';
 import { registerSource } from './registry.ts';
 import { SC_KEY, createStatcanSource } from './statcan/index.ts';
+import { WD_KEY, createWikidataSource } from './wikidata/index.ts';
 
 let registered = false;
 
@@ -18,6 +19,7 @@ export function registerAllSources(): void {
   registerSource(OFF_KEY, () => createOffSource());
   registerSource(OP_KEY, () => createOpenPricesSource());
   registerSource(SC_KEY, () => createStatcanSource());
+  registerSource(WD_KEY, () => createWikidataSource());
 }
 
 export * from './registry.ts';
