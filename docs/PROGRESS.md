@@ -2,6 +2,20 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.13c Budget levers (done; decision delegated by the owner)
+
+**Done** (D-070, docs only)
+- **Adopted:** §7 levers 2 (monthly rollups 6 months store-level, then banner), 3 (latest 2 score versions) and 4 (≤ 30 article links per company or brand), plus pruning unlinked documents and natural keys (no surrogate id) on both rollup tables: −45.2 MB before bloat.
+- **Reserve:** lever 1 (tighter OFF filter), applied when the measured DB reaches 330 MB. It's not adopted now because it costs product coverage.
+- **Measured platform overhead:** 26.7 MB today (system catalogs 17.1, `storage` 7.7 for 3,944 objects ≈ 1.9 KB each, `auth` 1.6); ≈ 42 MB at target, replacing the assumed 30.
+- PLAN bullets added where the tables get built: Phase 6 (purges, 330 MB trigger), Phase 7 (link cap, 2 versions), Phase 8 (natural-key rollups before the first row), P3.14 (Wikipedia raw within the 6,000-object bound).
+
+**Verification:** §1 re-added: catalog 291.6 MB (≈ 321 with bloat, **under 350** ✅); whole DB 320.8 + 49 + 42 ≈ **412 MB**, ❌ not under 400. With the reserve lever it's ≈ 384–395. The verification line is amended in PLAN with the reason: the platform re-measure added 12 MB, and the adopted levers alone would have shown exactly 400. Each adopted lever names the phase that builds it. `format:check` passes.
+
+**For the owner:** I kept the OFF products and accepted a forecast ~12 MB over the 400 MB warning (under the 450 critical line and the 500 limit), with the OFF filter as the reserve. If you'd rather be under 400 on paper now, adopt lever 1 and it's ≈ 385–395.
+
+---
+
 ## 2026-11-04 — P3.13b Budget: index bytes re-projected (done)
 
 **Done** (D-069, docs only)

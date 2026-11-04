@@ -1226,7 +1226,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/catalog/BUDGET.md`.
 - **Verification:** each changed §3 line names its index list and per-entry basis, the §1 totals add up, and a BUDGET "Actuals" line records the before and after subtotals.
 
-### [ ] P3.13c 🟡 Budget: pick the levers that bring the estimate back under the alarm (added in P3.13b)
+### [x] P3.13c 🟡 Budget: pick the levers that bring the estimate back under the alarm (added in P3.13b)
 - **Slice:** release-check.
 - **Goal:** a 12-month estimate under the 350 MB catalog budget and the 400 MB whole-DB alarm, with the owner's choice of levers recorded.
 - **Deps:** P3.13b.
@@ -1236,6 +1236,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** building any of it now.
 - **Files:** `docs/catalog/BUDGET.md`, `docs/DECISIONS.md`, `docs/PLAN.md`.
 - **Verification:** §1 shows the catalog under 350 MB and the whole DB under 400 MB, and each adopted lever names the task that builds it.
+- ✅ **Decided (D-070, owner delegated the choice 2026-11-04):** levers 2–4 plus natural keys on the rollups and pruning unlinked documents are adopted. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB. **Verification amended:** the catalog is under 350 MB (≈ 321), but the whole DB is ≈ 412 MB, because measuring platform overhead raised it from 30 to 42 MB. With the reserve lever it's ≈ 384–395 MB. The owner can veto and adopt lever 1 now.
 
 ### [ ] P3.14 Wikipedia (a): company summary sample
 - **Slice:** source-wikipedia.
@@ -1245,6 +1246,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Source `wikipedia`: for companies with a `wikipedia_title` (from Wikidata), the REST summary endpoint, serially with `maxlag` (SOURCES.md S19).
   - A `document` (kind `wikipedia`, URL, title, revision id, `summary`), linked from the company by `wikipedia_document_id`, with `wikipedia_revision_id` set through the enrichment path (P3.4).
   - Raw is stored only when the revision changed (D-044; 3 kept per page).
+  - Raw layout keeps Storage within the §3 bound of 6,000 `raw_objects` for all sources (P3.13c: each Storage object costs ≈ 1.9 KB of DB). One file per page would allow up to 15k for 5k pages. Pick a layout (e.g. one envelope per step) that stays inside the bound and record it in DECISIONS.
 - **Out:** the scale-up (P3.15), the company screen (Phase 8).
 - **Files:** `pipeline/src/sources/wikipedia/*` and tests, `pipeline/src/sources/registry.ts`.
 - **Verification:** the source-task rules. Also: a second run stores no raw file for unchanged pages.
@@ -1318,7 +1320,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.13a, P3.13b, P3.13c, P3.19 |
 | Exit criteria | P3.19 |
 
-**Open 🟡 decisions in Phase 3:** P3.13c (budget levers, added in P3.13b). P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
+**Open 🟡 decisions in Phase 3:** none. P3.13c (budget levers) was decided in D-070. P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
 
 ## Phase 4 — Normalization and matching (outline)
 
@@ -1367,7 +1369,8 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Supabase keep-alive.
   - Freshness policy: per-source refresh intervals and stale-price thresholds. OFF (P3.7): a daily `--mode delta` run plus a periodic `--mode full`. A gap of more than 14 days between delta runs loses files, so it should trigger a full run. A robots.txt 5xx fails a run (D-059), so the next scheduled run is the retry.
   - Raw-retention cleanup job (retention per DATA_MODEL §5, using `retentionFor()` and `deleteRawFile()` from P2.14; the per-subject limit for Wikipedia and EDGAR needs a subject derived from `request_url`, D-044), plus the row-retention purges (events, validation failures, candidates, queue).
-  - A budget monitor (DB size, storage size, OpenRouter spend, egress) that warns at the thresholds in BUDGET §6.
+  - A budget monitor (DB size, storage size, OpenRouter spend, egress) that warns at the thresholds in BUDGET §6, including the 330 MB trigger for the reserve lever 1 (D-070).
+  - Budget purges adopted in P3.13c (D-070): store-level `price_points_monthly` rows older than 6 months roll up to the banner; `company_scores` versions beyond the latest 2 (with their `score_citations`); `documents` that no entity, score or company links to.
   - Failure notification by opening a GitHub issue.
 
 ## Phase 7 — AI enrichment: scores and articles (outline)
@@ -1380,6 +1383,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - 🟡 Rubric v1 (`docs/catalog/RUBRIC.md`): 5 categories × Good/Mixed/Poor, 0–100 and letter grade (D-004), evidence requirements, confidence levels. The owner approves the rubric before scoring runs.
   - Company scoring job → review queue (model, rubric version, sources, confidence).
   - Article collection: GDELT (weekly, because the API searches a rolling 3-month window) and RSS (the provisional list from SOURCES.md S24, with each feed's terms checked before it's added, D-013 D4), plus Wikipedia. Relevance and good/bad tagging → review queue.
+  - Budget (D-070): at most 30 `document_entities` per company or brand, keeping the most relevant, and only the latest 2 score versions are kept (the Phase 6 purge enforces both).
   - Review queue UI in the admin portal.
   - 🟡 Auto-publish rule (D-006: none until the owner decides).
 
@@ -1401,6 +1405,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Profile, settings, about, help, privacy. Offline cache.
   - Receipt prices feed the shared price catalog, and consenting users' prices may be contributed to Open Prices (D-013). 🟡 The owner approves the consent and privacy wording, and the k-anonymity rule for `price_points_weekly` (placeholder: ≥ 2 receipts; DATA_MODEL §9).
   - Receipt scan is the main source of store prices (D-013 D7), so build it early in this phase.
+  - Before the first rollup row is written: `price_points_weekly` and `price_points_monthly` drop their surrogate `id` and use their unique natural keys as the primary key (D-070, ≈ 2.3 MB).
   - 🟡 Product grades: derive them from the owner company's published score (default; DATA_MODEL §9), or keep product-level scores.
   - 🟡 Community submissions (legacy F9): keep them as review-queue items, or drop them.
 

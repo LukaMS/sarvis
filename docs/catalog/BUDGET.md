@@ -10,13 +10,13 @@ Estimated 2026-10-26.
 
 | Budget | Limit | Estimate (target coverage, 12 months) | Status |
 |---|---|---|---|
-| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 370 MB** (337 MB plus 10%) | ❌ over budget by ~20 MB (P3.13b index re-projection; levers: P3.13c) |
+| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 321 MB** (292 MB plus 10%) | ✅ within budget, ~29 MB headroom (levers 2–4 adopted, P3.13c; Phase 6 warns at 320 MB) |
 | User data (100 active users, 12 months, plus 10%) | — | ≈ 49 MB | — |
-| Platform overhead (auth, storage metadata, extensions) | — | ≈ 30 MB (assumed) | — |
-| **Whole database** | 500 MB, alarm 400 MB | **≈ 450 MB** | ❌ over the 400 MB alarm, at the 450 MB critical line; under the 500 MB limit (P3.13c) |
+| Platform overhead (system catalogs, auth, storage metadata, extensions) | — | ≈ 42 MB (P3.13c: 26.7 MB measured today, plus Storage metadata for the files §3 and §5 allow) | — |
+| **Whole database** | 500 MB, alarm 400 MB | **≈ 412 MB** (≈ 384–395 MB with the reserve lever 1) | ⚠️ ~12 MB over the 400 MB warning, under the 450 MB critical line. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB (D-070) |
 | **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 289 MB** (251 MB plus 15%) | ✅ within budget |
 
-A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), so the subtotal is now 337 MB.
+A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), and P3.13c adopted §7 levers 2–4 plus the rollup and document trims (−45.2 MB), so the subtotal is now 292 MB.
 
 **Target coverage** means:
 - every OFF product sold in Canada that passes the import filter;
@@ -51,15 +51,15 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `stores` | 3,000 | 278 | 234 | 1.7 | Ontario grocery stores (OSM, receipts). Index projected (P3.13b) |
 | `store_listings` | 25,000 | 198 | 364 | 14.8 | banner-specific names (receipt abbreviations); incl. trigram. Index projected (P3.13b) |
 | `price_observations` | 20,000 | 208 | 225 | 9.3 | non-receipt sources (Open Prices, manual), all time. Index projected (P3.13b) |
-| `price_points_weekly` | 30,000 | 108 | 136 | 7.8 | receipt aggregates per store × product × week, 90 days. Index projected (P3.13b) |
-| `price_points_monthly` | 80,000 | 98 | 173 | 22.9 | rollup per store × product × month for 12 months, then per banner. Index projected (P3.13b) |
+| `price_points_weekly` | 30,000 | 100 | 112 | 6.8 | receipt aggregates per store × product × week, 90 days. Index projected (P3.13b). Keyed on its natural key, no surrogate id (P3.13c) |
+| `price_points_monthly` | 40,000 | 90 | 149 | 10.1 | rollup per store × product × month for **6** months, then per banner (lever 2, P3.13c). Keyed on its natural key, no surrogate id. Index projected (P3.13b) |
 | `reference_prices` | 30,000 | 276 | 97 | 11.2 | StatCan 18-10-0245-01, Canada + Ontario, since 2017. **Measured** (P3.11a): the first estimate (118 / 50) left out the +prov block |
 | `price_sanity_bounds` | 5,000 | 88 | 77 | 0.9 | per category × unit basis. Index projected (P3.13b) |
-| `documents` | 40,000 | 328 | 228 | 24.2 | articles + other cited pages (title, URL, no full text). Index projected (P3.13b) |
-| `document_entities` | 60,000 | 198 | 185 | 24.8 | document ↔ company/brand links with stance. Index projected (P3.13b) |
+| `documents` | 30,000 | 328 | 228 | 18.2 | articles + other cited pages (title, URL, no full text); a document no entity, score or company links to is pruned (P3.13c). Index projected (P3.13b) |
+| `document_entities` | 30,000 | 198 | 185 | 12.4 | document ↔ company/brand links with stance; ≤ 30 per company or brand, the most relevant (lever 4, P3.13c). Index projected (P3.13b) |
 | `rubrics` | 10 | 2028 | 40 | 0.0 | rubric versions |
-| `company_scores` | 20,000 | 528 | 189 | 15.9 | 1,000 scored companies × 6 rows × ~3 versions. Index projected (P3.13b) |
-| `score_citations` | 60,000 | 208 | 132 | 22.3 | about 3 citations per score row. Index projected (P3.13b) |
+| `company_scores` | 13,000 | 528 | 189 | 10.4 | 1,000 scored companies × 6 rows × the **latest 2** versions (lever 3, P3.13c). Index projected (P3.13b) |
+| `score_citations` | 40,000 | 208 | 132 | 14.8 | about 3 citations per score row. Index projected (P3.13b) |
 | `certifications` | 4,000 | 178 | 210 | 1.7 | manual (D6) + legacy. Index projected (P3.13b) |
 | `external_ratings` | 1,000 | 148 | 197 | 0.4 | KnowTheChain etc. (manual). Index projected (P3.13b) |
 | `company_events` | 3,000 | 428 | 253 | 2.2 | boycotts, controversies, recalls. Index projected (P3.13b) |
@@ -74,7 +74,7 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `validation_failures` | 12,000 | 308 | 51 | 4.9 | ≤ 50 per run, 30 days. Index projected (P3.13b) |
 | `ai_calls` | 30,000 | 168 | 140 | 10.0 | 13 months. Index projected (P3.13b) |
 | `audit_log` | 20,000 | 228 | 175 | 8.7 | manual edits. Index projected (P3.13b) |
-| **Subtotal** | | | | **337** | |
+| **Subtotal** | | | | **292** | |
 
 **User data (100 active users, 12 months)**
 
@@ -321,6 +321,24 @@ Unchanged: `reference_prices` (measured), `rubrics`, `sources` (≈ 0 MB). Down 
 
 **What covers it (§7, savings re-computed with the new widths, before bloat):** lever 2 (monthly rollups 12 → 6 months) ≈ 11 MB, lever 3 (latest 2 score versions) ≈ 13 MB, lever 4 (`document_entities` ≤ 30 per company, ≈ 30k rows) ≈ 12 MB, lever 1 (tighter OFF filter) 15–25 MB. Levers 2–4 together ≈ 36 MB (≈ 40 MB with bloat) bring the whole DB to ≈ 410 MB; adding lever 1 brings it to ≈ 385–395 MB. Lever 1 costs product coverage, so the choice is the owner's (PLAN P3.13c).
 
+### Actuals: levers adopted (P3.13c, 2026-11-04, dev project)
+
+The owner delegated the choice. Product coverage wins (CLAUDE.md), so the OFF filter (lever 1) is held in reserve and the coverage-neutral levers are adopted (D-070).
+
+**Platform overhead, measured** (was assumed 30 MB): system catalogs 17.1 MB, `storage` 7.7 MB (3,944 objects, ≈ 1.9 KB each with indexes), `auth` 1.6 MB, the rest 0.25 MB, so 26.7 MB today. At target, Storage holds ≈ 10.8k objects (6,000 raw files, the §3 `raw_objects` bound, plus 4,800 receipt images and the exports) ≈ 20.5 MB of metadata, and `auth` ≈ 3 MB for 1,000 accounts: **≈ 42 MB**.
+
+| Change | Table | MB (P3.13b → P3.13c) |
+|---|---|---|
+| Lever 2: 6 months store-level, then per banner (80k → 40k rows); natural key, no surrogate id | `price_points_monthly` | 22.9 → 10.1 |
+| Natural key, no surrogate id | `price_points_weekly` | 7.8 → 6.8 |
+| Lever 3: latest 2 versions (20k → 13k rows) | `company_scores` | 15.9 → 10.4 |
+| … their citations (60k → 40k) | `score_citations` | 22.3 → 14.8 |
+| Lever 4: ≤ 30 links per company or brand (60k → 30k) | `document_entities` | 24.8 → 12.4 |
+| … and documents nothing links to are pruned (40k → 30k) | `documents` | 24.2 → 18.2 |
+| **Total** | | **−45.2 MB** |
+
+**Totals:** catalog 336.8 → **291.6 MB** (≈ 321 MB with bloat, under the 350 MB budget). Whole DB 320.8 + 49 + 42 = **≈ 412 MB**: ~12 MB over the 400 MB warning, under the 450 MB critical line and the 500 MB limit. With the reserve lever 1 (15–25 MB before bloat): ≈ 384–395 MB. Without the platform re-measure, the adopted levers alone would have shown 400 MB.
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |
@@ -349,7 +367,7 @@ Unchanged: `reference_prices` (measured), `rubrics`, `sources` (≈ 0 MB). Down 
 
 | Metric | Measure | Warn | Critical / action |
 |---|---|---|---|
-| Whole DB | `pg_database_size(current_database())` | 400 MB | 450 MB: pause non-essential imports (GDELT, RSS) and apply the §7 levers |
+| Whole DB | `pg_database_size(current_database())` | 330 MB: apply the reserve §7 lever 1 (D-070); 400 MB | 450 MB: pause non-essential imports (GDELT, RSS) and apply the §7 levers |
 | Catalog tables | sum of `pg_total_relation_size` over catalog tables | 320 MB | 350 MB: budget exceeded; apply §7 |
 | Largest table growth | per-table size vs. last week | +20 MB in a week | investigate before the next scale-up |
 | Storage | sum of `storage.objects.metadata->size` | 700 MB | 800 MB: run cleanup now; shorten retention |
@@ -361,14 +379,14 @@ Unchanged: `reference_prices` (measured), `rubrics`, `sources` (≈ 0 MB). Down 
 The `catalog_quality` view (DATA_MODEL §4) exposes the DB and storage numbers for the P5 dashboard.
 
 ## 7. Levers if estimates prove low (in order)
-1. **Tighten the OFF filter:** for example, only products whose brand has a resolved owner or that someone has scanned. Saves about 15–25 MB.
-2. **Shorten store-level monthly price rollups** from 12 to 6 months. Saves about 7 MB.
-3. **Keep fewer superseded score versions** (`company_scores` / `score_citations`): latest 2. Saves about 10 MB.
-4. **Cap `document_entities`** at 30 per company, keeping the most relevant.
+1. **Tighten the OFF filter:** for example, only products whose brand has a resolved owner or that someone has scanned. Saves about 15–25 MB. **Reserve (D-070):** applied only when the measured whole DB reaches 330 MB, because it costs product coverage.
+2. ✅ **Adopted (P3.13c, D-070): shorten store-level monthly price rollups** from 12 to 6 months. Saves about 12.8 MB with the natural-key trim.
+3. ✅ **Adopted: keep fewer superseded score versions** (`company_scores` / `score_citations`): latest 2. Saves about 13 MB.
+4. ✅ **Adopted: cap `document_entities`** at 30 per company or brand, keeping the most relevant, and prune documents nothing links to. Saves about 18.5 MB.
 5. **Archive old `receipt_lines`** (over 24 months) to per-user gz files in Storage.
 
 ## 8. Growth and limits
 - **Each extra 100 active users** adds about **49 MB a year** of user data, about **15 MB a year** of price aggregates, and about **40 MB** of opt-in receipt images in Storage.
-- With the catalog at about 370 MB (P3.13b), the whole DB estimate is ≈ 450 MB at **100 active users**, past the 400 MB alarm. The §7 levers (P3.13c) have to bring the catalog back under 350 MB before the user base grows.
+- With the catalog at about 321 MB (P3.13c), the whole DB estimate is ≈ 412 MB at **100 active users**, just past the 400 MB warning, and ≈ 384–395 MB once the reserve lever 1 is applied. Past roughly 110–125 active users the free DB passes the warning even with every lever, and the options below apply.
 - Past that, the options are a paid Supabase tier (owner decision, Phase 10) or archiving user history to Storage.
 - **Biggest uncertainty:** the OFF row count after filtering and the real average row width. Both get measured in Phase 3's OFF sample task before scaling up.
