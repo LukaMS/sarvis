@@ -412,6 +412,10 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-069 BUDGET §3 index bytes come from the schema's real indexes — Accepted (P3.13b)
+- Each §3 table's index bytes per row is the sum over the indexes `pg_index` lists for it, with per-entry sizes from indexes measured at scale on the dev project: random-insert btree ≈ (12 + key bytes) / 0.6, sequential ≈ (12 + key) / 0.85, deduplicated FK btrees 10–17 B, partial indexes scaled by the share of rows they cover, trigram GIN ≈ 6.2 B per name byte. Tables measured at scale (`products`, `reference_prices`) use their measurements. The full table is in BUDGET (P3.13b Actuals).
+**Why:** the old figures (60–200 B) predate the provenance and review FK indexes, composite unique keys and partial indexes, and the formula matches four indexes measured at 25k–90k rows within 7%. A low estimate hides the alarm until it's too late to design around it. The new estimate is over the alarm (≈ 450 MB), so the levers are the owner's call (P3.13c).
+
 ## D-068 Ownership tables keep their per-row `source_url` — Accepted (P3.13a)
 - BUDGET §3 is re-baselined from measurement for `brands` (324 B, Wikidata rows), `brand_ownership` (248 B) and `company_ownership` (262 B), instead of rebuilding `source_url` from a template. The index column is re-projected from per-entry sizes measured on `products` at 90k rows, since the small tables sit at their minimum index pages.
 **Why:** `source_url` is the only per-row cut (≈ 40 B). Brands could rebuild it from the QID, but would still be +25% on the old 228 B; edges need a new statement-key column and would stay +22–30%. That saves ≈ 2 MB at §3 counts for three new views and writer changes. The old widths and index figures left out the +prov / +review blocks and their FK indexes, so it was the estimate that was wrong (as with D-064).

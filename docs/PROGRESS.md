@@ -2,6 +2,19 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.13b Budget: index bytes re-projected (done)
+
+**Done** (D-069, docs only)
+- Listed every public table's indexes from `pg_index` on the dev project (all §3 catalog tables exist) and re-projected §3's index bytes per row from per-entry sizes measured at scale: `products` (90,672 rows) and `reference_prices` (24,700). The formula matches four measured indexes within 7% (gtin 47 vs 44, source key 70 vs 74, uuid pkey 47 vs 49, reference key 43 vs 44).
+- 34 §3 lines changed; each names its basis, and the BUDGET "Actuals: index bytes re-projected" table lists every index with its bytes. `products` now uses its P3.6 measurement (btree 238, trigram 138.5). The P3.13a brand/ownership figures are replaced (243 / 287 / 261 B).
+- Biggest increases: `price_points_monthly` +9.1 MB, `products` +6.3, `documents` +4.7, `document_entities` +4.5, `store_listings` +4.4, `match_candidates` +3.7.
+
+**Verification:** §1 re-added: catalog subtotal 284 → **337 MB** (336.8 × 1.1 = 370.5 with bloat), whole DB 370.5 + 49 + 30 ≈ **450 MB**. The Actuals section records before and after. `format:check` passes.
+
+**For the owner (decision needed, P3.13c):** the estimate is now **over** the 350 MB catalog budget (≈ 370) and the 400 MB DB alarm (≈ 450, under the 500 MB limit). Actual today is 110 MB, so nothing breaks soon. §7 levers 2–4 (6-month monthly rollups, 2 score versions, ≤ 30 document links per company) bring it to ≈ 410 MB; adding lever 1 (tighter OFF filter, costs product coverage) brings it to ≈ 385–395 MB. P3.13c is next and needs your pick.
+
+---
+
 ## 2026-11-04 — P3.13a Budget: ownership row widths (done)
 
 **Done** (D-068, docs only, no schema change)

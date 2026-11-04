@@ -1216,7 +1216,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `docs/catalog/BUDGET.md`, possibly `supabase/migrations/*`, `pipeline/src/sources/wikidata/map.ts`.
 - **Verification:** the new widths or the re-baselined §3 lines in a BUDGET "Actuals" line; if the schema changes, a `--mode full` Wikidata run writes 0 inserted, and `npm run typecheck`, `lint` and `test` pass.
 
-### [ ] P3.13b Budget: re-project §3 index bytes for the other +prov tables (added in P3.13a)
+### [x] P3.13b Budget: re-project §3 index bytes for the other +prov tables (added in P3.13a)
 - **Slice:** release-check.
 - **Goal:** an index column in BUDGET §3 that matches the indexes the schema actually has, so the whole-DB estimate (392 MB after P3.13a, ~8 MB under the 400 MB alarm) isn't low.
 - **Deps:** P3.13a.
@@ -1225,6 +1225,17 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** dropping or changing indexes (a separate task if the numbers call for it).
 - **Files:** `docs/catalog/BUDGET.md`.
 - **Verification:** each changed §3 line names its index list and per-entry basis, the §1 totals add up, and a BUDGET "Actuals" line records the before and after subtotals.
+
+### [ ] P3.13c 🟡 Budget: pick the levers that bring the estimate back under the alarm (added in P3.13b)
+- **Slice:** release-check.
+- **Goal:** a 12-month estimate under the 350 MB catalog budget and the 400 MB whole-DB alarm, with the owner's choice of levers recorded.
+- **Deps:** P3.13b.
+- **Found in P3.13b:** with the indexes the schema actually has, the catalog estimate is ≈ 370 MB with bloat (budget 350) and the whole DB ≈ 450 MB (alarm 400, critical 450, limit 500). Actual today: 110 MB, so nothing is urgent before Phase 6's monitor.
+- **🟡 Owner decision:** which §7 levers to adopt (BUDGET P3.13b Actuals has the savings): 2 monthly rollups 12 → 6 months (≈ 11 MB), 3 latest 2 score versions (≈ 13 MB), 4 `document_entities` ≤ 30 per company (≈ 12 MB), 1 tighter OFF filter (15–25 MB, costs product coverage). Levers 2–4 reach ≈ 410 MB; with lever 1, ≈ 385–395 MB. Other options: fewer target rows somewhere, dropping low-value indexes (measure first), or a paid tier later (Phase 10).
+- **In:** record the decision in DECISIONS, apply it to BUDGET §3, §1, §4 or §7, and add PLAN tasks in the phases that build the affected tables (rollups Phase 8, scores Phase 7, documents Phase 7/9) so they're built that way.
+- **Out:** building any of it now.
+- **Files:** `docs/catalog/BUDGET.md`, `docs/DECISIONS.md`, `docs/PLAN.md`.
+- **Verification:** §1 shows the catalog under 350 MB and the whole DB under 400 MB, and each adopted lever names the task that builds it.
 
 ### [ ] P3.14 Wikipedia (a): company summary sample
 - **Slice:** source-wikipedia.
@@ -1304,10 +1315,10 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M6 Wikipedia | P3.14 (sample), P3.15 (full) |
 | M7 SEC EDGAR | P3.16 (sample), P3.17 (full) |
 | M8 Corporations Canada | P3.18 (sample and full) |
-| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.13a, P3.13b, P3.19 |
+| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.13a, P3.13b, P3.13c, P3.19 |
 | Exit criteria | P3.19 |
 
-**Open 🟡 decisions in Phase 3:** none. P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
+**Open 🟡 decisions in Phase 3:** P3.13c (budget levers, added in P3.13b). P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
 
 ## Phase 4 — Normalization and matching (outline)
 

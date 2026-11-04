@@ -10,13 +10,13 @@ Estimated 2026-10-26.
 
 | Budget | Limit | Estimate (target coverage, 12 months) | Status |
 |---|---|---|---|
-| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 313 MB** (284 MB plus 10%) | ✅ within budget, ~37 MB headroom (Phase 6 warns at 320 MB) |
+| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 370 MB** (337 MB plus 10%) | ❌ over budget by ~20 MB (P3.13b index re-projection; levers: P3.13c) |
 | User data (100 active users, 12 months, plus 10%) | — | ≈ 49 MB | — |
 | Platform overhead (auth, storage metadata, extensions) | — | ≈ 30 MB (assumed) | — |
-| **Whole database** | 500 MB, alarm 400 MB | **≈ 392 MB** | ⚠️ under the alarm, ~8 MB headroom |
+| **Whole database** | 500 MB, alarm 400 MB | **≈ 450 MB** | ❌ over the 400 MB alarm, at the 450 MB critical line; under the 500 MB limit (P3.13c) |
 | **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 289 MB** (251 MB plus 15%) | ✅ within budget |
 
-A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), and P3.13a `brands` and both ownership tables (+11.4 MB), so the subtotal is now 284 MB.
+A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), so the subtotal is now 337 MB.
 
 **Target coverage** means:
 - every OFF product sold in Canada that passes the import filter;
@@ -37,44 +37,44 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 
 | Table | Rows | Bytes/row (heap) | Index bytes/row | MB | Basis |
 |---|---:|---:|---:|---:|---|
-| `products` | 95,000 | 348 | 190 | 56.1 | OFF Canada subset after the import filter (129k → ~95k), plus manual/lookup rows |
-| `products: trigram GIN on normalized name` | 95,000 | — | 120 | 11.4 | expression index; no stored normalized column |
-| `product_identifiers` | 15,000 | 138 | 110 | 4.0 | secondary codes only (store SKU, PLU, alternate GTINs); primary GTIN lives on products |
-| `product_sources` | 10,000 | 178 | 80 | 2.8 | only products with more than one contributing source |
-| `brands` | 20,000 | 324 | 268 | 12.8 | distinct OFF brand strings after resolution; incl. trigram index. **Measured** (P3.13a): Wikidata rows; index projected from per-entry sizes at scale |
-| `brand_ownership` | 22,000 | 248 | 265 | 12.1 | about 1.1 edges per brand (history). **Measured** (P3.13a), index projected |
-| `companies` | 5,000 | 478 | 150 | 3.5 | brand owners + parents |
-| `company_ownership` | 10,000 | 262 | 270 | 5.7 | parent ↔ child edges with dates. **Measured** (P3.13a), index projected |
-| `categories` | 2,000 | 148 | 80 | 0.5 | Sarvis taxonomy |
-| `category_mappings` | 15,000 | 158 | 80 | 3.9 | OFF category tags → taxonomy |
-| `banners` | 60 | 228 | 80 | 0.0 | Ontario grocery banners |
-| `stores` | 3,000 | 278 | 120 | 1.3 | Ontario grocery stores (OSM, receipts) |
-| `store_listings` | 25,000 | 198 | 190 | 10.4 | banner-specific names (receipt abbreviations); incl. trigram |
-| `price_observations` | 20,000 | 208 | 110 | 7.0 | non-receipt sources (Open Prices, manual), all time |
-| `price_points_weekly` | 30,000 | 108 | 70 | 5.8 | receipt aggregates per store × product × week, 90 days |
-| `price_points_monthly` | 80,000 | 98 | 60 | 13.8 | rollup per store × product × month for 12 months, then per banner |
+| `products` | 95,000 | 348 | 238 | 60.6 | OFF Canada subset after the import filter (129k → ~95k), plus manual/lookup rows. Index **measured** at 90,672 rows (P3.6, P3.13b) |
+| `products: trigram GIN on normalized name` | 95,000 | — | 138 | 13.2 | expression index; no stored normalized column. Index **measured** at 90,672 rows (P3.6, P3.13b) |
+| `product_identifiers` | 15,000 | 138 | 204 | 5.4 | secondary codes only (store SKU, PLU, alternate GTINs); primary GTIN lives on products. Index projected (P3.13b) |
+| `product_sources` | 10,000 | 178 | 145 | 3.5 | only products with more than one contributing source. Index projected (P3.13b) |
+| `brands` | 20,000 | 324 | 243 | 12.3 | distinct OFF brand strings after resolution; incl. trigram index. **Measured** (P3.13a): Wikidata rows; index re-projected in P3.13b |
+| `brand_ownership` | 22,000 | 248 | 287 | 12.6 | about 1.1 edges per brand (history). **Measured** (P3.13a); index re-projected in P3.13b |
+| `companies` | 5,000 | 478 | 323 | 4.4 | brand owners + parents. Index projected (P3.13b) |
+| `company_ownership` | 10,000 | 262 | 261 | 5.6 | parent ↔ child edges with dates. **Measured** (P3.13a); index re-projected in P3.13b |
+| `categories` | 2,000 | 148 | 99 | 0.5 | Sarvis taxonomy. Index projected (P3.13b) |
+| `category_mappings` | 15,000 | 158 | 175 | 5.4 | OFF category tags → taxonomy. Index projected (P3.13b) |
+| `banners` | 60 | 228 | 140 | 0.0 | Ontario grocery banners. Index projected (P3.13b) |
+| `stores` | 3,000 | 278 | 234 | 1.7 | Ontario grocery stores (OSM, receipts). Index projected (P3.13b) |
+| `store_listings` | 25,000 | 198 | 364 | 14.8 | banner-specific names (receipt abbreviations); incl. trigram. Index projected (P3.13b) |
+| `price_observations` | 20,000 | 208 | 225 | 9.3 | non-receipt sources (Open Prices, manual), all time. Index projected (P3.13b) |
+| `price_points_weekly` | 30,000 | 108 | 136 | 7.8 | receipt aggregates per store × product × week, 90 days. Index projected (P3.13b) |
+| `price_points_monthly` | 80,000 | 98 | 173 | 22.9 | rollup per store × product × month for 12 months, then per banner. Index projected (P3.13b) |
 | `reference_prices` | 30,000 | 276 | 97 | 11.2 | StatCan 18-10-0245-01, Canada + Ontario, since 2017. **Measured** (P3.11a): the first estimate (118 / 50) left out the +prov block |
-| `price_sanity_bounds` | 5,000 | 88 | 40 | 0.7 | per category × unit basis |
-| `documents` | 40,000 | 328 | 110 | 19.5 | articles + other cited pages (title, URL, no full text) |
-| `document_entities` | 60,000 | 198 | 110 | 20.3 | document ↔ company/brand links with stance |
+| `price_sanity_bounds` | 5,000 | 88 | 77 | 0.9 | per category × unit basis. Index projected (P3.13b) |
+| `documents` | 40,000 | 328 | 228 | 24.2 | articles + other cited pages (title, URL, no full text). Index projected (P3.13b) |
+| `document_entities` | 60,000 | 198 | 185 | 24.8 | document ↔ company/brand links with stance. Index projected (P3.13b) |
 | `rubrics` | 10 | 2028 | 40 | 0.0 | rubric versions |
-| `company_scores` | 20,000 | 528 | 110 | 14.3 | 1,000 scored companies × 6 rows × ~3 versions |
-| `score_citations` | 60,000 | 208 | 90 | 19.8 | about 3 citations per score row |
-| `certifications` | 4,000 | 178 | 90 | 1.2 | manual (D6) + legacy |
-| `external_ratings` | 1,000 | 148 | 70 | 0.2 | KnowTheChain etc. (manual) |
-| `company_events` | 3,000 | 428 | 80 | 1.7 | boycotts, controversies, recalls |
-| `product_features, transparency_steps` | 5,000 | 228 | 70 | 1.7 | legacy product-page content |
-| `stories` | 200 | 828 | 60 | 0.2 | editorial |
-| `match_candidates` | 40,000 | 168 | 110 | 12.1 | pending + accepted only; rejected purged after 30 days |
-| `review_queue` | 15,000 | 148 | 90 | 3.9 | open + resolved for 90 days |
+| `company_scores` | 20,000 | 528 | 189 | 15.9 | 1,000 scored companies × 6 rows × ~3 versions. Index projected (P3.13b) |
+| `score_citations` | 60,000 | 208 | 132 | 22.3 | about 3 citations per score row. Index projected (P3.13b) |
+| `certifications` | 4,000 | 178 | 210 | 1.7 | manual (D6) + legacy. Index projected (P3.13b) |
+| `external_ratings` | 1,000 | 148 | 197 | 0.4 | KnowTheChain etc. (manual). Index projected (P3.13b) |
+| `company_events` | 3,000 | 428 | 253 | 2.2 | boycotts, controversies, recalls. Index projected (P3.13b) |
+| `product_features, transparency_steps` | 5,000 | 228 | 150 | 2.1 | legacy product-page content. Index projected (P3.13b) |
+| `stories` | 200 | 828 | 194 | 0.2 | editorial. Index projected (P3.13b) |
+| `match_candidates` | 40,000 | 168 | 201 | 15.8 | pending + accepted only; rejected purged after 30 days. Index projected (P3.13b) |
+| `review_queue` | 15,000 | 148 | 94 | 4.0 | open + resolved for 90 days. Index projected (P3.13b) |
 | `sources` | 40 | 628 | 40 | 0.0 | one row per SOURCES.md entry in use |
-| `ingestion_runs` | 3,000 | 328 | 70 | 1.3 | about 8 runs/day, kept 13 months |
-| `ingestion_run_events` | 12,000 | 178 | 60 | 3.2 | ≤ 50 per run, 30 days |
-| `raw_objects` | 6,000 | 248 | 80 | 2.2 | rows for files still in storage |
-| `validation_failures` | 12,000 | 308 | 60 | 5.0 | ≤ 50 per run, 30 days |
-| `ai_calls` | 30,000 | 168 | 70 | 7.9 | 13 months |
-| `audit_log` | 20,000 | 228 | 60 | 6.4 | manual edits |
-| **Subtotal** | | | | **284** | |
+| `ingestion_runs` | 3,000 | 328 | 109 | 1.5 | about 8 runs/day, kept 13 months. Index projected (P3.13b) |
+| `ingestion_run_events` | 12,000 | 178 | 66 | 3.2 | ≤ 50 per run, 30 days. Index projected (P3.13b) |
+| `raw_objects` | 6,000 | 248 | 223 | 3.0 | rows for files still in storage. Index projected (P3.13b) |
+| `validation_failures` | 12,000 | 308 | 51 | 4.9 | ≤ 50 per run, 30 days. Index projected (P3.13b) |
+| `ai_calls` | 30,000 | 168 | 140 | 10.0 | 13 months. Index projected (P3.13b) |
+| `audit_log` | 20,000 | 228 | 175 | 8.7 | manual edits. Index projected (P3.13b) |
+| **Subtotal** | | | | **337** | |
 
 **User data (100 active users, 12 months)**
 
@@ -261,6 +261,66 @@ New §3 totals: `brands` 12.8 MB (was 9.2), `brand_ownership` 12.1 MB (6.9), `co
 
 Why re-baseline instead of trimming (D-068): the only per-row cut is `source_url`. Brands could rebuild it from the QID with no new column (−40 B → 284 B, still +25%); edges need a statement-key column (≈ −30 B net → 218 / 232 B, +22% / +30%). So every table stays over the line, for ≈ 2 MB saved at §3 counts, plus a view per table and writer changes. `companies` stays at 478 B (measured 361).
 
+### Actuals: index bytes re-projected (P3.13b, 2026-11-04, dev project)
+
+The §3 index column was set before the schema had its provenance and review FK indexes (`source`, `ingestion_run`, `raw_object`, `reviewed_by`, often `ai_call`, `merged_into`), its composite unique keys, and its partial indexes. Every §3 table now uses the indexes listed by `pg_index` on the dev project (all §3 catalog tables exist), with bytes per entry from what's measured at scale:
+
+| Index kind | B / row | Measured on |
+|---|---:|---|
+| btree, random inserts: (12 + key bytes) / 0.6 | uuid pkey 47 | `products_pkey` 49 (90,672 rows) |
+| … short unique text | ≈ 44 | `products_gtin_key` 44; `reference_prices_key` (text, date) 44 (24,700 rows) |
+| … uuid + text | ≈ 70–74 | `products_source_key` 74 |
+| btree, sequential inserts (bigint pkey, timestamps): (12 + key) / 0.85 | 24 | `reference_prices_pkey` 24 |
+| deduplicated FK btree (few distinct values, or mostly null) | 10 (run 14, raw object 17) | `products` FK indexes 9.7–17.3; `reference_prices` 7.6–8.6 |
+| FK btree, ~1–3 rows per value | 22–47 | by the formula, scaled for duplicates |
+| partial index | the share of rows it covers × the entry size | dev counts where rows exist (one current owner 94%, one controlling parent 56%) |
+| trigram GIN | ≈ 6.2 B per name byte | `products_name_trgm_idx` 138.5 for 22.5-B names |
+
+`products` uses its measured indexes (P3.6: 238 B btree, 138.5 B trigram), and `reference_prices` keeps its measured 97 B (P3.11a). Rows, heap widths and the method (`rows × (heap × 1.15 + index)`) are unchanged. The `brands` and ownership figures replace P3.13a's quicker projection.
+
+| Table | Index B / row (old → new) | MB (old → new) | Indexes (B / row) |
+|---|---|---|---|
+| `products` | 190 → **238** | 56.1 → 60.6 | 9 btrees, measured at 90,672 rows (P3.6) 238 |
+| `products: trigram GIN on normalized name` | 120 → **138** | 11.4 → 13.2 | measured at 90,672 rows 138.5 |
+| `product_identifiers` | 110 → **204** | 4.0 → 5.4 | U (scheme, value, banner_id) 82, product_id 47, pkey bigint 24, raw_object 17, ingestion_run 14, banner 10, source 10 |
+| `product_sources` | 80 → **145** | 2.8 → 3.5 | U (source_id, external_id) 74, product_id 47, pkey bigint 24 |
+| `brands` | 268 → **243** | 12.8 → 12.3 | trigram GIN name (10.5 B) 65, pkey uuid 49, U slug 38, U wikidata_qid (half null) 30, raw_object 17, ingestion_run 14, source 10, reviewed_by 10, merged_into 10 |
+| `brand_ownership` | 265 → **287** | 12.1 → 12.6 | U (brand, company, relation, valid_from) 90, pkey uuid 49, U one current owner (90% of rows) 42, company_id 25, match_candidate 20, raw_object 17, ingestion_run 14, ai_call 10, reviewed_by 10, source 10 |
+| `companies` | 150 → **323** | 3.5 → 4.4 | trigram GIN name (12.4 B) 77, pkey uuid 49, U slug 40, U wikidata_qid 38, wikipedia_document 35, U sec_cik (7% set) 23, raw_object 17, ingestion_run 14, source 10, reviewed_by 10, merged_into 10 |
+| `company_ownership` | 270 → **261** | 5.7 → 5.6 | U (parent, child, relation, valid_from) 90, pkey uuid 49, child_company_id 35, U one controlling parent (55% of rows) 26, raw_object 17, ingestion_run 14, ai_call 10, reviewed_by 10, source 10 |
+| `categories` | 80 → **99** | 0.5 → 0.5 | pkey uuid 49, U slug 40, parent 10 |
+| `category_mappings` | 80 → **175** | 3.9 → 5.4 | U (source_id, source_category_key) 90, pkey bigint 24, raw_object 17, ingestion_run 14, category 10, ai_call 10, reviewed_by 10 |
+| `banners` | 80 → **140** | 0.0 → 0.0 | pkey uuid 49, U slug 40, raw_object 17, ingestion_run 14, operator 10, source 10 |
+| `stores` | 120 → **234** | 1.3 → 1.7 | U slug (34 B) 77, pkey uuid 49, U (osm_type, osm_id) 37, U (banner, external_store_id) 30, raw_object 17, ingestion_run 14, source 10 |
+| `store_listings` | 190 → **364** | 10.4 → 14.8 | trigram GIN listing_name (~20 B) 124, U (banner, listing_key) without SKU (80%) 78, pkey uuid 49, product_id 35, match_candidate 24, raw_object 17, ingestion_run 14, U (banner, external_sku) (20%) 13, source 10 |
+| `price_observations` | 110 → **225** | 7.0 → 9.3 | (store, product, observed_on) 80, U (source_id, external_id) 58, pkey bigint 24, product_id 22, raw_object 17, ingestion_run 14, listing 10 |
+| `price_points_weekly` | 70 → **136** | 5.8 → 7.8 | U (store, product, week_start) 80, pkey bigint 24, product_id 22, source 10 |
+| `price_points_monthly` | 60 → **173** | 13.8 → 22.9 | U (store, banner, product, month) 107, pkey bigint 24, product_id 22, banner 10, source 10 |
+| `price_sanity_bounds` | 40 → **77** | 0.7 → 0.9 | U (category, unit_basis) 53, pkey bigint 24 |
+| `documents` | 110 → **228** | 19.5 → 24.2 | U url_normalized (~70 B) 138, pkey uuid 49, raw_object 17, ingestion_run 14, source 10 |
+| `document_entities` | 110 → **185** | 20.3 → 24.8 | U (document, company, brand) 80, pkey bigint 24, raw_object 17, ingestion_run 14, company 10, brand 10, ai_call 10, reviewed_by 10, source 10 |
+| `company_scores` | 110 → **189** | 14.3 → 15.9 | pkey uuid 49, superseded_by (2/3 set) 35, U approved (company, category) (1/3) 21, raw_object 17, ingestion_run 14, company 10, ai_call 10, reviewed_by 10, rubric 10, source 10, pending created_at 3, U legacy (company, category) 0 |
+| `score_citations` | 90 → **132** | 19.8 → 22.3 | U (score, document) 73, document_id 35, pkey bigint 24 |
+| `certifications` | 90 → **210** | 1.2 → 1.7 | U (company, brand, product, scheme, scheme_name) 60, pkey uuid 49, document 20, raw_object 17, ingestion_run 14, brand 10, company 10, product 10, reviewed_by 10, source 10 |
+| `external_ratings` | 70 → **197** | 0.2 → 0.4 | U (company, scheme, period) 77, pkey uuid 49, document 20, raw_object 17, ingestion_run 14, reviewed_by 10, source 10 |
+| `company_events` | 80 → **253** | 1.7 → 2.2 | U (company, kind, title, event_date) 133, pkey uuid 49, document 20, raw_object 17, ingestion_run 14, reviewed_by 10, source 10 |
+| `product_features, transparency_steps` | 70 → **150** | 1.7 → 2.1 | U (product, sort_order or step) 50, pkey uuid 49, raw_object 17, ingestion_run 14, reviewed_by 10, source 10 |
+| `stories` | 60 → **194** | 0.2 → 0.2 | U slug 70, pkey uuid 49, (featured, published_at) 24, raw_object 17, ingestion_run 14, company 10, source 10 |
+| `match_candidates` | 110 → **201** | 12.1 → 15.8 | U (kind, subject, candidate, version) 112, pkey bigint 24, pending (kind, score) (50%) 23, candidate_id 22, decided_by 10, run 10 |
+| `review_queue` | 90 → **94** | 3.9 → 4.0 | U open (item_table, item_id) (50%) 37, pkey bigint 24, open (priority, created_at) (50%) 13, assigned_to 10, resolved_by 10 |
+| `ingestion_runs` | 70 → **109** | 1.3 → 1.5 | (source, started_at) 60, pkey uuid 49, running started_at 0 |
+| `ingestion_run_events` | 60 → **66** | 3.2 → 3.2 | (run, at) 42, pkey bigint 24 |
+| `raw_objects` | 80 → **223** | 2.2 → 3.0 | U storage_path (64 B) 128, pkey uuid 49, live expires_at 24, run 12, source 10 |
+| `validation_failures` | 60 → **51** | 5.0 → 4.9 | pkey bigint 24, raw_object 17, run 10 |
+| `ai_calls` | 70 → **140** | 7.9 → 10.0 | response_raw_object 47, (user, at) 35, at 24, pkey bigint 24, run 10 |
+| `audit_log` | 60 → **175** | 6.4 → 8.7 | (table_name, row_id, at) 117, at 24, pkey bigint 24, actor 10 |
+
+Unchanged: `reference_prices` (measured), `rubrics`, `sources` (≈ 0 MB). Down a little: `validation_failures` (60 → 51). The user-data tables (`profiles`, `scans`, `receipts`, `receipt_lines`) don't exist yet and carry no +prov block, so they stay as §3 has them.
+
+**Totals:** catalog subtotal **284 → 337 MB** (≈ 370 MB with bloat, over the 350 MB catalog budget), whole DB estimate **392 → ≈ 450 MB** (over the 400 MB alarm, at the 450 MB critical line, under the 500 MB limit). Actual whole DB today: 110 MB. The biggest increases: `price_points_monthly` +9.1, `documents` +4.7, `document_entities` +4.5, `products` +6.3 (both lines), `store_listings` +4.4, `match_candidates` +3.7.
+
+**What covers it (§7, savings re-computed with the new widths, before bloat):** lever 2 (monthly rollups 12 → 6 months) ≈ 11 MB, lever 3 (latest 2 score versions) ≈ 13 MB, lever 4 (`document_entities` ≤ 30 per company, ≈ 30k rows) ≈ 12 MB, lever 1 (tighter OFF filter) 15–25 MB. Levers 2–4 together ≈ 36 MB (≈ 40 MB with bloat) bring the whole DB to ≈ 410 MB; adding lever 1 brings it to ≈ 385–395 MB. Lever 1 costs product coverage, so the choice is the owner's (PLAN P3.13c).
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |
@@ -309,6 +369,6 @@ The `catalog_quality` view (DATA_MODEL §4) exposes the DB and storage numbers f
 
 ## 8. Growth and limits
 - **Each extra 100 active users** adds about **49 MB a year** of user data, about **15 MB a year** of price aggregates, and about **40 MB** of opt-in receipt images in Storage.
-- With the catalog at about 313 MB, the free DB reaches the 400 MB alarm at roughly **200–250 active users** within a year.
+- With the catalog at about 370 MB (P3.13b), the whole DB estimate is ≈ 450 MB at **100 active users**, past the 400 MB alarm. The §7 levers (P3.13c) have to bring the catalog back under 350 MB before the user base grows.
 - Past that, the options are a paid Supabase tier (owner decision, Phase 10) or archiving user history to Storage.
 - **Biggest uncertainty:** the OFF row count after filtering and the real average row width. Both get measured in Phase 3's OFF sample task before scaling up.
