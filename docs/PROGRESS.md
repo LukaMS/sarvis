@@ -2,6 +2,24 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.15 Wikipedia (b): all companies with a page (done)
+
+**Done:** two `--mode full` runs; BUDGET Actuals for P3.15; two new PLAN tasks (P3.15a, P3.15b). No code changes.
+
+**Verification**
+- Run 1 `b1ef67a2` (full): 23 checks of 1,136 companies → 1,036 changed (the other 100 from the P3.14 sample), 0 missing, 0 disambiguation. 52 extracts requests, ~5 min. fetched 2,067 (1,031 documents + 1,036 enrichments), valid 2,067, invalid 0; inserted 1,024, updated 1,036, unchanged 7 (pages already stored for a sample company with a redirecting title). Completed.
+- Run 2 `ec27b26a` (full): 1,136 unchanged; fetched 0, **inserted 0**, no raw file, completed (`changesOnly` keeps the N → 0 safeguard quiet).
+- `validation_failures`: 0 for both runs.
+- Provenance SQL: 1,123 Wikipedia documents and 1,136 `company_sources` rows, 0 missing `fetched_at`/`method`/`method_version`/`ingestion_run_id`/`source_url`. All 1,136 companies with a title link a document.
+- Raw: 52 `raw_objects` for run 1 (427 KB), none for run 2. `readRaw()` on all 52 re-parses to 1,031 documents + 1,036 enrichments; 1,031/1,031 match the stored rows.
+- Examples (run 1, as stored, all `api`, `wikipedia@1.0.0`, `company_sources.fields` [`wikipedia_document_id`, `wikipedia_revision_id`]): `loblaw-companies` → "Loblaw Companies" rev 1382543471, 797 chars, `…/w/index.php?title=Loblaw_Companies&oldid=1382543471`; `nestle-ch` → "Nestlé" rev 1381481326, 356; `saputo` → "Saputo Inc." rev 1383277329, 346; `general-mills-us` → "General Mills" rev 1382399153, 354; `kraft-foods-inc` → "Kraft Foods Inc." rev 1383306250, 367 ("Kraft Foods Inc. () was …", see P3.15b).
+- Budget (BUDGET P3.15 Actuals): `documents` 1.16 MB, Wikipedia heap 802 B/row vs 328 B estimated (+145%); `company_sources` 0.67 MB, 606 B/row, **missing from §3**; raw 0.41 KB a page gz ✅; `raw` bucket 22.6 MB, 3,993 files ✅; whole DB 117.4 MB ✅.
+
+**For the owner**
+- Two items over the 20% rule became tasks before the next scale-up: **P3.15a** re-baselines `documents` and adds `company_sources` to BUDGET §3 (≈ +5.7 MB, whole DB forecast ≈ 418 MB, still under 450), and **P3.15b** removes bracket leftovers in 29 of 1,123 summaries (2.6%).
+
+---
+
 ## 2026-11-04 — P3.14 Wikipedia (a): company summary sample (done)
 
 **Done** (D-071)

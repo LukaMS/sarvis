@@ -1252,7 +1252,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** the source-task rules. Also: a second run stores no raw file for unchanged pages.
 - ✅ Done 2026-11-04 (D-071): Action API in batches instead of the REST endpoint; retention is now the last 3 runs that stored a file.
 
-### [ ] P3.15 Wikipedia (b): all companies with a page
+### [x] P3.15 Wikipedia (b): all companies with a page
 - **Slice:** source-wikipedia.
 - **Goal:** summaries for every company with a Wikipedia title.
 - **Deps:** P3.13, P3.14.
@@ -1260,6 +1260,27 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** as P3.14.
 - **Files:** `pipeline/src/sources/wikipedia/*`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`documents`, `company_sources`, the `raw` bucket).
+- ✅ Done 2026-11-04: runs `b1ef67a2` and `ec27b26a`. The budget check found two gaps (P3.15a) and a summary-text artifact (P3.15b).
+
+### [ ] P3.15a Budget: Wikipedia `documents` width and `company_sources` (added in P3.15)
+- **Slice:** release-check.
+- **Goal:** BUDGET §3 reflects the measured Wikipedia document rows and has a row for `company_sources`.
+- **Deps:** P3.15.
+- **Found in P3.15:** Wikipedia `documents` rows have **802 B** of heap each (the summary), against the 328 B §3 average for all documents (+145%), so ≈ +2.2 MB at 5k pages. `company_sources` (P3.2) has **no §3 row**: 606 B a row, ≈ 5k rows ≈ 3.5 MB. Together ≈ +5.7 MB before bloat, so the whole DB goes from ≈ 412 to ≈ 418 MB (under the 450 MB critical line).
+- **In:** split the `documents` line into Wikipedia (5k at the measured width) and other documents (25k at the current width), or re-baseline it; add `company_sources` with its rows, measured width and index bytes from the real indexes (P3.13b method); re-add §1. If the whole DB moves past ≈ 420 MB, say so in PROGRESS for the owner (the D-070 reserve lever still covers it).
+- **Out:** changing the summary length or the schema (a cap below 1,000 characters is an owner choice if it's needed).
+- **Files:** `docs/catalog/BUDGET.md`.
+- **Verification:** §1 re-added from §3; each new figure cites its measurement; `format:check` passes.
+
+### [ ] P3.15b Wikipedia: clean pronunciation leftovers from summaries (added in P3.15)
+- **Slice:** source-wikipedia.
+- **Goal:** no empty or separator-only brackets in summaries.
+- **Deps:** P3.15.
+- **Found in P3.15:** TextExtracts strips pronunciation markup and leaves brackets behind: 16 of 1,123 summaries have "()" (e.g. "Kraft Foods Inc. () was …"), and 13 start a bracket with a separator ("Findus (; Swedish: [ˈfɪndɵs])", "Guylian (, French: …)").
+- **In:** in `summaryOf`, drop empty brackets and a leading `;`/`,` inside a bracket, then collapse spaces before punctuation. Bump `wikipedia@1.1.0`. Re-parse the stored rows without refetching, e.g. a check that also queues pages whose document's `method_version` is older than the source's (record the choice in DECISIONS). Re-run full.
+- **Out:** other text changes.
+- **Files:** `pipeline/src/sources/wikipedia/*` and tests.
+- **Verification:** unit tests with the real examples; after a full run, the SQL counts of `\(\s*\)` and `\(\s*[;,]` in Wikipedia summaries are 0; a second full run inserts and stores nothing.
 
 ### [ ] P3.16 SEC EDGAR (a): Exhibit 21 sample
 - **Slice:** source-edgar.
@@ -1315,10 +1336,10 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M3 Open Prices | P3.9 (sample), P3.10 (full) |
 | M4 StatCan | P3.11 (sample and full) |
 | M5 Wikidata | P3.12 (sample, precision check), P3.12a (match precision, stale rows), P3.12b (brand-class tier), P3.12c (non-grocery retailers), P3.13 (scale-up) |
-| M6 Wikipedia | P3.14 (sample), P3.15 (full) |
+| M6 Wikipedia | P3.14 (sample), P3.15 (full), P3.15b (summary cleanup) |
 | M7 SEC EDGAR | P3.16 (sample), P3.17 (full) |
 | M8 Corporations Canada | P3.18 (sample and full) |
-| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.13a, P3.13b, P3.13c, P3.19 |
+| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.13a, P3.13b, P3.13c, P3.15a, P3.19 |
 | Exit criteria | P3.19 |
 
 **Open 🟡 decisions in Phase 3:** none. P3.13c (budget levers) was decided in D-070. P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.

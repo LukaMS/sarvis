@@ -339,6 +339,19 @@ The owner delegated the choice. Product coverage wins (CLAUDE.md), so the OFF fi
 
 **Totals:** catalog 336.8 → **291.6 MB** (≈ 321 MB with bloat, under the 350 MB budget). Whole DB 320.8 + 49 + 42 = **≈ 412 MB**: ~12 MB over the 400 MB warning, under the 450 MB critical line and the 500 MB limit. With the reserve lever 1 (15–25 MB before bloat): ≈ 384–395 MB. Without the platform re-measure, the adopted levers alone would have shown 400 MB.
 
+### Actuals: Wikipedia summaries full run (P3.15, 2026-11-04, dev project)
+
+Two clean full runs (`b1ef67a2`, then `ec27b26a`: 0 changed, 0 inserted, no raw file). 1,136 companies with a title, all linked to a document (1,123 documents: redirects share pages).
+
+| Measure | Actual | §3/§5 estimate | Note |
+|---|---:|---:|---|
+| `documents` (all Wikipedia so far) | 1,123 rows, 1.16 MB (heap 0.90 + indexes 0.22 + TOAST 0.03); heap **802 B**/row, index 197 B/row | 30,000 rows, 18.2 MB; heap 328 B, index 228 B | Wikipedia rows' heap **+145%** (the summary, avg 356 characters). At 5k pages ≈ +2.2 MB on the table. PLAN P3.15a. |
+| `company_sources` | 1,136 rows, 0.67 MB (index 0.20); **606 B**/row | **no §3 row** | Unbudgeted table: ≈ 5k rows (one per company with a page, plus SEC and Corporations Canada) ≈ 3.5 MB. PLAN P3.15a. |
+| `companies` | 1,737 rows, 1.8 MB | 5,000 rows, 4.4 MB | ✅ (+0.2 MB since P3.13: revision id and document id set) |
+| Raw per full run (gz) | 52 files, 427 KB (≈ 0.41 KB a page, 20 pages a file) | 5k × 0.44 KB, last 3 runs that stored a file: 7 MB | ✅ |
+| `raw` bucket total | 22.6 MB, 3,993 files | 700 MB; 6,000 `raw_objects` | ✅ |
+| Whole DB | 117.4 MB | alarm 400 MB | ✅ |
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |
