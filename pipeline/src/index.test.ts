@@ -13,6 +13,11 @@ describe('pipeline', () => {
       'Sarvis/0.1.0 (+https://github.com/LukaMS/sarvis; owner@example.com)',
     );
     expect(userAgent('0.1.0', null)).toBe('Sarvis/0.1.0 (+https://github.com/LukaMS/sarvis)');
+    // SEC EDGAR refuses a URL in the User-Agent (D-074).
+    expect(userAgent('0.1.0', 'owner@example.com', false)).toBe('Sarvis/0.1.0 (owner@example.com)');
+    expect(userAgent('0.1.0', null, false)).toBe(
+      'Sarvis/0.1.0 (+https://github.com/LukaMS/sarvis)',
+    );
   });
 
   it('keeps PIPELINE_VERSION in step with package.json', () => {

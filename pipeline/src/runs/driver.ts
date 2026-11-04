@@ -180,7 +180,8 @@ function checkOptions(source: Source, opts: RunOptions): number | null {
 
 /** The contact email the source's User-Agent carries, or null for the repo URL only. */
 function contactFor(source: Source, contactEmail: string | null | undefined): string | null {
-  if (source.capabilities.contact !== 'email') return null;
+  const contact = source.capabilities.contact;
+  if (contact !== 'email' && contact !== 'email_only') return null;
   if (!contactEmail) {
     throw new SourceRefusedError(
       `Source ${source.key} asks for a contact email. Set PIPELINE_CONTACT_EMAIL in the repo-root .env.`,
@@ -273,7 +274,7 @@ export async function runSource<K extends RecordKind>(
       deps.http ??
       createHttpClient({
         sourceRateLimitPerSec: Number(row.rate_limit_per_sec),
-        userAgent: userAgent(undefined, contactEmail),
+        userAgent: userAgent(undefined, contactEmail, source.capabilities.contact !== 'email_only'),
         robotsExempt: source.robotsExemptions?.map((e) => e.prefix),
         timeoutMs: source.timeoutMs,
         maxRetryAfterMs: source.throttle?.maxRetryAfterMs,

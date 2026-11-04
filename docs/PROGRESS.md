@@ -2,6 +2,32 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.16 SEC EDGAR (a): Exhibit 21 sample (done)
+
+**Done** (`sec-edgar@1.0.0`, D-074)
+- Source `sec-edgar` (`pipeline/src/sources/sec-edgar/`): companies with a CIK by slug, then the submissions JSON (latest 10-K), the filing index (EX-21 documents), and each Exhibit 21 stored as one envelope with its parsed and matched subsidiaries. Records: a `sec_filing` document, the CIK's `company_sources` row, and a pending, queued edge per exact-name match (company → `company_ownership`, brand → `brand_ownership`).
+- Parser for the layouts seen: tables (name-first and jurisdiction-first), gap-separated lines, "Name, a Delaware …" lines. It drops headings and footnote marks. Matching uses a name key without legal forms, with self, ambiguous, existing-edge and country checks.
+- New User-Agent mode `contact: 'email_only'`: SEC returns 403 to any User-Agent that contains a URL (measured; SOURCES.md S20).
+- Terms re-checked: unchanged (free access, 10 req/s cap, declared UA). `/Archives/` isn't disallowed, and `data.sec.gov` has no robots.txt. `terms_checked_at` is unchanged.
+- Fixtures: trimmed real responses (two submissions JSONs, a filing index, three Exhibit 21 layouts), excluded from Prettier. 20 unit tests.
+
+**Verification**
+- Dry run `f3b6ef53` (`--dry-run --sample 10`): 21 records valid, 0 invalid.
+- Sample run `54a03b1b`: 14 companies → 10 10-K filings (2 foreign 20-F, 2 stale, 1 no 10-K). fetched 21 / valid 21 / inserted 10 / updated 11 (10 `company_sources` + 1 edge, see below). 10 raw files, 0 validation failures.
+- Same command again, `6deb8462`: fetched 0, inserted 0, 0 raw files (stored exhibits are skipped).
+- Provenance: 10 documents and 10 `company_sources` rows, 0 missing `source_id`/`fetched_at`/`method`/`method_version`/run/`source_url`.
+- Raw read-back: `readRaw` on Best Buy's file re-parses to the stored document and `company_sources` row.
+- Per filing (matched / edge exists / self / unmatched): AMG 0/0/1/165, Altria 0/0/0/4, Amazon 0/0/0/9, AIG 0/0/1/89, Aramark 0/0/7/244, Artisan 0/0/1/33, Bath & Body Works 0/0/1/11, Berkshire 0/1/0/274, Best Buy 0/0/0/51, Beyond Meat 0/0/0/2.
+- Examples (as stored): document "ALTRIA GROUP, INC. 10-K for 2025-12-31", `0000764180-26-000017`, filed 2026-02-25, URL `…/764180/000076418026000017/0000764180-26-000017-index.htm`, `api`, `sec-edgar@1.0.0`, run `54a03b1b`. Likewise "AMAZON COM INC 10-K for 2025-12-31" (`0001018724-26-000004`) and "AFFILIATED MANAGERS GROUP, INC. 10-K for 2025-12-31" (`0001628280-26-008665`). `company_sources` altria: external id `0000764180`, fields `[sec_cik]`, source `https://data.sec.gov/submissions/CIK0000764180.json`; same for affiliated-managers-group.
+- **Hand check of 10 edges:** the sample's 10 filings (non-grocery parents, by slug) gave no new edge, so I used a full dry run, `08dfcd98` (119 companies, nothing written). 9 distinct edges, all in their filings as parsed; 6 right, 3 wrong (leftover or licensed entities: Keebler, Schweppes, Capri Sun). Details are in D-074. The first full dry run also caught 5 wrong name matches, fixed by the apostrophe, heading and country rules.
+- typecheck, lint, format:check, `npm test` pass.
+
+**For the owner**
+- **Fixed in-session:** the first sample's SEC edge Berkshire → Pilot Flying J matched an existing pending Wikidata edge and **overwrote its provenance** (the edge writers key on endpoints, not source). I restored the row from the Wikidata raw file and deleted the queue row. The source now skips any pair that already has an edge. Added a Phase 4 milestone: edges that hold evidence from several sources.
+- Expect about 9 SEC edges in the review queue after P3.17, about a third wrong. They're `pending`, so users never see them.
+
+---
+
 ## 2026-11-04 — P3.15b Wikipedia: clean pronunciation leftovers from summaries (done)
 
 **Done** (`wikipedia@1.1.0`, D-073)

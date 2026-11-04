@@ -6,6 +6,7 @@ import { LEGACY_KEY, createLegacyImportSource } from './legacy-import/index.ts';
 import { OFF_KEY, createOffSource } from './off/index.ts';
 import { OP_KEY, createOpenPricesSource } from './open-prices/index.ts';
 import { registerSource } from './registry.ts';
+import { SEC_KEY, createSecEdgarSource } from './sec-edgar/index.ts';
 import { SC_KEY, createStatcanSource } from './statcan/index.ts';
 import { WD_KEY, createWikidataSource } from './wikidata/index.ts';
 import { WP_KEY, createWikipediaSource } from './wikipedia/index.ts';
@@ -20,6 +21,7 @@ export function registerAllSources(): void {
   registerSource(OFF_KEY, () => createOffSource());
   registerSource(OP_KEY, () => createOpenPricesSource());
   registerSource(SC_KEY, () => createStatcanSource());
+  registerSource(SEC_KEY, () => createSecEdgarSource());
   registerSource(WD_KEY, () => createWikidataSource());
   registerSource(WP_KEY, () => createWikipediaSource());
 }

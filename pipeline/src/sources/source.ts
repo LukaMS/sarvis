@@ -24,9 +24,10 @@ export interface SourceCapabilities {
   storeSpecificPricing: boolean;
   /**
    * `email`: the source's terms ask for a contact email in the User-Agent (OFF, SEC EDGAR), so the
-   * run needs `PIPELINE_CONTACT_EMAIL`. Default `url`: the repo URL only (D-015).
+   * run needs `PIPELINE_CONTACT_EMAIL`. Default `url`: the repo URL only (D-015). `email_only`:
+   * the email without the repo URL, for a host that refuses a URL in the User-Agent (SEC, D-074).
    */
-  contact?: 'url' | 'email';
+  contact?: 'url' | 'email' | 'email_only';
   /**
    * The source applies `sampleSize` itself, counting its own unit (Wikidata: matched brands, not
    * the companies and edges each one brings), so the driver doesn't stop at that many records.

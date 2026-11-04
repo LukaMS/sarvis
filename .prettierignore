@@ -14,3 +14,5 @@ app/expo-env.d.ts
 playwright-report/
 test-results/
 packages/core/src/db/database.types.ts
+# Saved real responses, kept byte for byte (P3.16).
+pipeline/src/sources/sec-edgar/fixtures/

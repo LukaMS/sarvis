@@ -438,10 +438,10 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 |---|---|
 | Provides | Annual 10-K filings of US-listed companies. Exhibit 21 lists subsidiaries (e.g. food multinationals that own brands sold in Ontario). |
 | Licence | Public filings: "Anyone can access and download this information for free." https://www.sec.gov/search-filings/edgar-search-assistance/accessing-edgar-data (checked 2026-10-26). |
-| Terms on automated access | Allowed under the Fair Access policy: "Current max request rate: 10 requests/second", and "Please declare your user agent in request headers" (same URL, checked 2026-10-26). |
+| Terms on automated access | Allowed under the Fair Access policy: "Current max request rate: 10 requests/second", and "Please declare your user agent in request headers" (same URL, checked 2026-10-26; re-checked 2026-11-04 in P3.16, unchanged). |
 | robots.txt | `www.sec.gov` disallows only site-framework folders (`/core/`, `/profiles/`, READMEs). `/Archives/` and `data.sec.gov` APIs aren't disallowed. |
 | Access method | REST JSON (`data.sec.gov/submissions/CIK##########.json`) plus filing archives (`/Archives/edgar/…`). |
-| Auth | None (declared User-Agent required). |
+| Auth | None (declared User-Agent required). **Measured 2026-11-04 (P3.16, D-074):** a User-Agent containing a URL gets 403 "Request Rate Threshold Exceeded" on the first request; `Sarvis/<version> (<email>)` works, so the source sends no repo URL (`contact: email_only`). |
 | Rate limits | 10 requests/second maximum (we'd stay at about 1/s per CLAUDE.md). |
 | Ontario coverage | Only US-listed parents (many large CPG owners). Not Canadian-only companies. |
 | Freshness | Annual (10-K cycle). |

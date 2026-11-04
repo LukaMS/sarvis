@@ -6,13 +6,16 @@ export const PIPELINE_VERSION = '0.0.0';
 
 /**
  * `Sarvis/<version> (+<repo>)`, or `Sarvis/<version> (+<repo>; <email>)` for a source whose terms
- * ask for a contact email (D-015). The second form also fits OFF's `AppName/Version (ContactEmail)`
- * and SEC EDGAR's "company name plus email" rule.
+ * ask for a contact email (D-015). The second form also fits OFF's `AppName/Version (ContactEmail)`.
+ * `withRepo = false` gives `Sarvis/<version> (<email>)`: SEC EDGAR refuses any User-Agent that
+ * carries a URL (measured in P3.16, D-074).
  */
 export function userAgent(
   version: string = PIPELINE_VERSION,
   contactEmail: string | null = null,
+  withRepo = true,
 ): string {
+  if (!withRepo && contactEmail) return `${APP_NAME}/${version} (${contactEmail})`;
   const contact = contactEmail ? `; ${contactEmail}` : '';
   return `${APP_NAME}/${version} (+https://github.com/LukaMS/sarvis${contact})`;
 }

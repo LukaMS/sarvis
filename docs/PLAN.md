@@ -1284,7 +1284,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** unit tests with the real examples; after a full run, the SQL counts of `\(\s*\)` and `\(\s*[;,]` in Wikipedia summaries are 0; a second full run inserts and stores nothing.
 - ✅ Done 2026-11-04 (D-073): runs `e585a6ca` (65 pages re-extracted) and `202d2c35` (nothing written or stored).
 
-### [ ] P3.16 SEC EDGAR (a): Exhibit 21 sample
+### [x] P3.16 SEC EDGAR (a): Exhibit 21 sample
 - **Slice:** source-edgar.
 - **Goal:** parent → subsidiary evidence from US-listed parents' 10-K Exhibit 21 lists.
 - **Deps:** P3.1, P3.4, P3.12.
@@ -1295,6 +1295,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** fuzzy matching of subsidiary names (Phase 4).
 - **Files:** `pipeline/src/sources/sec-edgar/*` and tests (two real Exhibit 21 formats as fixtures), `pipeline/src/sources/registry.ts`.
 - **Verification:** the source-task rules (`--sample` counts filings, e.g. 10). Also: matched vs unmatched subsidiary counts per filing, and 10 edges checked by hand against the filing.
+- ✅ Done 2026-11-04 (D-074): runs `54a03b1b` and `6deb8462`. The by-slug sample of 10 gave no new edges, so the hand check used a full dry run (`08dfcd98`): 9 edges, 6 right. A first-run overwrite of a Wikidata edge was repaired, and it led to a Phase 4 milestone (edges from several sources).
 
 ### [ ] P3.17 SEC EDGAR (b): all companies with a CIK
 - **Slice:** source-edgar.
@@ -1366,6 +1367,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - **OFF codes with a bad check digit** (found in P3.6): 2,516 of 93,178 kept Canadian rows (2.7%) are GTIN-shaped but fail the check digit, so validation rejects them (`gtin_check_digit`, D-057). Restricted in-store codes are kept with `gtin` null (7,014 rows). P4.0 decides whether bad-check-digit codes get the same treatment (kept on `external_id`, no GTIN) for coverage, or stay out because the barcode is wrong.
   - **OFF size coverage** (found in P3.6): 71,315 of 90,659 OFF products (79%) are `unparsed`, but 70,196 of those have no `quantity` at all in OFF. Only ~1.1k have text the D-057 rule can't read (bare numbers like "1", "12 pcs", "CTN24"). The unit parser should handle `pcs` → `ct`; the missing sizes need another source (P4.0 decides whether to look for one).
   - Gold-set evaluation script that reports precision and recall.
+  - **Edges from several sources** (found in P3.16, D-074): `brand_ownership` and `company_ownership` key on the endpoints, relation and `valid_from`, not the source, so a second source writing the same edge overwrites the first's provenance. SEC EDGAR avoids it by skipping pairs that already have an edge. Before the brand resolver (or another source) writes edges, decide how an edge holds evidence from several sources (e.g. an `edge_sources` table like `company_sources`) and make the writers keep the first source's row.
 
 ## Phase 5 — Admin portal: catalog tools (outline)
 
