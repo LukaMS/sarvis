@@ -1196,7 +1196,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/wikidata/*` and tests, `docs/DECISIONS.md`.
 - **Verification:** the source-task rules for a sample, plus the brand-class and US picks listed with right/wrong in PROGRESS.
 
-### [ ] P3.13 Wikidata (b): ownership scale-up
+### [x] P3.13 Wikidata (b): ownership scale-up
 - **Slice:** source-wikidata.
 - **Goal:** Wikidata ownership for every OFF brand string that has a match (budget: ~20k brands, ~5k companies).
 - **Deps:** P3.12, P3.12a, P3.12b, P3.12c and D-054.
@@ -1205,6 +1205,16 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** as P3.12.
 - **Files:** `pipeline/src/sources/wikidata/*`, `docs/DECISIONS.md`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`brands`, `companies`, both ownership tables, `review_queue`). Also: the number of OFF brand strings matched, out of the total.
+
+### [ ] P3.13a Budget: ownership row widths (added in P3.13)
+- **Slice:** source-wikidata.
+- **Goal:** bring `brands`, `brand_ownership` and `company_ownership` back within 20% of BUDGET §3 per row, or re-baseline §3 with a reason (the budget rule in "Rules for every source task").
+- **Deps:** P3.13.
+- **Found in P3.13:** average `pg_column_size` per row: `brands` 321 B (§3: 228, +41%; 1,828 rows), `brand_ownership` 248 B (178, +39%; 1,570 rows), `company_ownership` 262 B (178, +47%; 659 rows). `companies` is under (361 vs 478). Row counts are far under §3 (brands 20,000, companies 5,000), so the totals are small (4.8 MB for all four tables against 22.7 MB), but Phase 4 may add brands for many more OFF brand strings.
+- **In:** measure what each row carries (the +prov block, `source_url` per statement, `method_version`, aliases), then pick the cheaper of (a) a `url_template` route for `source_url` (the QID is already on the row for entities; edges would need the statement key) or (b) re-baselining §3 at the measured widths, with the brand count Phase 4 is expected to reach. Record the choice in DECISIONS.
+- **Out:** changing what Wikidata matches or writes.
+- **Files:** `docs/catalog/BUDGET.md`, possibly `supabase/migrations/*`, `pipeline/src/sources/wikidata/map.ts`.
+- **Verification:** the new widths or the re-baselined §3 lines in a BUDGET "Actuals" line; if the schema changes, a `--mode full` Wikidata run writes 0 inserted, and `npm run typecheck`, `lint` and `test` pass.
 
 ### [ ] P3.14 Wikipedia (a): company summary sample
 - **Slice:** source-wikipedia.

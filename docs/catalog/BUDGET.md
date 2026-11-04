@@ -230,6 +230,21 @@ After `open-prices@1.0.1` (street-part `address`) and the price `url_template` m
 
 Both widths are back within 20% of §3, so §3 isn't re-baselined. Stores sit right at the line: a source that stores long names or URLs per store will push it over.
 
+### Actuals: Wikidata ownership full run (P3.13, 2026-11-04, dev project)
+
+Two clean full runs (`5c5318eb`, then `3c9b0a8d` with 0 inserted). 1,890 of 19,345 OFF brand strings matched (1,759 items).
+
+| Measure | Actual | §3/§5 estimate | Note |
+|---|---:|---:|---|
+| `brands` | 1,828 rows, 1.5 MB (heap 0.74 + indexes 0.79); avg width **321 B** | 20,000 rows, 9.2 MB; 228 B | Rows far under. Width **+41%**. PLAN P3.13a. |
+| `companies` | 1,737 rows, 1.6 MB (0.72 + 0.91); 361 B | 5,000 rows, 3.5 MB; 478 B | ✅ |
+| `brand_ownership` | 1,570 rows, 1.1 MB (0.43 + 0.67); **248 B** | 22,000 rows, 6.9 MB; 178 B | Width **+39%**. PLAN P3.13a. |
+| `company_ownership` | 659 rows, 0.55 MB (0.20 + 0.33); **262 B** | 10,000 rows, 3.1 MB; 178 B | Width **+47%**. PLAN P3.13a. |
+| `review_queue` | 271 rows (none from Wikidata, D-054) | — | ✅ |
+| Raw per full run (gz) | ≈ 2.3 MB, 1,097 files (387 match + 710 entities) | ≈ 2 MB × last 3 | +15% ✅ |
+| `raw` bucket total | 21 MB, 3,936 files | 700 MB | ✅ |
+| Whole DB | 110 MB | alarm 400 MB | ✅ |
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |

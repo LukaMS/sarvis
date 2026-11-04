@@ -2,7 +2,7 @@
 
 Newest entry first.
 
-## 2026-11-03 — IN PROGRESS: P3.13 Wikidata (b): ownership scale-up
+## 2026-11-04 — P3.13 Wikidata (b): ownership scale-up (done)
 
 **Done** (`wikidata@1.4.0`, D-067)
 - The D-054 rule as code. `nextHop` computes each child's one current owner (`pickOwner`: preferred rank, then latest P580; same-edge statements count once; else a tie) and stores it on the `ChildSpec`. `recordsOf` marks the current owner edges that aren't the pick with `auto_hold: true` (a new optional edge-record field in core). Ended edges, minority stakes and the self edge are approved.
@@ -13,20 +13,24 @@ Newest entry first.
   - Auto-approved edges are no longer frozen against updates (`reviewed` needs `decision_method ≠ 'auto'`). Before, run 2 counted 893 of them `skipped_locked`, and Wikidata could never add an end date.
 - Tests: pick cases (one owner, rank, start date, tie, ended, minority, company parent, pre-1.4.0 envelope), `approveEdges` (pick, history, held, confirmed pending, admin-rejected, existing approved owner, no source), CIK guard, edge freeze, 429 without `Retry-After`. typecheck, lint, format:check and `npm test` pass (507 passed, 1 skipped).
 
-**Runs so far (none complete)**
-- `21a3c41c`: `failed` at 24 min, HTTP 429 with no usable `Retry-After`; 3,900 of 19,345 strings. WDQS answered again within 90 s. One company was lost to `companies_sec_cik_key` (fixed since).
-- `5c5318eb`: Claude Code stopped it for low system memory at 23:18 UTC after 9,550 strings (no 429). Its row is still `running`; the next run's start-up sweep marks it `failed` only after 6 h. Fix it by hand in SQL if needed.
-- `1ec3aaa6`: stopped by Claude Code for low system memory again, after 11,200 strings (0 errors, 0 inserted, 4,464 unchanged). Both stopped runs (`5c5318eb` and this one) were marked `failed` by hand in SQL. Background runs inside Claude Code keep getting reaped, so the next attempt should run in a separate terminal.
-- DB after run 1: approved/auto: 693 companies, 690 brands, 593 brand edges, 300 company edges. Still `pending`: 21 companies, 20 brands, 26 brand edges, 59 company edges (stale sample rows plus held edges).
+**Full runs**
+- `21a3c41c` failed at 24 min (429 with no usable `Retry-After`; fixed since). `5c5318eb` (22:42–23:56 UTC, 3,283 inserted, 893 `skipped_locked` before the freeze fix) and `1ec3aaa6` (23:35–00:42, 0 inserted) were thought stopped and marked `failed` by hand, but both processes survived and finished as `completed`. The two overlapped by 21 min and did no harm.
+- **`3c9b0a8d`** (2026-11-04 13:06–14:45, run by the owner in a separate terminal): `completed`, 6,019 fetched and valid, **0 inserted**, 4 updated, 6,015 unchanged, 0 invalid, 0 `skipped_locked`. This is the second clean run: idempotent.
 
-**Next step (exact)**
-1. Ask the owner before re-running (the memory stop said not to restart on my own). Then run `npm run pipeline -- run wikidata --mode full` in the background. The cache covers the first ~half within 12 h of 22:42 UTC.
-2. Run it a second time: `inserted` must be 0. Then the source-task SQL checks: provenance missing = 0, orphan edges, cycles, at most one approved current owner per brand and per company, `review_queue` rows from Wikidata = 0. Also: the tie / lost / blocked counts (pending current Wikidata edges by child), the strings matched out of 19,345, 5 example records, and a `readRaw()` re-parse.
-3. Budget check (`brands`, `companies`, both ownership tables, `review_queue`, `pg_database_size`, `raw` bucket) in PROGRESS and in a BUDGET "Actuals" line. Then the SOURCES.md P3.13 line, tick, and commit.
+**Verification**
+- **Matched:** 1,890 of 19,345 OFF brand strings (9.8%) → 1,759 Wikidata items. 916 ambiguous, 16,539 unmatched. (From the raw re-parse. The run's events were capped at 49 with 340 dropped, so the run log doesn't hold the final total.)
+- **`readRaw()` re-parse** of all 1,097 raw files of `3c9b0a8d` (387 match, 710 entities): no errors, 6,019 records (= `fetched`): 2,103 company, 1,759 brand, 1,506 brand-edge and 651 company-edge records.
+- **Wikidata rows:** approved/auto: 1,706 companies, 1,759 brands, 1,486 brand edges, 562 company edges. Pending: 20 companies, 20 brands, 35 brand edges, 97 company edges.
+- **Checks (all 0):** missing provenance (4 tables), orphan edges (both tables), company cycles (approved current controlling edges; max depth 3), brands with more than one approved current owner, companies with more than one approved current controlling parent, company self edges, `review_queue` rows for Wikidata rows (queue total 271, all from other sources).
+- **Pending, by cause:**
+  - Stale from the P3.12 samples (`wikidata@1.0.0`/`1.1.0`, D-066): 20 brands and 20 companies (a run that produced them would have approved them), plus 18 brand edges and 28 company edges. `ingestion_run_id` isn't updated on unchanged rows, so a few of those edges may be held ties the full run re-confirmed.
+  - Held by 1.4.0, **ties** (no approved owner): 6 brands (12 edges) and 22 companies (52 edges). One is a false tie: Arva → Troms Kraft as both `majority_stake` and `subsidiary` (same owner, two relations). Another 2 companies have one held edge whose co-owner wasn't written (Nefis ← Soviet Union, Siemens Enterprise Communications ← Mitel).
+  - Held by 1.4.0, **not the pick**, or **blocked** by an approved owner already in place: 5 brands (5 edges) and 11 companies (15 edges).
+- **Examples (approved):** Cheerios → General Mills (`Q2425291#P127`); Kit Kat → Nestlé; Kraft Dinner → Kraft Foods Group → Kraft Heinz; Activia → Danone (Wikidata gives Danone's country as ES). Tie: Arby's ← Inspire Brands | Roark Capital Group (left `pending`).
+- **Budget** (whole tables, dev): `brands` 1,828 rows 1.5 MB; `companies` 1,737 rows 1.6 MB; `brand_ownership` 1,570 rows 1.1 MB; `company_ownership` 659 rows 0.55 MB; `review_queue` 271 rows. Whole DB 110 MB (alarm 400). `raw` bucket 21 MB, 3,936 files (Wikidata ≈ 2.3 MB per full run, kept for the last 3). Row counts are far under §3 (20k brands, 5k companies), but **avg row widths are over the 20% line**: brands 321 B (§3 228), brand edges 248 B (178), company edges 262 B (178). Companies are under (361 vs 478). **New task P3.13a** re-baselines §3 or trims.
+- Code checks unchanged since the WIP commits (typecheck, lint, format:check, `npm test` 507 passed, 1 skipped).
 
-**Failing checks:** none in code. The full-run verification hasn't run yet.
-
-**Files touched:** `packages/core/src/records/ownership.ts`; `pipeline/src/db/writers/{common,ownership,ownership.test,products,review,review.test}.ts`; `pipeline/src/{errors,runs/driver,sources/source}.ts`; `pipeline/src/http/{client,client.test}.ts`; `pipeline/src/sources/wikidata/{index,map,wikidata.test}.ts`; `docs/DECISIONS.md` (D-067).
+**For the owner:** coverage is 9.8% of brand strings (1,759 brands). That's far below the ~20k budget, because most OFF strings are store labels, small brands or spelling variants with no Wikidata item. Phase 4 (linking products to brands) will show how many *products* that covers.
 
 ---
 
