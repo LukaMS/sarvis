@@ -16,6 +16,7 @@ Newest entry first.
 **Runs so far (none complete)**
 - `21a3c41c`: `failed` at 24 min, HTTP 429 with no usable `Retry-After`; 3,900 of 19,345 strings. WDQS answered again within 90 s. One company was lost to `companies_sec_cik_key` (fixed since).
 - `5c5318eb`: Claude Code stopped it for low system memory at 23:18 UTC after 9,550 strings (no 429). Its row is still `running`; the next run's start-up sweep marks it `failed` only after 6 h. Fix it by hand in SQL if needed.
+- `1ec3aaa6`: stopped by Claude Code for low system memory again, after 11,200 strings (0 errors, 0 inserted, 4,464 unchanged). Both stopped runs (`5c5318eb` and this one) were marked `failed` by hand in SQL. Background runs inside Claude Code keep getting reaped, so the next attempt should run in a separate terminal.
 - DB after run 1: approved/auto: 693 companies, 690 brands, 593 brand edges, 300 company edges. Still `pending`: 21 companies, 20 brands, 26 brand edges, 59 company edges (stale sample rows plus held edges).
 
 **Next step (exact)**
