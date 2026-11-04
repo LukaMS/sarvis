@@ -412,6 +412,12 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-073 Wikipedia summary cleanup reaches stored rows through the check — Accepted (P3.15b, `wikipedia@1.1.0`)
+- **Cleanup (`tidySummary`, applied in `summaryOf` before the 1,000-character cut):** drop a `;`/`,` that opens a bracket, drop empty brackets (repeated until stable), collapse whitespace, then remove spaces after `(` and before `,` `;` `:` `)` and a sentence-ending `.`. Idempotent. Nothing else in the text changes (e.g. Bayer keeps "(English:, commonly pronounced; …)", the only summary with an empty label).
+- **Reaching stored rows:** the check also queues a page whose revision is unchanged when `tidySummary(stored summary) ≠ stored summary` (counted as `retidy`). `loadWikipediaCompanies` reads the summary through `companies_wikipedia_document_id_fkey`. Those pages are re-extracted with the changed ones (65 pages, 4 extracts requests, 4 raw files on dev).
+- **Not chosen:** re-parsing the stored raw envelopes (no generic re-parse path exists, and mapping raw files to pages means reading `raw_objects`; a new task if other sources need it), and queueing on `documents.method_version` older than the source's (provenance columns never cause an update, so unchanged summaries would keep 1.0.0 and be queued on every run).
+**Why:** the stored text itself says whether the rule reached it, so the queue empties after one run and a later rule in `tidySummary` reaches old rows the same way. Re-extracting ~60 pages costs a few requests and keeps the stored raw matching the current revision.
+
 ## D-072 Wikipedia documents and `company_sources` re-baselined, not trimmed — Accepted (P3.15a)
 - BUDGET §3 splits `documents` into 3,300 Wikipedia pages at the measured 741 B and 26,700 other documents at 328 B, and adds `company_sources` (4,100 rows, 357 B + 164 B index). Rows come from today's shares of companies with a page (65%), `CA` (9%) and a CIK (7%), scaled to 5,000 companies, not from the plan's assumption that all 5k have a page.
 **Why:** the extra 3.9 MB is the summary the company page shows, and it's already capped (D-071). The trims (a 500-character cap, dropping `company_sources.source_url`) save ≈ 0.5 MB together.

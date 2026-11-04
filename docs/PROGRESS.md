@@ -2,6 +2,24 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.15b Wikipedia: clean pronunciation leftovers from summaries (done)
+
+**Done** (`wikipedia@1.1.0`, D-073)
+- `tidySummary` in `pipeline/src/sources/wikipedia/map.ts`: drops a separator opening a bracket and empty brackets, then spaces before closing punctuation. `summaryOf` applies it before the cut.
+- The check re-queues unchanged pages whose stored summary isn't tidy (`retidy` count), so old rows are fixed without a version-based loop. The loader reads the summary via the document FK.
+- Tests: 11 real P3.15 strings (Kraft Foods, Findus, Guylian, Heinz, Frito-Lay, Nabisco, Aldi, SAP, Prague, …) checked for output and idempotence, plain text left alone, and the re-queue stops once the summary is tidy.
+
+**Verification**
+- Full run `e585a6ca`: 1,136 checked, 2 moved revisions + 63 retidy, 130 records, 0 inserted, 67 updated (65 documents + 2 enrichments), 63 unchanged, 4 raw files, 0 validation failures. Exit 0.
+- SQL on 1,123 Wikipedia documents: `\(\s*\)` 0 (was 16), `\(\s*[;,]` 0 (was 13), whitespace before `,;:)` 0 (was 8).
+- Full run `202d2c35`: 1,136 unchanged, retidy 0, 0 fetched/inserted/updated, 0 raw files.
+- Examples: "Kraft Foods Inc. was a multinational …", "Findus (Swedish: [ˈfɪndɵs]) is …", "Prague (PRAHG; Czech: Praha [ˈpraɦa]) is …".
+- typecheck, lint, format:check, `npm test` (537 passed, 1 skipped) all pass.
+
+**For the owner:** one summary still reads oddly: Bayer "(English:, commonly pronounced; German: [ˈbaɪɐ])" (an empty label). It's the only one, so I left it (out of scope); an admin edit can fix it.
+
+---
+
 ## 2026-11-04 — P3.15a Budget: Wikipedia documents width and `company_sources` (done)
 
 **Done** (docs only, BUDGET P3.15a Actuals)

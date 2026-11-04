@@ -1,9 +1,11 @@
 // Wikipedia company summaries (SOURCES.md S19, PLAN P3.14, D-071).
 //
-//   plan      the companies with an enwiki title (from Wikidata), by slug; a sample takes the first N
+//   plan      the companies with an enwiki title (from Wikidata), by slug, with the stored summary;
+//             a sample takes the first N
 //   check     ≤ 50 titles per Action API query: the current revision id of each page. Not stored
-//             (skipRaw): it yields no records. Pages whose revision moved, or that have no document
-//             yet, are queued for extracts, 20 at a time, across check steps.
+//             (skipRaw): it yields no records. Pages whose revision moved, that have no document
+//             yet, or whose stored summary predates tidySummary are queued for extracts, 20 at a
+//             time, across check steps.
 //   extracts  ≤ 20 titles per query: lead-section plain text, canonical URL and revision id. Stored,
 //             then parsed into a `documents` row per page and a company enrichment per company.
 //
@@ -59,7 +61,9 @@ export async function loadWikipediaCompanies(
   for (let page = 0; ; page++) {
     const { data, error } = await db
       .from('companies')
-      .select('wikidata_qid, wikipedia_title, wikipedia_revision_id, wikipedia_document_id')
+      .select(
+        'wikidata_qid, wikipedia_title, wikipedia_revision_id, wikipedia_document_id, document:documents!companies_wikipedia_document_id_fkey(summary)',
+      )
       .not('wikipedia_title', 'is', null)
       .not('wikidata_qid', 'is', null)
       .not('status', 'in', '(merged,rejected)')
@@ -72,6 +76,7 @@ export async function loadWikipediaCompanies(
         title: r.wikipedia_title as string,
         revisionId: r.wikipedia_revision_id,
         hasDocument: r.wikipedia_document_id != null,
+        summary: r.document?.summary ?? null,
       });
     }
     if ((data ?? []).length < PAGE) return out;
@@ -191,7 +196,8 @@ export function createWikipediaSource(
               severity: 'info',
               eventType: 'wikipedia_check',
               message:
-                `Pages checked so far: ${checks.checked}; changed ${checks.changed}, unchanged ` +
+                `Pages checked so far: ${checks.checked}; changed ${checks.changed}, retidy ` +
+                `${checks.retidy}, unchanged ` +
                 `${checks.unchanged}, missing ${checks.missing}, disambiguation ${checks.disambiguation}.`,
               details: { ...checks, skipped: decided.skipped },
             },

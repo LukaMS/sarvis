@@ -6,7 +6,7 @@ import { SchemaValidationError } from '../../errors.ts';
 
 export const WP_KEY = 'wikipedia';
 export const WP_JOB = 'wikipedia-summaries';
-export const WP_VERSION = '1.0.0';
+export const WP_VERSION = '1.1.0';
 export const WP_METHOD_VERSION = `${WP_KEY}@${WP_VERSION}`;
 
 export const WP_HOST = 'en.wikipedia.org';
@@ -29,6 +29,8 @@ export interface WpCompany {
   revisionId: number | null;
   /** The company already links a Wikipedia document. */
   hasDocument: boolean;
+  /** That document's stored summary (null when there's no document). */
+  summary?: string | null;
 }
 
 /** A requested page in an envelope: the company's QID and the title it asked for. */
@@ -124,6 +126,8 @@ export function pageFor(result: unknown, requested: string): PageOutcome {
 export interface CheckCounts {
   checked: number;
   changed: number;
+  /** Unchanged pages queued anyway because their stored summary predates the current cleanup. */
+  retidy: number;
   unchanged: number;
   missing: number;
   disambiguation: number;
@@ -133,6 +137,7 @@ export interface CheckCounts {
 export const emptyCheckCounts = (): CheckCounts => ({
   checked: 0,
   changed: 0,
+  retidy: 0,
   unchanged: 0,
   missing: 0,
   disambiguation: 0,
@@ -141,7 +146,9 @@ export const emptyCheckCounts = (): CheckCounts => ({
 
 /**
  * The companies whose page needs its summary (re)read: a new page, a page that has no document
- * yet, or a revision id that moved. Missing pages and disambiguation pages are counted and left.
+ * yet, a revision id that moved, or a stored summary the current tidySummary would change (so a
+ * cleanup rule reaches old rows once, and stops once they're clean). Missing pages and
+ * disambiguation pages are counted and left.
  */
 export function decideCheck(
   companies: WpCompany[],
@@ -165,6 +172,11 @@ export function decideCheck(
       continue;
     }
     if (c.hasDocument && c.revisionId === o.page.lastrevid) {
+      if (c.summary && tidySummary(c.summary) !== c.summary) {
+        counts.retidy++;
+        changed.push({ qid: c.qid, title: c.title });
+        continue;
+      }
       counts.unchanged++;
       continue;
     }
@@ -175,15 +187,37 @@ export function decideCheck(
 }
 
 /**
- * The summary shown with attribution: the lead's first paragraph, whitespace collapsed, cut at
+ * Remove what TextExtracts leaves when it strips pronunciation markup (P3.15b): a separator that
+ * opens a bracket ("Findus (; Swedish: …)", "Guylian (, French: …)"), then brackets left empty
+ * ("Kraft Foods Inc. () was"), then spaces before closing punctuation and after an opening
+ * bracket. Idempotent, so a tidied summary is never queued again.
+ */
+export function tidySummary(text: string): string {
+  let s = text;
+  for (let prev = ''; prev !== s;) {
+    prev = s;
+    s = s.replace(/\(\s*[;,]+/g, '(').replace(/\(\s*\)/g, '');
+  }
+  return s
+    .replace(/\s+/g, ' ')
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+(?=[,;:)])/g, '')
+    .replace(/\s+\.(?=\s|$)/g, '.')
+    .trim();
+}
+
+/**
+ * The summary shown with attribution: the lead's first paragraph, tidied (tidySummary), cut at
  * the last sentence end within SUMMARY_MAX (or the last word, with an ellipsis). Null when empty.
  */
 export function summaryOf(extract: string | undefined): string | null {
   if (!extract) return null;
-  const first = extract
+  let first = extract
     .split(/\n+/)
     .map((p) => cleanText(p))
     .find((p): p is string => p !== null && p.length > 0);
+  if (!first) return null;
+  first = tidySummary(first);
   if (!first) return null;
   if (first.length <= SUMMARY_MAX) return first;
   const head = first.slice(0, SUMMARY_MAX);

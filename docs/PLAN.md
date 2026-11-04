@@ -1273,7 +1273,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** §1 re-added from §3; each new figure cites its measurement; `format:check` passes.
 - ✅ Done 2026-11-04: +3.9 MB, catalog ≈ 325 MB with bloat, whole DB ≈ 416 MB (BUDGET P3.15a Actuals).
 
-### [ ] P3.15b Wikipedia: clean pronunciation leftovers from summaries (added in P3.15)
+### [x] P3.15b Wikipedia: clean pronunciation leftovers from summaries (added in P3.15)
 - **Slice:** source-wikipedia.
 - **Goal:** no empty or separator-only brackets in summaries.
 - **Deps:** P3.15.
@@ -1282,6 +1282,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** other text changes.
 - **Files:** `pipeline/src/sources/wikipedia/*` and tests.
 - **Verification:** unit tests with the real examples; after a full run, the SQL counts of `\(\s*\)` and `\(\s*[;,]` in Wikipedia summaries are 0; a second full run inserts and stores nothing.
+- ✅ Done 2026-11-04 (D-073): runs `e585a6ca` (65 pages re-extracted) and `202d2c35` (nothing written or stored).
 
 ### [ ] P3.16 SEC EDGAR (a): Exhibit 21 sample
 - **Slice:** source-edgar.

@@ -27,6 +27,7 @@ import {
   queryUrl,
   recordsOf,
   summaryOf,
+  tidySummary,
 } from './map.ts';
 
 const read = (name: string): unknown =>
@@ -116,12 +117,39 @@ describe('wikipedia: revision check', () => {
     expect(d.counts).toEqual({
       checked: 7,
       changed: 4,
+      retidy: 0,
       unchanged: 1,
       missing: 1,
       disambiguation: 1,
       notArticle: 0,
     });
     expect(d.skipped.map((s) => s.status)).toEqual(['disambiguation', 'missing']);
+  });
+
+  it('queues an unchanged page once if its stored summary predates the cleanup (P3.15b)', () => {
+    const rev = (t: string) =>
+      (pageFor(CHECK, t) as { page: { lastrevid: number } }).page.lastrevid;
+    const stale = 'Kraft Foods Inc. () was a multinational confectionery.';
+    const companies = [
+      company(0, { revisionId: rev('3G Capital'), hasDocument: true, summary: '3G Capital is.' }),
+      company(4, { revisionId: rev('Kraft Foods Inc.'), hasDocument: true, summary: stale }),
+    ];
+    const d = decideCheck(companies, CHECK);
+    expect(d.changed.map((c) => c.title)).toEqual(['Kraft Foods Inc.']);
+    expect(d.counts).toMatchObject({ changed: 0, retidy: 1, unchanged: 1 });
+    // Once the summary is stored tidied, the page is left alone.
+    const again = decideCheck(
+      [
+        company(4, {
+          revisionId: rev('Kraft Foods Inc.'),
+          hasDocument: true,
+          summary: tidySummary(stale),
+        }),
+      ],
+      CHECK,
+    );
+    expect(again.changed).toEqual([]);
+    expect(again.counts).toMatchObject({ retidy: 0, unchanged: 1 });
   });
 });
 
@@ -143,6 +171,43 @@ describe('wikipedia: summary', () => {
     const w = summaryOf(words) as string;
     expect(w.length).toBeLessThanOrEqual(SUMMARY_MAX);
     expect(w.endsWith('word…')).toBe(true);
+  });
+
+  // Real P3.15 summaries (en.wikipedia.org, 2026-11-04) with TextExtracts' pronunciation leftovers.
+  it.each([
+    ['Kraft Foods Inc. () was a multinational', 'Kraft Foods Inc. was a multinational'],
+    ['Findus (; Swedish: [ˈfɪndɵs]) is a Swedish', 'Findus (Swedish: [ˈfɪndɵs]) is a Swedish'],
+    ['Guylian (, French: [ɡiljɑ̃]) is a Belgian', 'Guylian (French: [ɡiljɑ̃]) is a Belgian'],
+    ['commonly known as Heinz (), was an American', 'commonly known as Heinz, was an American'],
+    [
+      'doing business as Frito-Lay, (; FREE-toh-LAY) is',
+      'doing business as Frito-Lay, (FREE-toh-LAY) is',
+    ],
+    ['Nabisco ( , abbreviated from the earlier name', 'Nabisco (abbreviated from the earlier name'],
+    [
+      'Aldi (German pronunciation: [ˈaldiː] , stylised in all caps)',
+      'Aldi (German pronunciation: [ˈaldiː], stylised in all caps)',
+    ],
+    [
+      'SAP SE (; German pronunciation: [ɛsʔaːˈpeː] ) is',
+      'SAP SE (German pronunciation: [ɛsʔaːˈpeː]) is',
+    ],
+    ['Prague ( PRAHG ; Czech: Praha [ˈpraɦa] ) is', 'Prague (PRAHG; Czech: Praha [ˈpraɦa]) is'],
+    [
+      'Brands International S.à.r.l. () (formerly known as',
+      'Brands International S.à.r.l. (formerly known as',
+    ],
+    ['Odwalla Inc. ( ; ) is', 'Odwalla Inc. is'],
+  ])('tidies %j', (raw, tidy) => {
+    expect(tidySummary(raw)).toBe(tidy);
+    expect(summaryOf(raw)).toBe(tidy);
+    expect(tidySummary(tidy)).toBe(tidy);
+  });
+
+  it('leaves ordinary text alone', () => {
+    const text =
+      '7-Eleven, Inc. is an American chain (founded 1927). It sells .NET-free goods: milk.';
+    expect(tidySummary(text)).toBe(text);
   });
 
   it('builds the revision permalink', () => {
@@ -188,7 +253,7 @@ describe('wikipedia: records', () => {
       language: 'en',
       source_key: 'wikipedia',
       method: 'api',
-      method_version: 'wikipedia@1.0.0',
+      method_version: 'wikipedia@1.1.0',
       fetched_at: FETCHED_AT,
     });
     expect(heinz?.source_url).toBe(
