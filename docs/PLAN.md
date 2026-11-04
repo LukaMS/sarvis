@@ -1262,7 +1262,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** the source-task rules, including the budget check (`documents`, `company_sources`, the `raw` bucket).
 - ✅ Done 2026-11-04: runs `b1ef67a2` and `ec27b26a`. The budget check found two gaps (P3.15a) and a summary-text artifact (P3.15b).
 
-### [ ] P3.15a Budget: Wikipedia `documents` width and `company_sources` (added in P3.15)
+### [x] P3.15a Budget: Wikipedia `documents` width and `company_sources` (added in P3.15)
 - **Slice:** release-check.
 - **Goal:** BUDGET §3 reflects the measured Wikipedia document rows and has a row for `company_sources`.
 - **Deps:** P3.15.
@@ -1271,6 +1271,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** changing the summary length or the schema (a cap below 1,000 characters is an owner choice if it's needed).
 - **Files:** `docs/catalog/BUDGET.md`.
 - **Verification:** §1 re-added from §3; each new figure cites its measurement; `format:check` passes.
+- ✅ Done 2026-11-04: +3.9 MB, catalog ≈ 325 MB with bloat, whole DB ≈ 416 MB (BUDGET P3.15a Actuals).
 
 ### [ ] P3.15b Wikipedia: clean pronunciation leftovers from summaries (added in P3.15)
 - **Slice:** source-wikipedia.

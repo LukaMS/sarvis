@@ -2,6 +2,19 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.15a Budget: Wikipedia documents width and `company_sources` (done)
+
+**Done** (docs only, BUDGET P3.15a Actuals)
+- §3 `documents` split: Wikipedia pages 3,300 × 741 B (measured) = 3.6 MB, other documents 26,700 × 328 B = 16.2 MB (was 30,000 at 18.2 MB).
+- §3 `company_sources` added: 4,100 rows × 357 B (measured) + 164 B index = 2.4 MB. Before this it had no row at all.
+- Rows projected from today's shares: 65% of companies have an enwiki page, 9% are `CA`, 7% have a CIK. That gives 3,300 pages, not the 5k the plan assumed.
+
+**Verification:** §3 rows re-added: subtotal 291.6 + 3.9 = **295.5 MB** (≈ 325 MB with bloat, under the 350 MB budget); whole DB 325.1 + 49 + 42 = **≈ 416 MB**, under the ≈ 420 MB point where P3.15a asks me to flag it. Each new figure cites P3.15 measurements. `format:check` passes.
+
+**For the owner:** the forecast is ~16 MB over the 400 MB warning (was ~12), still under the 450 MB critical line. The reserve OFF-filter lever (D-070) would bring it to ≈ 389–400 MB. Nothing to decide now.
+
+---
+
 ## 2026-11-04 — P3.15 Wikipedia (b): all companies with a page (done)
 
 **Done:** two `--mode full` runs; BUDGET Actuals for P3.15; two new PLAN tasks (P3.15a, P3.15b). No code changes.

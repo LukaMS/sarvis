@@ -412,6 +412,10 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-072 Wikipedia documents and `company_sources` re-baselined, not trimmed — Accepted (P3.15a)
+- BUDGET §3 splits `documents` into 3,300 Wikipedia pages at the measured 741 B and 26,700 other documents at 328 B, and adds `company_sources` (4,100 rows, 357 B + 164 B index). Rows come from today's shares of companies with a page (65%), `CA` (9%) and a CIK (7%), scaled to 5,000 companies, not from the plan's assumption that all 5k have a page.
+**Why:** the extra 3.9 MB is the summary the company page shows, and it's already capped (D-071). The trims (a 500-character cap, dropping `company_sources.source_url`) save ≈ 0.5 MB together.
+
 ## D-071 Wikipedia summaries: batched Action API, changes only — Accepted (P3.14)
 - **Endpoint:** the Action API (`/w/api.php`), not the REST summary endpoint the plan named. One query takes 50 titles for the revision check (`prop=info|pageprops`) or 20 for intro extracts (`prop=extracts|info|pageprops`, `exintro`, `explaintext`, `inprop=url`), with `redirects=1` and `maxlag=5`. A `maxlag` answer waits its Retry-After (≤ 60 s) and retries, up to 5 tries. Requests skip the HTTP cache (`cacheTtlMs: 0`): the revision check is the cache. robots.txt disallows `/w/`, so `https://en.wikipedia.org/w/api.php` is the second D-065 exemption.
 - **Steps:** `plan()` reads companies with a QID and `wikipedia_title`, not merged or rejected, by slug (a sample takes the first N companies: `samplesItself`). **Check** steps find each page's current `lastrevid`. A page is queued when the company has no Wikipedia document yet or its stored `wikipedia_revision_id` differs. Missing, non-article and disambiguation pages are counted in a `wikipedia_check` event and skipped. Queued pages go into **extracts** steps of 20 across check steps (the remainder flushes after the last check).

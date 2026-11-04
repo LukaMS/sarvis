@@ -10,13 +10,13 @@ Estimated 2026-10-26.
 
 | Budget | Limit | Estimate (target coverage, 12 months) | Status |
 |---|---|---|---|
-| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 321 MB** (292 MB plus 10%) | ✅ within budget, ~29 MB headroom (levers 2–4 adopted, P3.13c; Phase 6 warns at 320 MB) |
+| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 325 MB** (296 MB plus 10%) | ✅ within budget, ~25 MB headroom (levers 2–4 adopted, P3.13c; P3.15a added `company_sources` and the Wikipedia width; Phase 6 warns at 320 MB) |
 | User data (100 active users, 12 months, plus 10%) | — | ≈ 49 MB | — |
 | Platform overhead (system catalogs, auth, storage metadata, extensions) | — | ≈ 42 MB (P3.13c: 26.7 MB measured today, plus Storage metadata for the files §3 and §5 allow) | — |
-| **Whole database** | 500 MB, alarm 400 MB | **≈ 412 MB** (≈ 384–395 MB with the reserve lever 1) | ⚠️ ~12 MB over the 400 MB warning, under the 450 MB critical line. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB (D-070) |
+| **Whole database** | 500 MB, alarm 400 MB | **≈ 416 MB** (≈ 389–400 MB with the reserve lever 1) | ⚠️ ~16 MB over the 400 MB warning, under the 450 MB critical line. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB (D-070) |
 | **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 285 MB** (248 MB plus 15%) | ✅ within budget |
 
-A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), and P3.13c adopted §7 levers 2–4 plus the rollup and document trims (−45.2 MB), so the subtotal is now 292 MB.
+A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), P3.13c adopted §7 levers 2–4 plus the rollup and document trims (−45.2 MB), and P3.15a measured the Wikipedia documents and added the missing `company_sources` (+3.9 MB), so the subtotal is now 296 MB.
 
 **Target coverage** means:
 - every OFF product sold in Canada that passes the import filter;
@@ -44,6 +44,7 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `brands` | 20,000 | 324 | 243 | 12.3 | distinct OFF brand strings after resolution; incl. trigram index. **Measured** (P3.13a): Wikidata rows; index re-projected in P3.13b |
 | `brand_ownership` | 22,000 | 248 | 287 | 12.6 | about 1.1 edges per brand (history). **Measured** (P3.13a); index re-projected in P3.13b |
 | `companies` | 5,000 | 478 | 323 | 4.4 | brand owners + parents. Index projected (P3.13b) |
+| `company_sources` | 4,100 | 357 | 164 | 2.4 | fields a second source fills in on a company: Wikipedia 3,300, Corporations Canada ≈ 460 (9% of companies are `CA`), SEC ≈ 340 (7% have a CIK). Width **measured** (P3.15a); index projected (P3.13b) |
 | `company_ownership` | 10,000 | 262 | 261 | 5.6 | parent ↔ child edges with dates. **Measured** (P3.13a); index re-projected in P3.13b |
 | `categories` | 2,000 | 148 | 99 | 0.5 | Sarvis taxonomy. Index projected (P3.13b) |
 | `category_mappings` | 15,000 | 158 | 175 | 5.4 | OFF category tags → taxonomy. Index projected (P3.13b) |
@@ -55,7 +56,8 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `price_points_monthly` | 40,000 | 90 | 149 | 10.1 | rollup per store × product × month for **6** months, then per banner (lever 2, P3.13c). Keyed on its natural key, no surrogate id. Index projected (P3.13b) |
 | `reference_prices` | 30,000 | 276 | 97 | 11.2 | StatCan 18-10-0245-01, Canada + Ontario, since 2017. **Measured** (P3.11a): the first estimate (118 / 50) left out the +prov block |
 | `price_sanity_bounds` | 5,000 | 88 | 77 | 0.9 | per category × unit basis. Index projected (P3.13b) |
-| `documents` | 30,000 | 328 | 228 | 18.2 | articles + other cited pages (title, URL, no full text); a document no entity, score or company links to is pruned (P3.13c). Index projected (P3.13b) |
+| `documents`: Wikipedia pages | 3,300 | 741 | 228 | 3.6 | one per company with an enwiki page (65% of companies, measured 1,136 / 1,737), with a summary (avg 356 characters). Width **measured** (P3.15a); index projected (P3.13b) |
+| `documents`: other | 26,700 | 328 | 228 | 16.2 | articles + other cited pages (title, URL, no full text); a document no entity, score or company links to is pruned (P3.13c). Index projected (P3.13b) |
 | `document_entities` | 30,000 | 198 | 185 | 12.4 | document ↔ company/brand links with stance; ≤ 30 per company or brand, the most relevant (lever 4, P3.13c). Index projected (P3.13b) |
 | `rubrics` | 10 | 2028 | 40 | 0.0 | rubric versions |
 | `company_scores` | 13,000 | 528 | 189 | 10.4 | 1,000 scored companies × 6 rows × the **latest 2** versions (lever 3, P3.13c). Index projected (P3.13b) |
@@ -74,7 +76,7 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `validation_failures` | 12,000 | 308 | 51 | 4.9 | ≤ 50 per run, 30 days. Index projected (P3.13b) |
 | `ai_calls` | 30,000 | 168 | 140 | 10.0 | 13 months. Index projected (P3.13b) |
 | `audit_log` | 20,000 | 228 | 175 | 8.7 | manual edits. Index projected (P3.13b) |
-| **Subtotal** | | | | **292** | |
+| **Subtotal** | | | | **296** | |
 
 **User data (100 active users, 12 months)**
 
@@ -351,6 +353,23 @@ Two clean full runs (`b1ef67a2`, then `ec27b26a`: 0 changed, 0 inserted, no raw 
 | Raw per full run (gz) | 52 files, 427 KB (≈ 0.41 KB a page, 20 pages a file) | 5k × 0.44 KB, last 3 runs that stored a file: 7 MB | ✅ |
 | `raw` bucket total | 22.6 MB, 3,993 files | 700 MB; 6,000 `raw_objects` | ✅ |
 | Whole DB | 117.4 MB | alarm 400 MB | ✅ |
+
+### Actuals: Wikipedia documents and `company_sources` re-baselined (P3.15a, 2026-11-04, dev project)
+
+Measured after the P3.15 full runs with `pg_column_size` per row (the P3.13a method), on 1,123 Wikipedia documents and 1,136 `company_sources` rows.
+
+| Table | Width | Old §3 | What the row carries (avg bytes) |
+|---|---:|---:|---|
+| `documents` (Wikipedia) | **741 B** | 328 (all documents) | `summary` 362, `source_url` (revision permalink) 75, `url` 45, `url_normalized` 45, title 15; the rest is the fixed +prov block and the tuple header |
+| `company_sources` | **357 B** | none (missing from §3) | `fields` (text[]) 77, `source_url` 75, `content_hash` 33, `method_version` 16, `external_id` 15; the rest fixed (4 uuids, 3 timestamps) |
+
+**Rows at target:** today 1,136 of 1,737 companies (65%) have an enwiki page, 160 (9%) are `CA` and 119 (7%) have a CIK. At 5,000 companies: ≈ 3,300 Wikipedia documents (of the 30,000 documents, so other documents go to 26,700) and ≈ 4,100 `company_sources` rows (one per company and enriching source). The PLAN's 5k pages assumed every company has a page. Companies found later come from rarer OFF brands, which are less likely to have one.
+
+**Indexes** (P3.13b per-entry sizes; today's tables are too small to measure, at 197 and 181 B/row): `documents` keeps 228 B. `company_sources`: U (company_id, source_id) 74, pkey uuid 49, raw_object 17, ingestion_run 14, source 10 = **164 B**.
+
+**Totals:** `documents` 18.2 → 19.7 MB (Wikipedia 3.6 + other 16.2), `company_sources` 0 → 2.4 MB, so +3.9 MB. Catalog 291.6 → **295.5 MB** (≈ 325 MB with bloat, under the 350 MB budget). Whole DB 325.1 + 49 + 42 = **≈ 416 MB**: ~16 MB over the 400 MB warning, under the 450 MB critical line. With the reserve lever 1: ≈ 389–400 MB.
+
+Why re-baseline instead of trimming: the summary is the content the company page shows (with attribution), and it's already the lead's first paragraph capped at 1,000 characters (D-071). A 500-character cap would save ≈ 0.3 MB at target. `source_url` on `company_sources` repeats the document's permalink, which saves ≈ 0.25 MB if dropped, and isn't worth a provenance exception.
 
 ## 5. Storage estimate
 
