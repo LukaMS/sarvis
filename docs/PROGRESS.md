@@ -2,6 +2,20 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.13a Budget: ownership row widths (done)
+
+**Done** (D-068, docs only, no schema change)
+- Measured per column (`pg_column_size`) on the dev project: `brands` Wikidata rows 324 B (legacy 223), `brand_ownership` 248 B, `company_ownership` 262 B. `source_url` is 39–44 B of that; the rest is aliases/website (brands) and the fixed +prov / +review block.
+- Picked (b) re-baseline over (a) `url_template`: (a) leaves every table still over the 20% line (brands +25%, edges +22% / +30%) and saves ≈ 2 MB at §3 counts.
+- BUDGET §3 re-baselined at the measured widths and re-projected index bytes (from `products`' per-entry sizes at 90k rows; the small tables are at their minimum index pages): `brands` 12.8 MB (was 9.2), `brand_ownership` 12.1 (6.9), `company_ownership` 5.7 (3.1). Row counts unchanged (20k brands is about the 19.3k OFF brand strings Phase 4 resolves).
+- §1: catalog 273 → 284 MB (≈ 313 with bloat), whole DB 379 → **392 MB** estimate. Actual today: 110 MB.
+
+**Verification:** the re-baselined §3 lines and a BUDGET "Actuals: ownership row widths re-baselined" section; §1 totals re-added by hand (284.4 × 1.1 + 49 + 30 = 392). `format:check` passes. No code or schema changed, so no Wikidata run was needed.
+
+**For the owner:** the whole-DB estimate is now ~8 MB under the 400 MB alarm (and the catalog ~7 MB under Phase 6's 320 MB warning). The §3 index figures for the other provenance tables are likely low the same way, so I added **P3.13b** to re-project them before more sources land. If that pushes the estimate past 400 MB, the §7 levers (e.g. tighter OFF filter, 15–25 MB) cover it; nothing costs money.
+
+---
+
 ## 2026-11-04 — P3.13 Wikidata (b): ownership scale-up (done)
 
 **Done** (`wikidata@1.4.0`, D-067)

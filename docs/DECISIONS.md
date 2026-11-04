@@ -412,6 +412,10 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-068 Ownership tables keep their per-row `source_url` — Accepted (P3.13a)
+- BUDGET §3 is re-baselined from measurement for `brands` (324 B, Wikidata rows), `brand_ownership` (248 B) and `company_ownership` (262 B), instead of rebuilding `source_url` from a template. The index column is re-projected from per-entry sizes measured on `products` at 90k rows, since the small tables sit at their minimum index pages.
+**Why:** `source_url` is the only per-row cut (≈ 40 B). Brands could rebuild it from the QID, but would still be +25% on the old 228 B; edges need a new statement-key column and would stay +22–30%. That saves ≈ 2 MB at §3 counts for three new views and writer changes. The old widths and index figures left out the +prov / +review blocks and their FK indexes, so it was the estimate that was wrong (as with D-064).
+
 ## D-067 The D-054 auto-approve rule as code — Accepted (P3.13, `wikidata@1.4.0`)
 - **Where the pick is made.** A child's competing owner edges are written in its owners' responses, which may be different batches, and only the child's own response lists all its owner statements with rank and dates. So `nextHop` computes the pick from the child's statements and stores it on the `ChildSpec` (`pick`: `owner:relation@start`, or null). The parent's envelope carries it, and parse stays pure: a stored envelope re-parses to the same records. Envelopes from before 1.4.0 have no `pick`, and all their current owner edges are held.
 - **The rule (`pickOwner`).** Among the child's current owner statements (no P582; for a company, a controlling relation), the preferred rank wins, then the latest P580. A statement without a start counts as earliest. Statements that make the same edge (P127 and P749 to one owner, one start) count once. Anything else is a tie, and none of them is picked.

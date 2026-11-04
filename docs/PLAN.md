@@ -1206,7 +1206,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/wikidata/*`, `docs/DECISIONS.md`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`brands`, `companies`, both ownership tables, `review_queue`). Also: the number of OFF brand strings matched, out of the total.
 
-### [ ] P3.13a Budget: ownership row widths (added in P3.13)
+### [x] P3.13a Budget: ownership row widths (added in P3.13)
 - **Slice:** source-wikidata.
 - **Goal:** bring `brands`, `brand_ownership` and `company_ownership` back within 20% of BUDGET §3 per row, or re-baseline §3 with a reason (the budget rule in "Rules for every source task").
 - **Deps:** P3.13.
@@ -1215,6 +1215,16 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** changing what Wikidata matches or writes.
 - **Files:** `docs/catalog/BUDGET.md`, possibly `supabase/migrations/*`, `pipeline/src/sources/wikidata/map.ts`.
 - **Verification:** the new widths or the re-baselined §3 lines in a BUDGET "Actuals" line; if the schema changes, a `--mode full` Wikidata run writes 0 inserted, and `npm run typecheck`, `lint` and `test` pass.
+
+### [ ] P3.13b Budget: re-project §3 index bytes for the other +prov tables (added in P3.13a)
+- **Slice:** release-check.
+- **Goal:** an index column in BUDGET §3 that matches the indexes the schema actually has, so the whole-DB estimate (392 MB after P3.13a, ~8 MB under the 400 MB alarm) isn't low.
+- **Deps:** P3.13a.
+- **Found in P3.13a:** the §3 index figures predate the provenance FK indexes every +prov / +review table now has (`source`, `ingestion_run`, `raw_object`, `reviewed_by`, often `ai_call` and `merged_into`). For `brands` and both ownership tables the re-projection from `products`' per-entry sizes at 90k rows raised the index bytes per row by 34–145%. `companies` (11 indexes, §3 150 B) projects to ≈ 300 B the same way.
+- **In:** for every §3 table, list its indexes from `pg_index` (tables that don't exist yet: from DATA_MODEL plus the +prov / +review index set), project bytes per row from the measured per-entry sizes (BUDGET P3.13a Actuals), and update §3, §1 and §8. If the whole-DB estimate passes 400 MB, say which §7 lever covers it and tell the owner.
+- **Out:** dropping or changing indexes (a separate task if the numbers call for it).
+- **Files:** `docs/catalog/BUDGET.md`.
+- **Verification:** each changed §3 line names its index list and per-entry basis, the §1 totals add up, and a BUDGET "Actuals" line records the before and after subtotals.
 
 ### [ ] P3.14 Wikipedia (a): company summary sample
 - **Slice:** source-wikipedia.
@@ -1294,7 +1304,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M6 Wikipedia | P3.14 (sample), P3.15 (full) |
 | M7 SEC EDGAR | P3.16 (sample), P3.17 (full) |
 | M8 Corporations Canada | P3.18 (sample and full) |
-| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.19 |
+| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.13a, P3.13b, P3.19 |
 | Exit criteria | P3.19 |
 
 **Open 🟡 decisions in Phase 3:** none. P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.

@@ -10,13 +10,13 @@ Estimated 2026-10-26.
 
 | Budget | Limit | Estimate (target coverage, 12 months) | Status |
 |---|---|---|---|
-| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 300 MB** (273 MB plus 10%) | ✅ within budget, ~50 MB headroom |
+| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 313 MB** (284 MB plus 10%) | ✅ within budget, ~37 MB headroom (Phase 6 warns at 320 MB) |
 | User data (100 active users, 12 months, plus 10%) | — | ≈ 49 MB | — |
 | Platform overhead (auth, storage metadata, extensions) | — | ≈ 30 MB (assumed) | — |
-| **Whole database** | 500 MB, alarm 400 MB | **≈ 379 MB** | ✅ under the alarm, ~21 MB headroom |
+| **Whole database** | 500 MB, alarm 400 MB | **≈ 392 MB** | ⚠️ under the alarm, ~8 MB headroom |
 | **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 289 MB** (251 MB plus 15%) | ✅ within budget |
 
-A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), so the subtotal is now 273 MB.
+A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), and P3.13a `brands` and both ownership tables (+11.4 MB), so the subtotal is now 284 MB.
 
 **Target coverage** means:
 - every OFF product sold in Canada that passes the import filter;
@@ -41,10 +41,10 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `products: trigram GIN on normalized name` | 95,000 | — | 120 | 11.4 | expression index; no stored normalized column |
 | `product_identifiers` | 15,000 | 138 | 110 | 4.0 | secondary codes only (store SKU, PLU, alternate GTINs); primary GTIN lives on products |
 | `product_sources` | 10,000 | 178 | 80 | 2.8 | only products with more than one contributing source |
-| `brands` | 20,000 | 228 | 200 | 9.2 | distinct OFF brand strings after resolution; incl. trigram index |
-| `brand_ownership` | 22,000 | 178 | 110 | 6.9 | about 1.1 edges per brand (history) |
+| `brands` | 20,000 | 324 | 268 | 12.8 | distinct OFF brand strings after resolution; incl. trigram index. **Measured** (P3.13a): Wikidata rows; index projected from per-entry sizes at scale |
+| `brand_ownership` | 22,000 | 248 | 265 | 12.1 | about 1.1 edges per brand (history). **Measured** (P3.13a), index projected |
 | `companies` | 5,000 | 478 | 150 | 3.5 | brand owners + parents |
-| `company_ownership` | 10,000 | 178 | 110 | 3.1 | parent ↔ child edges with dates |
+| `company_ownership` | 10,000 | 262 | 270 | 5.7 | parent ↔ child edges with dates. **Measured** (P3.13a), index projected |
 | `categories` | 2,000 | 148 | 80 | 0.5 | Sarvis taxonomy |
 | `category_mappings` | 15,000 | 158 | 80 | 3.9 | OFF category tags → taxonomy |
 | `banners` | 60 | 228 | 80 | 0.0 | Ontario grocery banners |
@@ -74,7 +74,7 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `validation_failures` | 12,000 | 308 | 60 | 5.0 | ≤ 50 per run, 30 days |
 | `ai_calls` | 30,000 | 168 | 70 | 7.9 | 13 months |
 | `audit_log` | 20,000 | 228 | 60 | 6.4 | manual edits |
-| **Subtotal** | | | | **273** | |
+| **Subtotal** | | | | **284** | |
 
 **User data (100 active users, 12 months)**
 
@@ -245,6 +245,22 @@ Two clean full runs (`5c5318eb`, then `3c9b0a8d` with 0 inserted). 1,890 of 19,3
 | `raw` bucket total | 21 MB, 3,936 files | 700 MB | ✅ |
 | Whole DB | 110 MB | alarm 400 MB | ✅ |
 
+### Actuals: ownership row widths re-baselined (P3.13a, 2026-11-04, dev project)
+
+Measured after the P3.13 full runs (`pg_column_size` per row; `brands` 1,779 Wikidata rows and 49 legacy rows, `brand_ownership` 1,570, `company_ownership` 659).
+
+| Table | Width | Old §3 | What the row carries (avg bytes) |
+|---|---:|---:|---|
+| `brands` (Wikidata rows) | **324 B** (legacy rows 223) | 228 | `source_url` 40, aliases 34, website 21, `method_version` 15, `locked_fields` 13, slug 11, name 12, QID 10; the rest is the fixed +prov / +review block (uuids, timestamps) and the tuple header |
+| `brand_ownership` | **248 B** | 178 | `source_url` 39, `method_version` 15, enums 15; the rest fixed (4 uuids, dates, timestamps) |
+| `company_ownership` | **262 B** | 178 | `source_url` 44, `method_version` 15, enums 21; the rest fixed |
+
+§3 now uses these widths. The index column is re-projected too: at today's row counts every index sits at its minimum pages (brands 435 B/row, edges 428–497 B/row), so the per-entry sizes come from `products` at 90k rows instead (unique uuid 49 B, short unique text 44 B, trigram GIN ≈ 6 B per name byte, deduplicated FK btrees 10–17 B), with ≈ 70 B for the 4-column edge keys and ≈ 45 B for the partial one-owner indexes. Brands 268 B (was 200), brand edges 265 B and company edges 270 B (both 110). The old figures predate the provenance FK indexes (`source`, `ingestion_run`, `raw_object`, `reviewed_by`, `ai_call`) that every +prov table now has.
+
+New §3 totals: `brands` 12.8 MB (was 9.2), `brand_ownership` 12.1 MB (6.9), `company_ownership` 5.7 MB (3.1). Catalog subtotal 273 → **284 MB** (≈ 313 MB with bloat), whole DB estimate 379 → **392 MB**, under the 400 MB alarm with ~8 MB headroom. Actual whole DB today: 110 MB.
+
+Why re-baseline instead of trimming (D-068): the only per-row cut is `source_url`. Brands could rebuild it from the QID with no new column (−40 B → 284 B, still +25%); edges need a statement-key column (≈ −30 B net → 218 / 232 B, +22% / +30%). So every table stays over the line, for ≈ 2 MB saved at §3 counts, plus a view per table and writer changes. `companies` stays at 478 B (measured 361).
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |
@@ -293,6 +309,6 @@ The `catalog_quality` view (DATA_MODEL §4) exposes the DB and storage numbers f
 
 ## 8. Growth and limits
 - **Each extra 100 active users** adds about **49 MB a year** of user data, about **15 MB a year** of price aggregates, and about **40 MB** of opt-in receipt images in Storage.
-- With the catalog at about 294 MB, the free DB reaches the 400 MB alarm at roughly **200–250 active users** within a year.
+- With the catalog at about 313 MB, the free DB reaches the 400 MB alarm at roughly **200–250 active users** within a year.
 - Past that, the options are a paid Supabase tier (owner decision, Phase 10) or archiving user history to Storage.
 - **Biggest uncertainty:** the OFF row count after filtering and the real average row width. Both get measured in Phase 3's OFF sample task before scaling up.
