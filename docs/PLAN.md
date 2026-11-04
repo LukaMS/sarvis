@@ -1238,7 +1238,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** §1 shows the catalog under 350 MB and the whole DB under 400 MB, and each adopted lever names the task that builds it.
 - ✅ **Decided (D-070, owner delegated the choice 2026-11-04):** levers 2–4 plus natural keys on the rollups and pruning unlinked documents are adopted. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB. **Verification amended:** the catalog is under 350 MB (≈ 321), but the whole DB is ≈ 412 MB, because measuring platform overhead raised it from 30 to 42 MB. With the reserve lever it's ≈ 384–395 MB. The owner can veto and adopt lever 1 now.
 
-### [ ] P3.14 Wikipedia (a): company summary sample
+### [x] P3.14 Wikipedia (a): company summary sample
 - **Slice:** source-wikipedia.
 - **Goal:** a short summary for each company page, with attribution.
 - **Deps:** P3.4, P3.12.
@@ -1250,12 +1250,13 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** the scale-up (P3.15), the company screen (Phase 8).
 - **Files:** `pipeline/src/sources/wikipedia/*` and tests, `pipeline/src/sources/registry.ts`.
 - **Verification:** the source-task rules. Also: a second run stores no raw file for unchanged pages.
+- ✅ Done 2026-11-04 (D-071): Action API in batches instead of the REST endpoint; retention is now the last 3 runs that stored a file.
 
 ### [ ] P3.15 Wikipedia (b): all companies with a page
 - **Slice:** source-wikipedia.
 - **Goal:** summaries for every company with a Wikipedia title.
 - **Deps:** P3.13, P3.14.
-- **In:** `--mode full` (about 1 request a second, so roughly 1.5 h for 5k pages; run it in the background).
+- **In:** `--mode full` (D-071 batches: 1,136 companies on 2026-11-04 → ~23 check and ~57 extracts requests, a few minutes; 5k pages ≈ 350 requests). The second full run fetches only the checks and stores nothing (`changesOnly`). The budget check compares the measured Wikipedia `documents` row (≈ 718 B in P3.14, vs the §3 average of 328 B for all documents).
 - **Out:** as P3.14.
 - **Files:** `pipeline/src/sources/wikipedia/*`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check (`documents`, `company_sources`, the `raw` bucket).

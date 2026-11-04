@@ -353,7 +353,8 @@ export async function runSource<K extends RecordKind>(
       }
 
       const envelope = envelopeOf(fetched.response);
-      const rawObjectId = raw ? (await raw.store(seq, fetched.response)).id : null;
+      const rawObjectId =
+        raw && !fetched.skipRaw ? (await raw.store(seq, fetched.response)).id : null;
       const payload: RawPayload = {
         rawObjectId,
         body: envelope.body,
@@ -472,7 +473,11 @@ export async function runSource<K extends RecordKind>(
 
     // Whole-run safeguards: mostly invalid, or a full run that fell to 0 from a previous count.
     const fullRun = opts.mode === 'full';
-    const previousCount = fullRun ? await store.previousFullCount(row.id, source.job) : null;
+    // A changes-only source returns 0 records when nothing changed, so 0 isn't a failure there.
+    const previousCount =
+      fullRun && !source.capabilities.changesOnly
+        ? await store.previousFullCount(row.id, source.job)
+        : null;
     const verdict = evaluateBatch(
       {
         fetched: counts.fetched,

@@ -54,6 +54,8 @@ interface FakeOptions {
   verifyContext?: () => Promise<void>;
   /** Reported by the fetch of the given page (0-based). */
   dump?: { page: number; info: DumpInfo };
+  /** Pages (0-based) whose response says it isn't to be stored. */
+  skipRaw?: number[];
 }
 
 function fakeSource(o: FakeOptions): Source<'product', number> & { parsed: RawPayload[] } {
@@ -86,6 +88,7 @@ function fakeSource(o: FakeOptions): Source<'product', number> & { parsed: RawPa
         response,
         next: page + 1 < o.pages.length ? [page + 1] : [],
         dump: o.dump?.page === page ? o.dump.info : undefined,
+        skipRaw: o.skipRaw?.includes(page),
       };
     },
     parse(raw) {
@@ -531,6 +534,25 @@ describe('runSource: lifecycle', () => {
     expect(deactivations).toHaveLength(0);
   });
 
+  it('a changes-only full run with nothing new completes with 0 records', async () => {
+    // The previous full run had records; this one found nothing changed.
+    const { deps } = setup({ runs: [previousRun()] });
+    const src = fakeSource({ pages: [[]], capabilities: { changesOnly: true } });
+    const result = await runSource(src, full, deps);
+    expect(result.status).toBe('completed');
+    expect(result.counts.fetched).toBe(0);
+  });
+
+  it('does not store a response marked skipRaw, and parses it with a null raw id', async () => {
+    const { deps, rawStored, upserted } = setup();
+    const src = fakeSource({ pages: [[], [good('a')]], skipRaw: [0] });
+    const result = await runSource(src, full, deps);
+    expect(result.status).toBe('completed');
+    expect(rawStored.map((r) => r.seq)).toEqual([2]);
+    expect(src.parsed.map((p) => p.rawObjectId)).toEqual([null, 'raw-2']);
+    expect(upserted.flat().map((r) => r.external_id)).toEqual(['a']);
+  });
+
   it('caps events at 50 per run, keeping the final event', async () => {
     const { store, deps } = setup();
     // Each page warns about duplicates, so 60 pages would write 60+ events uncapped.
@@ -547,3 +569,32 @@ describe('runSource: lifecycle', () => {
     expect((last.details as { eventsDropped: number }).eventsDropped).toBeGreaterThan(0);
   });
 });
+
+/** A clean full run of the fixture job from yesterday, with 40 records. */
+function previousRun(): MemoryRun {
+  return {
+    id: 'prev',
+    source_id: 'src-1',
+    job: 'fixture-import',
+    job_version: '0.0.1',
+    mode: 'full',
+    sample_size: null,
+    triggered_by: 'schedule',
+    git_sha: null,
+    actions_run_url: null,
+    status: 'completed',
+    started_at: new Date(Date.now() - 86_400_000).toISOString(),
+    finished_at: new Date(Date.now() - 86_000_000).toISOString(),
+    counts: {
+      fetched: 40,
+      valid: 40,
+      invalid: 0,
+      inserted: 40,
+      updated: 0,
+      unchanged: 0,
+      skipped_locked: 0,
+    },
+    expected_total: null,
+    error_summary: null,
+  };
+}

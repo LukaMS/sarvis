@@ -2,6 +2,31 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.14 Wikipedia (a): company summary sample (done)
+
+**Done** (D-071)
+- Source `wikipedia` (`wikipedia@1.0.0`, `pipeline/src/sources/wikipedia/`): Action API revision checks (50 titles) and intro extracts (20 titles), `maxlag=5` with Retry-After retries, serial at 1 req/s. Writes a `documents` row per page and a `company_enrichment` per company (sets `wikipedia_revision_id` and `wikipedia_document_id`; provenance in `company_sources`).
+- Driver: `FetchResult.skipRaw` (check responses aren't stored) and capability `changesOnly` (a full run with nothing changed isn't an "N → 0" failure). Both unit-tested.
+- Raw retention for `wikipedia`: the last 3 runs that stored a file (was 3 per page). DATA_MODEL §5, BUDGET §5 (S19 10 → 7 MB, storage ≈ 285 MB) and SOURCES S19 updated.
+- Terms re-checked: API:Etiquette and robots.txt unchanged; `terms_checked_at` stays 2026-10-26.
+
+**Verification**
+- Dry run `1bfef140` (sample 100): fetched 199, valid 199, invalid 0.
+- Run 1 `87fab3aa` (sample 100): fetched 199 = 99 documents + 100 enrichments; inserted 99, updated 100, invalid 0, completed. "7-Eleven, Inc." redirects to "7-Eleven", so two companies share one document.
+- Run 2 `1b910b97` (same command): 2 checks, 0 changed; fetched 0, **inserted 0**, **no raw file stored**, completed.
+- `validation_failures`: 0 for both runs.
+- Provenance SQL: documents 99 and company_sources 100 from `wikipedia`, 0 missing `fetched_at`/`method`/`method_version`/`ingestion_run_id`/`source_url`. 100 companies linked, all with a revision id.
+- Raw: 5 `raw_objects` for run 1 (43,366 B, ≈ 438 B gz a page), none for run 2. `readRaw()` on all 5 re-parses to 99 documents + 100 enrichments; 99/99 match the stored rows (title, summary, revision, `source_url`).
+- Examples (as stored): `3g-capital` → `https://en.wikipedia.org/wiki/3G_Capital`, rev 1376365563, 309 chars, `source_url` `…/w/index.php?title=3G_Capital&oldid=1376365563`, `api`, `wikipedia@1.0.0`, `company_sources.fields` [`wikipedia_document_id`, `wikipedia_revision_id`]; `7-eleven` and `7-eleven-inc` → `…/wiki/7-Eleven` rev 1383444894, 213 chars; `altaba` 858 chars (longest, ends at a sentence); `auricchio` 71 chars (shortest: "Auricchio is an Italian cheese-making company, based in Cremona, Italy.").
+- Summaries 71–858 chars, 334 on average. Wikipedia `documents` rows average 718 B (P3.15 compares with BUDGET §3).
+- `npm run typecheck`, `lint`, `test` pass.
+
+**For the owner**
+- The Wikipedia Action API is under `/w/`, which robots.txt disallows for crawlers. I used the D-065 documented-API exemption for `https://en.wikipedia.org/w/api.php`. D-065 expected Wikipedia to need one, and the plan's REST endpoint is under the disallowed `/api/` too. Tell me if you want this approved separately.
+- Not the REST summary endpoint the plan named: the Action API batches 20–50 titles per request (what the etiquette page asks for) and is the only one that honours `maxlag`.
+
+---
+
 ## 2026-11-04 — P3.13c Budget levers (done; decision delegated by the owner)
 
 **Done** (D-070, docs only)

@@ -420,7 +420,7 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Provides | Company summaries, infobox facts (owner, parent, subsidiaries) and links for the company page. Fallback evidence for ownership. |
 | Licence | Text under CC BY-SA 4.0 (and GFDL): "To re-distribute text on Wikipedia in any form, provide credit to the authors" via "a hyperlink … or URL to the page". https://en.wikipedia.org/wiki/Wikipedia:Copyrights (checked 2026-10-26). |
 | Terms on automated access | Allowed with etiquette: "There is no hard speed limit on read requests, but be considerate and try not to take a site down"; send requests serially; "you should use the `maxlag` parameter" for non-interactive tasks; cache. https://www.mediawiki.org/wiki/API:Etiquette (checked 2026-10-26). User-Agent policy as S17. |
-| robots.txt | Crawlers are disallowed from `/w/` and `/api/` (API use is governed by API etiquette, not crawling rules). Article pages are allowed. |
+| robots.txt | Crawlers are disallowed from `/w/` and `/api/` (API use is governed by API etiquette, not crawling rules). Article pages are allowed. Re-checked 2026-11-04 (P3.14): unchanged (`User-agent: *` … `Disallow: /w/`, `Disallow: /api/`). |
 | Access method | REST API (`/api/rest_v1/page/summary/{title}`) and Action API. |
 | Auth | None (informative User-Agent required). |
 | Rate limits | No hard read limit; serial requests, `maxlag`, cache. |
@@ -429,6 +429,8 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 | Key fields | page title (key), summary extract, page URL (key; attribution), revision id (key; provenance). |
 | Est. rows / size | One summary per company: a few thousand rows of about 1–2 KB. A few MB. |
 | Verdict | **use**: attribution and a link back are shown in the app. |
+| robots.txt exemption (D-065, D-071) | `https://en.wikipedia.org/w/api.php` is the documented Action API (https://www.mediawiki.org/wiki/API:Etiquette), under the `/w/` that robots.txt disallows for crawlers. The check is skipped for this prefix only, under the D-065 rule. Rate limit (1 req/s, serial), User-Agent, `maxlag` and 429 handling still apply. |
+| Pipeline (P3.14) | Source `wikipedia`, `wikipedia@1.0.0`. Action API, not the REST summary endpoint: one query takes up to 50 titles (revision check) or 20 (intro extracts), which the etiquette page asks for ("`titles=PageA\|PageB\|PageC`, instead of making a new request for each title"), and only the Action API honours `maxlag`. Summary = the lead's first paragraph, ≤ 1,000 characters (D-071). Terms re-checked 2026-11-04: no change, so `terms_checked_at` stays 2026-10-26. |
 
 ### S20 SEC EDGAR (Exhibit 21 subsidiary lists)
 

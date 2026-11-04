@@ -506,7 +506,7 @@ This finalizes D-010.
 | S5 Open Prices | Filtered CAD extract of the daily dump (gz). | The last 3 runs. |
 | S6 StatCan | The WDS response for the table (gz). | The last 3 runs. |
 | S17 Wikidata | SPARQL response pages (gz). | The last 3 runs. |
-| S19 Wikipedia | Summary responses (gz), written only when the revision id changed. | The last 3 versions per page, 30 days for others. |
+| S19 Wikipedia | Extracts responses (gz), up to 20 changed pages per file; nothing is stored for a page whose revision id didn't change (D-071). | The last 3 runs that stored a file. |
 | S20 SEC EDGAR | Exhibit 21 documents and submission JSON (gz). | The last 3 filings per company (small, and they're evidence). |
 | S23 GDELT, S24 RSS | API/feed responses (gz), written only when the content hash changed. | 30 days. |
 | OpenRouter | Full model responses for scoring and tagging (gz). Receipt-parse responses are stored under the receipt's lifetime instead. | Scoring and tagging: 13 months (evidence for reviews). Receipts: deleted with the receipt image. |

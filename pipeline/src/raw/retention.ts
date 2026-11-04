@@ -3,7 +3,8 @@
 //
 // A file is deleted as soon as any limit is passed:
 // - `maxAge`: older than this (relative to `fetched_at`). This is the row's `expires_at`.
-// - `keepRuns`: not among the source's newest N runs.
+// - `keepRuns`: not among the source's newest N runs that stored files (a changes-only run that
+//   found nothing new stores none, and doesn't count).
 // - `keepPerSubject`: not among the newest N files for the same subject (a Wikipedia page, an
 //   EDGAR company). The cleanup job derives the subject from the request URL.
 // A null limit doesn't apply.
@@ -53,7 +54,8 @@ const BY_SOURCE: Readonly<Record<string, RetentionPolicy>> = {
   'open-prices': lastRuns(3, 'S5 Open Prices: last 3 runs'),
   'statcan-18100245': lastRuns(3, 'S6 StatCan: last 3 runs'),
   wikidata: lastRuns(3, 'S17 Wikidata: last 3 runs'),
-  wikipedia: perSubject(3, 'S19 Wikipedia: last 3 versions per page'),
+  // One file holds up to 20 changed pages (D-071), so per-page counting could pin ~1 file per page.
+  wikipedia: lastRuns(3, 'S19 Wikipedia: last 3 runs that stored a file (D-071)'),
   'sec-edgar': perSubject(3, 'S20 SEC EDGAR: last 3 filings per company'),
   gdelt: days(30, 'S23 GDELT: 30 days'),
   'rss-publishers': days(30, 'S24 RSS: 30 days'),

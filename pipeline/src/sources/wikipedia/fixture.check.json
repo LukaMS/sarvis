@@ -1,0 +1,91 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "normalized": [{ "fromencoded": false, "from": "kraft Heinz", "to": "Kraft Heinz" }],
+    "redirects": [{ "from": "Mercury (disambiguation)", "to": "Mercury" }],
+    "pages": [
+      {
+        "ns": 0,
+        "title": "No such page xyzzy",
+        "missing": true,
+        "contentmodel": "wikitext",
+        "pagelanguage": "en",
+        "pagelanguagehtmlcode": "en",
+        "pagelanguagedir": "ltr"
+      },
+      {
+        "pageid": 19007,
+        "ns": 0,
+        "title": "Mercury",
+        "contentmodel": "wikitext",
+        "pagelanguage": "en",
+        "pagelanguagehtmlcode": "en",
+        "pagelanguagedir": "ltr",
+        "touched": "2026-11-02T03:24:00Z",
+        "lastrevid": 1380113383,
+        "length": 8268,
+        "pageprops": { "disambiguation": "" }
+      },
+      {
+        "pageid": 47420,
+        "ns": 0,
+        "title": "7-Eleven",
+        "contentmodel": "wikitext",
+        "pagelanguage": "en",
+        "pagelanguagehtmlcode": "en",
+        "pagelanguagedir": "ltr",
+        "touched": "2026-11-04T10:24:29Z",
+        "lastrevid": 1383444894,
+        "length": 128601
+      },
+      {
+        "pageid": 1665994,
+        "ns": 0,
+        "title": "A&P Canada",
+        "contentmodel": "wikitext",
+        "pagelanguage": "en",
+        "pagelanguagehtmlcode": "en",
+        "pagelanguagedir": "ltr",
+        "touched": "2026-10-30T03:58:01Z",
+        "lastrevid": 1371320718,
+        "length": 4996
+      },
+      {
+        "pageid": 3902658,
+        "ns": 0,
+        "title": "Kraft Foods Inc.",
+        "contentmodel": "wikitext",
+        "pagelanguage": "en",
+        "pagelanguagehtmlcode": "en",
+        "pagelanguagedir": "ltr",
+        "touched": "2026-11-03T05:05:31Z",
+        "lastrevid": 1383306250,
+        "length": 132366
+      },
+      {
+        "pageid": 38519448,
+        "ns": 0,
+        "title": "3G Capital",
+        "contentmodel": "wikitext",
+        "pagelanguage": "en",
+        "pagelanguagehtmlcode": "en",
+        "pagelanguagedir": "ltr",
+        "touched": "2026-11-03T05:06:38Z",
+        "lastrevid": 1376365563,
+        "length": 10498
+      },
+      {
+        "pageid": 46223282,
+        "ns": 0,
+        "title": "Kraft Heinz",
+        "contentmodel": "wikitext",
+        "pagelanguage": "en",
+        "pagelanguagehtmlcode": "en",
+        "pagelanguagedir": "ltr",
+        "touched": "2026-11-04T03:04:48Z",
+        "lastrevid": 1381739432,
+        "length": 38963
+      }
+    ]
+  }
+}

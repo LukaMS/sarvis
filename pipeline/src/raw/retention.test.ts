@@ -13,7 +13,11 @@ describe('retentionFor', () => {
     for (const key of ['open-prices', 'statcan-18100245', 'wikidata']) {
       expect(retentionFor(key)).toMatchObject({ maxAge: null, keepRuns: 3, keepPerSubject: null });
     }
-    expect(retentionFor('wikipedia')).toMatchObject({ maxAge: null, keepPerSubject: 3 });
+    expect(retentionFor('wikipedia')).toMatchObject({
+      maxAge: null,
+      keepRuns: 3,
+      keepPerSubject: null,
+    });
     expect(retentionFor('sec-edgar')).toMatchObject({ maxAge: null, keepPerSubject: 3 });
     for (const key of ['gdelt', 'rss-publishers', 'google-news-rss']) {
       expect(retentionFor(key)).toMatchObject({ maxAge: { days: 30 }, keepRuns: null });

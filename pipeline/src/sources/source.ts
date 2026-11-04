@@ -32,6 +32,12 @@ export interface SourceCapabilities {
    * the companies and edges each one brings), so the driver doesn't stop at that many records.
    */
   samplesItself?: boolean;
+  /**
+   * A run fetches only what changed since the stored state (Wikipedia: pages whose revision id
+   * moved), so a full run that finds nothing new returning 0 records isn't a broken source. The
+   * driver skips the "previously N, now 0" check for it.
+   */
+  changesOnly?: boolean;
 }
 
 /**
@@ -94,6 +100,11 @@ export interface FetchResult<Step> {
   dump?: DumpInfo;
   /** Written as `ingestion_run_events` (within the run's event cap). */
   events?: SourceEvent[];
+  /**
+   * The response is a control query that yields no records (Wikipedia's revision check), so it
+   * isn't stored. `parse` still sees it, with `rawObjectId` null.
+   */
+  skipRaw?: boolean;
 }
 
 /** A stored response as `parse` sees it. The same shape whether it came from a fetch or Storage. */

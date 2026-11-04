@@ -14,7 +14,7 @@ Estimated 2026-10-26.
 | User data (100 active users, 12 months, plus 10%) | — | ≈ 49 MB | — |
 | Platform overhead (system catalogs, auth, storage metadata, extensions) | — | ≈ 42 MB (P3.13c: 26.7 MB measured today, plus Storage metadata for the files §3 and §5 allow) | — |
 | **Whole database** | 500 MB, alarm 400 MB | **≈ 412 MB** (≈ 384–395 MB with the reserve lever 1) | ⚠️ ~12 MB over the 400 MB warning, under the 450 MB critical line. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB (D-070) |
-| **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 289 MB** (251 MB plus 15%) | ✅ within budget |
+| **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 285 MB** (248 MB plus 15%) | ✅ within budget |
 
 A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), and P3.13c adopted §7 levers 2–4 plus the rollup and document trims (−45.2 MB), so the subtotal is now 292 MB.
 
@@ -349,7 +349,7 @@ The owner delegated the choice. Product coverage wins (CLAUDE.md), so the OFF fi
 | S5 Open Prices CAD extract | < 1k rows, × last 3 | 1 |
 | S6 StatCan WDS responses | ≈ 0.5 MB gz × last 3 | 2 |
 | S17 Wikidata SPARQL pages | ≈ 2 MB gz per full run × last 3 | 6 |
-| S19 Wikipedia summaries | 5k pages × 0.7 KB gz, last 3 versions on change | 10 |
+| S19 Wikipedia summaries | 5k pages × 0.44 KB gz (measured P3.14), 20 per file, last 3 runs that stored a file (D-071) | 7 |
 | S20 SEC Exhibit 21 + submissions | 100 companies × 3 filings × 60 KB gz | 18 |
 | S23 GDELT responses | 1,000 companies weekly × 6 KB gz × 4 weeks | 24 |
 | S24 RSS feeds | 6 feeds every 3 h, stored on change, ≈ 0.5 MB a day × 30 days | 15 |
@@ -358,8 +358,8 @@ The owner delegated the choice. Product coverage wins (CLAUDE.md), so the OFF fi
 | Receipt parse responses | deleted with the image | 5 |
 | `public-exports`: ODbL extract (D-013 D1) | OFF-derived tables as CSV.gz ≈ 8 MB, × latest 2 | 16 |
 | `editorial`: story covers | 50 × 200 KB | 10 |
-| **Subtotal** | | **251** |
-| **With 15% margin** | | **≈ 289** |
+| **Subtotal** | | **248** |
+| **With 15% margin** | | **≈ 285** |
 
 **Not stored:** full OFF and Wikidata dumps (processed on the Actions runner; URL and sha256 only), product images (hotlinked from OFF with attribution) and brand logos (Wikimedia Commons links).
 
