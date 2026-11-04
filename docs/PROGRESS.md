@@ -2,6 +2,23 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.17 SEC EDGAR (b): all companies with a CIK (done)
+
+**Done** (no code change; `sec-edgar@1.0.0`)
+- Full run over the 119 companies with a CIK: 78 with a 10-K, 75 Exhibit 21 documents read (3 10-Ks have none: Campbell's, Natural Grocers, Western Digital), 41 skipped (8 20-F/40-F, 16 stale, 17 no 10-K).
+
+**Verification**
+- Run `6290bdab` (`--mode full`): fetched 159 / valid 159 / invalid 0 / inserted 74 (65 new documents + 9 edges) / updated 65 (new `company_sources` rows; an enrichment counts as an update) / unchanged 20 (the sample's 10 documents and 10 `company_sources`). 75 raw files, 0 validation failures. Exit 0.
+- Run `b811852e` (same command): fetched 0, inserted 0, 0 raw files; all 75 exhibits counted as already stored.
+- Rows: 75 `sec_filing` documents, 75 `company_sources`, 6 `company_ownership` and 3 `brand_ownership` edges, all `pending`, 9 open queue rows. Provenance missing: 0 in every table. No other source's edge was written or touched (0 rows with this run id or updated in the window).
+- Raw read-back: Hormel's stored envelope re-parses to the stored document and the edge Hormel → Justin's.
+- Edges (the P3.16 hand check, D-074): Clorox → GOJO Industries, Estée Lauder → Too Faced, Hain → Celestial Seasonings, Hormel → Justin's, Hershey → LesserEvil, Monster Beverage → Monster Energy (brand) are right. Kellanova → Keebler Company, Mondelez → Schweppes (brand) and Kraft Heinz → Capri Sun (brand) are wrong (leftover or licensed entities); they wait in the queue.
+- Budget (BUDGET P3.17 Actuals): SEC documents 580 B/row vs 328 B, but ≈ +0.1 MB at target; `company_sources` 280 B (under), edges +9% / +14%; SEC raw 427 KB vs 18 MB estimated; DB 112 MB, raw bucket 22 MB / 4,082 files.
+
+**For the owner:** the run log's running summary line can show one company fewer than processed. It's taken at the last filing event, before a trailing company with no 10-K. The counts in the events are complete (41 skipped + 78 filings = 119). I didn't change it.
+
+---
+
 ## 2026-11-04 — P3.16 SEC EDGAR (a): Exhibit 21 sample (done)
 
 **Done** (`sec-edgar@1.0.0`, D-074)

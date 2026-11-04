@@ -1297,7 +1297,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** the source-task rules (`--sample` counts filings, e.g. 10). Also: matched vs unmatched subsidiary counts per filing, and 10 edges checked by hand against the filing.
 - ✅ Done 2026-11-04 (D-074): runs `54a03b1b` and `6deb8462`. The by-slug sample of 10 gave no new edges, so the hand check used a full dry run (`08dfcd98`): 9 edges, 6 right. A first-run overwrite of a Wikidata edge was repaired, and it led to a Phase 4 milestone (edges from several sources).
 
-### [ ] P3.17 SEC EDGAR (b): all companies with a CIK
+### [x] P3.17 SEC EDGAR (b): all companies with a CIK
 - **Slice:** source-edgar.
 - **Goal:** Exhibit 21 evidence for every company with a SEC CIK (about 50–100 parents).
 - **Deps:** P3.13, P3.16.
@@ -1305,6 +1305,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** as P3.16.
 - **Files:** `pipeline/src/sources/sec-edgar/*`, `docs/catalog/BUDGET.md`.
 - **Verification:** the source-task rules, including the budget check.
+- ✅ Done 2026-11-04: runs `6290bdab` and `b811852e`. 9 pending edges (as the P3.16 dry run predicted), budget well inside (BUDGET P3.17 Actuals).
 
 ### [ ] P3.18 Corporations Canada: identity check (low priority)
 - **Slice:** source-corp-canada.

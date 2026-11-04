@@ -371,6 +371,21 @@ Measured after the P3.15 full runs with `pg_column_size` per row (the P3.13a met
 
 Why re-baseline instead of trimming: the summary is the content the company page shows (with attribution), and it's already the lead's first paragraph capped at 1,000 characters (D-071). A 500-character cap would save ≈ 0.3 MB at target. `source_url` on `company_sources` repeats the document's permalink, which saves ≈ 0.25 MB if dropped, and isn't worth a provenance exception.
 
+### Actuals: SEC EDGAR full run (P3.17, 2026-11-04, dev project)
+
+Runs `6290bdab` (full) and `b811852e` (second full: nothing fetched beyond the submissions and index pages, nothing written or stored). 119 companies with a CIK, 78 with a 10-K, 75 Exhibit 21 documents.
+
+| Table / bucket | Measured | §3 / §5 estimate | Verdict |
+|---|---|---|---|
+| `documents` (SEC filings) | 75 rows, **580 B**/row (`pg_column_size`) | in "other documents" at 328 B | +77% per row, but ≈ 340 filings at target (7% of 5k companies have a CIK) is ≈ +0.1 MB on a 16.2 MB line: inside its rounding, so no PLAN task. Wider because of the title, the index-page URL twice (URL and `url_normalized`) and the accession. |
+| `company_sources` (SEC) | 75 rows, **280 B**/row | 357 B | ✅ under |
+| `company_ownership` (SEC) | 6 rows, 285 B/row | 262 B | +9% ✅ |
+| `brand_ownership` (SEC) | 3 rows, 283 B/row | 248 B | +14% ✅ |
+| `raw` bucket, SEC | 85 files (10 sample + 75 full), **427 KB**, 5.2 KB per gzipped envelope | 18 MB (100 × 3 filings × 60 KB) | ✅ ≈ 2% of the line; the 3-per-company rule keeps it ≤ ≈ 360 files |
+| Whole DB / `raw` bucket | 112 MB; 22 MB, 4,082 files | warning 400 MB; 700 MB and 6,000 `raw_objects` | ✅ |
+
+Tables in total: `documents` 1.26 MB, `company_sources` 0.73 MB, `company_ownership` 0.56 MB, `brand_ownership` 1.11 MB, `raw_objects` 2.34 MB. §1 is unchanged.
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |
