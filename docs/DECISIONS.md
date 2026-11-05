@@ -412,6 +412,13 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-079 No slug means no opinion on a product's brand and category — Accepted (P4.2)
+- **Rule:** a product record with no `brand_slug` or `category_slug`, a null one, or one we don't know leaves `brand_id` or `category_id` out of the payload, so the stored value stays. A slug we know still writes. This narrows D-046's "an explicit null clears it" for these two columns: an import can no longer clear them. Clearing a link is an admin or job action.
+- **No re-hash:** null fields never enter the content hash, so leaving a column out hashes the same as the old explicit null. All 90,672 stored hashes stay valid, and no mass update follows.
+- **A job writes these columns directly and leaves `content_hash` alone,** so a resolved row still reads as `unchanged`. An update writes only the columns that changed.
+- **Same bug elsewhere:** the `reference_price` writer does the same with `category_id`. P4.22 is the first thing to set that column, so the fix went into that task.
+**Why:** OFF will never name a Sarvis brand or category, so its silence must not undo what the Phase 4 jobs resolve.
+
 ## D-078 UPC-E is number system 0 only, and EAN-8 prefixes 0 and 2 are restricted — Accepted (P4.1)
 - **Rule:** an 8-digit code starting with 0 that passes the UPC-E check becomes its UPC-A, even when it also passes EAN-8. Everything else 8 digits long is EAN-8, and an EAN-8 with prefix 0 or 2 is restricted (RCN-8). `gtin_is_valid` is still plain mod-10, so `gtinNormalize` can accept a code `gtinIsValid` refuses.
 - **Number system 1 is left out, unlike the P4.1 plan text.** The prefix check over all 181 stored codes that pass both ways agreed on 0 of the 155 with a brand, and the 74 rejected codes that would qualify agreed on 0 of 60. Number system 0 agreed on 101 of 332 stored and 387 of 588 rejected. With a shuffled brand, it agreed on 4 of 332, so the signal is real.

@@ -2,6 +2,34 @@
 
 Newest entry first.
 
+## 2026-11-05 — P4.2 Product writer keeps resolved columns (done)
+
+**What changed** (D-079)
+- The products writer now leaves `brand_id` and `category_id` out of the payload when a record has no slug, or one we don't know. Before, it sent null, so the next OFF change to a product would have erased what a Phase 4 job had set.
+- A slug the source does name still writes. Null fields never entered the hash, so all 90,672 stored hashes stay valid and no mass update follows.
+
+**Verification**
+- **Dev-DB check:** `npm run check:writers --workspace @sarvis/pipeline` passes 7 of 7. The new test writes a product, sets both columns as a job would, then re-writes it:
+
+  | Re-write | Counted as | `brand_id`, `category_id` |
+  |---|---|---|
+  | Same record | unchanged | kept |
+  | Changed name | updated | kept |
+  | Unknown slug | unchanged | kept |
+  | Known slug | updated | brand changes, category kept |
+
+- **The test catches the bug:** with the old null behaviour put back, it fails and the other 6 pass. The fix was then restored.
+- **Mixed batch:** one insert with and without a slug works, so PostgREST accepts rows with different columns.
+- **Clean-up:** the dev project is back to 90,672 products, 11 with a brand, and 0 categories, with no test rows left.
+- Unit tests cover no slug, null, unknown and known slugs, and hash equality. `npm run typecheck`, `lint` and `test` (622 passed) pass, and so does the pipeline e2e.
+
+**For the owner:**
+- **Same bug in one more place.** The `reference_price` writer would erase a StatCan category mapping on a re-run. Nothing sets that column yet, so nothing is lost, and I added the fix to P4.22, the first task that sets it.
+
+**Next:** P4.3 OFF: re-import UPC-E and bad-check-digit codes.
+
+---
+
 ## 2026-11-05 — P4.1 GTIN: UPC-E expansion and restricted EAN-8 (done)
 
 **What changed** (D-078)

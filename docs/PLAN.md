@@ -1425,7 +1425,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The generated types still match.
 - ✅ Done 2026-11-05: `npm run check:gtin` passes, 23 of 50 sampled codes agree (control 1%), and types are regenerated (D-078).
 
-### [ ] P4.2 Product writer keeps resolved columns
+### [x] P4.2 Product writer keeps resolved columns
 - **Slice:** pipeline-db.
 - **Goal:** an OFF re-import can't erase a product's `brand_id` or `category_id`.
 - **Deps:** P3.19a.
@@ -1437,6 +1437,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - A unit test and a dev-DB check: write a product, set `brand_id` and `category_id`, re-write it with a changed name, and both survive.
   - `npm run check:writers --workspace @sarvis/pipeline` passes.
+- ✅ Done 2026-11-05: `check:writers` passes 7 of 7, and the new check fails on the old code (D-079).
 
 ### [ ] P4.3 OFF: re-import UPC-E and bad-check-digit codes
 - **Slice:** source-off.
@@ -1742,6 +1743,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Deps:** P4.5, P4.9.
 - **In:**
   - Map each StatCan product to a category (`reference_prices.category_id`), and convert its units through `parseSize` (`200 grams`, `per kilogram`, `unit`).
+  - **The `reference_price` writer has the P4.2 bug** (found there): it sends `category_id: … ?? null` and StatCan sends `category_slug: null`, so a re-run would erase the mapping. Fix it the same way, or have the source name the slug, and re-run StatCan to prove it (D-079).
   - A `price-bounds` job builds `price_sanity_bounds` per category × unit basis from StatCan history and observed `price_observations`, with wide margins (a sale isn't an error). A category with no data takes its parent's bounds, and a price with no bound passes unchecked. `basis` records how each bound was made.
   - Wire the bounds into `evaluateBatch` for Open Prices, through the existing `PriceBounds` hook.
 - **Out:** receipt prices (Phase 8 uses the same bounds).

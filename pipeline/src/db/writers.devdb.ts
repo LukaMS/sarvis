@@ -3,6 +3,7 @@
 // an equal later price, a locked name and a changed product. P3.4 adds reference prices, documents
 // and a company enrichment, written twice. P3.6 discontinues an unseen product and revives it.
 // P3.7 writes a newer then an older reading of one product: only the newer one lands.
+// P4.2 sets a brand and category as a job would, re-writes the product, and both survive.
 // Prints the counts, checks provenance on every row, and
 // deletes everything it wrote, even when a step fails.
 //
@@ -44,6 +45,9 @@ function gtin(n: number): string {
   return body + String((10 - (sum % 10)) % 10);
 }
 const GTINS = [1, 2, 3, 4, 5].map(gtin);
+/** P4.2: products a job has resolved, and the category it set. */
+const RESOLVED_GTINS = [6, 7].map(gtin);
+const CATEGORY = TAG;
 
 const prov = (version = 'p216-check@1.0.0') => ({
   source_key: 'fixture',
@@ -155,7 +159,12 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
   afterAll(async () => {
     if (!ctx) return;
     const ids =
-      (await db.from('products').select('id').in('gtin', GTINS)).data?.map((r) => r.id) ?? [];
+      (
+        await db
+          .from('products')
+          .select('id')
+          .in('gtin', [...GTINS, ...RESOLVED_GTINS])
+      ).data?.map((r) => r.id) ?? [];
     const queued = [
       ...((await db.from('companies').select('id').eq('slug', QUEUED_COMPANY)).data ?? []),
       ...((await db.from('brands').select('id').eq('slug', QUEUED_BRAND)).data ?? []),
@@ -170,6 +179,7 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       await db.from('brands').delete().eq('slug', QUEUED_BRAND),
       await db.from('price_observations').delete().in('product_id', ids),
       await db.from('products').delete().in('id', ids),
+      await db.from('categories').delete().eq('slug', CATEGORY),
       await db.from('match_candidates').delete().eq('run_id', ctx.runId),
       await db.from('brands').delete().in('slug', BRANDS),
       await db.from('companies').delete().eq('slug', COMPANY),
@@ -179,7 +189,10 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
     ];
     const left = {
       products: (
-        await db.from('products').select('id', { count: 'exact', head: true }).in('gtin', GTINS)
+        await db
+          .from('products')
+          .select('id', { count: 'exact', head: true })
+          .in('gtin', [...GTINS, ...RESOLVED_GTINS])
       ).count,
       brands: (
         await db.from('brands').select('id', { count: 'exact', head: true }).in('slug', BRANDS)
@@ -687,5 +700,85 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
     const same = counts(await write('product', at('2026-10-30T05:00:00.000Z', 'P37 Same time')));
     expect(same).toMatchObject({ updated: 1, unchanged: 0 });
     logger.info('older reading', { newer: newer.updated, older: older.unchanged });
+  });
+
+  it('keeps a resolved brand and category through an OFF-style re-write (P4.2)', async () => {
+    const record = (i: number, over: Partial<RecordInputOf<'product'>> = {}) =>
+      parse('product', {
+        gtin: RESOLVED_GTINS[i] as string,
+        external_id: `${TAG}-resolved-${i}`,
+        name: `P42 Product ${i}`,
+        brand_text: 'P42 Brand',
+        ...prov(),
+        ...over,
+      });
+    const stored = async () =>
+      (
+        await db
+          .from('products')
+          .select('name, brand_id, category_id')
+          .eq('gtin', RESOLVED_GTINS[0] as string)
+          .single()
+      ).data;
+    const idOf = async (table: 'brands' | 'categories', slug: string) =>
+      (await db.from(table).select('id').eq('slug', slug).single()).data?.id as string;
+
+    // One batch with and without a slug: the writer leaves the column out for one row only.
+    const first = await write('product', [
+      record(0),
+      record(1, { brand_slug: BRANDS[0] as string }),
+    ]);
+    expect(counts(first)).toMatchObject({ inserted: 2, rejected: 0 });
+    expect(await stored()).toMatchObject({ brand_id: null, category_id: null });
+    const other = await db
+      .from('products')
+      .select('brand_id')
+      .eq('gtin', RESOLVED_GTINS[1] as string)
+      .single();
+    const brandA = await idOf('brands', BRANDS[0] as string);
+    expect(other.data?.brand_id).toBe(brandA);
+
+    // A job sets both columns directly, and the content hash stays as the import wrote it.
+    const category = await db
+      .from('categories')
+      .insert({ slug: CATEGORY, name: 'P42 Category', level: 0 })
+      .select('id')
+      .single();
+    if (category.error) throw new Error(category.error.message);
+    const resolved = { brand_id: brandA, category_id: category.data.id };
+    const job = await db
+      .from('products')
+      .update(resolved)
+      .eq('gtin', RESOLVED_GTINS[0] as string);
+    if (job.error) throw new Error(job.error.message);
+
+    const same = counts(await write('product', [record(0)]));
+    expect(same).toMatchObject({ inserted: 0, updated: 0, unchanged: 1, rejected: 0 });
+    expect(await stored()).toMatchObject(resolved);
+
+    const renamed = { name: 'P42 Renamed' };
+    const changed = counts(await write('product', [record(0, renamed)]));
+    expect(changed).toMatchObject({ inserted: 0, updated: 1, unchanged: 0, rejected: 0 });
+    expect(await stored()).toEqual({ ...renamed, ...resolved });
+
+    const again = counts(await write('product', [record(0, renamed)]));
+    expect(again).toMatchObject({ updated: 0, unchanged: 1 });
+
+    // An unknown slug isn't an opinion either.
+    const unknown = counts(
+      await write('product', [record(0, { ...renamed, brand_slug: `${TAG}-no-such-brand` })]),
+    );
+    expect(unknown).toMatchObject({ updated: 0, unchanged: 1, rejected: 0 });
+    expect(await stored()).toEqual({ ...renamed, ...resolved });
+
+    // A slug the source does name still writes.
+    const brandB = await idOf('brands', BRANDS[1] as string);
+    const named = { ...renamed, brand_slug: BRANDS[1] as string };
+    const explicit = counts(await write('product', [record(0, named)]));
+    expect(explicit).toMatchObject({ updated: 1, rejected: 0 });
+    expect(await stored()).toEqual({ ...renamed, ...resolved, brand_id: brandB });
+    const settled = counts(await write('product', [record(0, named)]));
+    expect(settled).toMatchObject({ updated: 0, unchanged: 1 });
+    logger.info('resolved columns', { changed: changed.updated, unchanged: again.unchanged });
   });
 });

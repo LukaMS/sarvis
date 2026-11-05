@@ -98,6 +98,24 @@ export const productSourceSpec: KeyedSpec<SecondaryPayload> = {
   touch: ['last_seen_at'],
 };
 
+/**
+ * The brand and category a record names. No slug, or one we don't know, leaves the column out of
+ * the payload: that's no opinion, so it can't erase what a Phase 4 job resolved (D-079), and the
+ * content hash reads the same as it did with an explicit null. brand_text stays for the resolver.
+ */
+export function resolvedRefs(
+  refs: Pick<RefResolver, 'slug'>,
+  brandSlug: string | null | undefined,
+  categorySlug: string | null | undefined,
+): Pick<ProductPayload, 'brand_id' | 'category_id'> {
+  const brandId = refs.slug('brands', brandSlug);
+  const categoryId = refs.slug('categories', categorySlug);
+  return {
+    ...(brandId ? { brand_id: brandId } : {}),
+    ...(categoryId ? { category_id: categoryId } : {}),
+  };
+}
+
 export async function productPayloads(
   db: ServiceClient,
   records: ProductRecord[],
@@ -136,11 +154,9 @@ export async function productPayloads(
       net_quantity,
       ...fields
     } = r;
-    // An unknown brand or category isn't fatal: brand_text stays for the P4 resolver.
     const payload = {
       ...fields,
-      brand_id: refs.slug('brands', brand_slug) ?? null,
-      category_id: refs.slug('categories', category_slug) ?? null,
+      ...resolvedRefs(refs, brand_slug, category_slug),
       label_codes: refs.labelIds(label_codes),
       net_quantity: roundTo(net_quantity, 3),
       ...prov,
