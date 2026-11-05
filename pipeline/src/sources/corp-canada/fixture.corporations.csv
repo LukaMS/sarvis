@@ -1,0 +1,13 @@
+﻿Corporation number,Business number (BN),Corporate name - form 1,Corporate name - form 2,Governing legislation,Status,Status Detail,Anniversary date,Year of last annual filing,Date of last annual meeting,Street,Street 2,City/town,Province/territory,Country,Postal code,Minimum number of directors,Maximum number of directors
+126764,100000001,LOBLAW COMPANIES LIMITED,LES COMPAGNIES LOBLAW LIMITEE,Canada Business Corporations Act,Active,,1980-01-01,2026,2026-05-01,1 Example Street,,Brampton,ON,CA,A1A 1A1,3,15
+1197673,100000002,INDUSTRIES LASSONDE INC.,LASSONDE INDUSTRIES INC.,Canada Business Corporations Act,Active,,1980-01-01,2026,2026-05-01,"2 Example, Street",Suite 1,Rougemont,QC,CA,A1A 1A2,3,15
+2717751,100000003,CARGILL LIMITED -,CARGILL LIMITEE,Canada Business Corporations Act,Active,,1991-01-01,2026,2026-05-01,3 Example Street,,Winnipeg,MB,CA,A1A 1A3,1,10
+3573273,100000004,THE DOMINION COMPANY INC.,,Canada Business Corporations Act,Active,,1999-01-01,2025,2025-05-01,4 Example Street,,Calgary,AB,CA,A1A 1A4,1,10
+4074823,100000005,SHOPPERS DRUG MART CORPORATION,CORPORATION SHOPPERS DRUG MART,Canada Business Corporations Act,Active,,2002-01-01,2025,2025-05-01,5 Example Street,,Toronto,ON,CA,A1A 1A5,1,10
+12592959,100000006,SHOPPERS DRUG MART INC.,,Canada Business Corporations Act,Active,,2020-01-01,2026,2026-05-01,5 Example Street,,Toronto,ON,CA,A1A 1A5,1,10
+7658419,100000007,The Brick Ltd.,,Canada Business Corporations Act,Active,,2010-01-01,2026,2026-05-01,7 Example Street,,Edmonton,AB,CA,A1A 1A7,1,10
+3827003,100000008,AGROPUR COOPERATIVE,AGROPUR COOPÉRATIVE,Canada Cooperatives Act,Active,,2000-01-01,2025,2025-05-01,8 Example Street,,Longueuil,QC,CA,A1A 1A8,1,20
+1000001,100000009,EXAMPLE DAIRY INC.,,Canada Business Corporations Act,Dissolved,Dissolved for non-compliance,1990-01-01,1996,1996-05-01,9 Example Street,,Montreal,QC,CA,A1A 1A9,1,10
+not-a-number,100000010,EXAMPLE BAKERY INC.,,Canada Business Corporations Act,Active,,1990-01-01,1996,1996-05-01,10 Example Street,,Stellarton,NS,CA,A1A 1B1,1,10
+99,"unclosed
+1000002,100000011,AN UNRELATED CORPORATION INC.,,Canada Business Corporations Act,Active,,2013-10-10,2026,2023-10-10,11 Example Street,,Ottawa,ON,CA,A1A 1B2,1,12

@@ -386,6 +386,19 @@ Runs `6290bdab` (full) and `b811852e` (second full: nothing fetched beyond the s
 
 Tables in total: `documents` 1.26 MB, `company_sources` 0.73 MB, `company_ownership` 0.56 MB, `brand_ownership` 1.11 MB, `raw_objects` 2.34 MB. §1 is unchanged.
 
+### Actuals: Corporations Canada (P3.18, 2026-11-04, dev project)
+
+Runs `ed156a4e`, `2859f150` (sample of 5) and `adfcb843`, `61a10bcd` (full). 20 of 160 `CA` companies confirmed.
+
+| Table / bucket | Measured | §3 / §5 estimate | Verdict |
+|---|---|---|---|
+| `company_sources` (Corporations Canada) | 20 rows, **328 B**/row | ≈ 460 rows at 357 B | ✅ Row width 8% under, and rows are ≈ 4% of the estimate today, so the 4,100-row line is safe. |
+| `companies` | 20 rows gain a number and a legal name; table 1.79 MB | in its row width | ✅ |
+| `raw` bucket, Corporations Canada | 4 files, 4.2 KB (1.4 KB per full run); last 3 runs, 30 days at most | not itemised | ✅ |
+| Whole DB / `raw` bucket | 112.5 MB; 22 MB, 4,086 files | warning 400 MB; 700 MB and 6,000 `raw_objects` | ✅ |
+
+Nothing over its estimate, so no PLAN task. §1 is unchanged.
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |

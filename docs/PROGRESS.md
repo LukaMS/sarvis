@@ -2,6 +2,31 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.18 Corporations Canada: identity check (done)
+
+**Done** (`corp-canada@1.0.0`, D-075)
+- New source `pipeline/src/sources/corp-canada/`. It reads the two active English CSVs through the dump cache and gives `company_enrichment` records (`corp_canada_number`, `legal_name`) for `CA` companies matching exactly one active corporation. Provenance goes to `company_sources`; the company's Wikidata block is untouched.
+- `nameKeyWith` added in `sec-edgar/map.ts` so a source can pass its own legal forms. `nameKey` behaves as before.
+- Terms check: licence and `open.canada.ca` robots.txt unchanged, so no `sources` migration. The files now sit on a CloudFront host (its robots.txt answers 403, meaning no restrictions). SOURCES S21 now has the field list and sizes.
+
+**Verification**
+- Dry run `bfb10aca` (`--sample 100`): 696,815 rows, 0 malformed, 20 confirmed, 1 ambiguous, 0 shared.
+- Sample `ed156a4e` (`--sample 5`): fetched 5 / valid 5 / invalid 0 / inserted 0 / updated 5 / unchanged 0. Again `2859f150`: updated 0 / unchanged 5.
+- Full `adfcb843`: fetched 20 / valid 20 / invalid 0 / inserted 0 / updated 15 / unchanged 5. Again `61a10bcd`: updated 0 / unchanged 20. All exit 0, no warnings, 0 validation failures. An enrichment never inserts, so `inserted` is 0 by design.
+- Rows: 20 `companies` with a number and `legal_name`, 20 `company_sources`. Provenance missing 0, duplicate numbers 0, company provenance overwritten 0.
+- Raw: 4 files. The full run's `bc701535`, read back with `readRaw()`, re-parses to 20 valid records, all equal to the stored rows, with no address or business number in it.
+- Examples as stored (all `method = import`, `corp-canada@1.0.0`, source URL the CBCA CSV): Loblaw Companies → 126764 LOBLAW COMPANIES LIMITED; Saputo → 2833735 SAPUTO INC.; Dollarama → 4537394 DOLLARAMA INC.; Maple Leaf Foods → 4544668 MAPLE LEAF FOODS INC.; The Brick → 7658419 The Brick Ltd.
+- Hand check: those 5 on the Corporations Canada page: same name, Active, same number (shown hyphenated, e.g. 012676-4). The other 15 were read against their catalog entry and Wikidata item; only Dolcezza needed a closer look (right, D-075).
+- Budget (BUDGET P3.18 Actuals): 328 B/row vs 357 B, DB 112.5 MB, raw 22 MB / 4,086 files. Nothing over.
+- `npm run typecheck`, `lint`, `format:check` and `npm test` (571 passed, 1 skipped) pass.
+
+**For the owner:**
+- Coverage is low on purpose: 20 of 160 `CA` companies. Some others are probably provincial, and for some the catalog holds a store or brand name rather than the corporation's; I didn't measure the split. Right answers held back by the no-aliases rule are in a new Phase 4 bullet.
+- The plan said "the bulk CSVs"; I read only the 2 active files, because the inactive ones can only give dead numbers (D-075).
+- The Corporations Canada page lists directors' home addresses, so nothing from those pages was saved.
+
+---
+
 ## 2026-11-04 — P3.17 SEC EDGAR (b): all companies with a CIK (done)
 
 **Done** (no code change; `sec-edgar@1.0.0`)

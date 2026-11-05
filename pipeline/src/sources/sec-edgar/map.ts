@@ -307,7 +307,10 @@ const LEGAL_FORMS = new Set(
  * apostrophe too: "GT's" isn't "GTS"), a leading "the" and trailing legal forms removed.
  * Exact equality of keys is the only match (fuzzy matching is Phase 4).
  */
-export function nameKey(name: string): string {
+export const nameKey = (name: string): string => nameKeyWith(name, LEGAL_FORMS);
+
+/** `nameKey` with a source's own legal forms (Corporations Canada, D-075). */
+export function nameKeyWith(name: string, legalForms: ReadonlySet<string>): string {
   const words = normalizeMatchText(name)
     .replace(/&/g, ' and ')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
@@ -315,7 +318,7 @@ export function nameKey(name: string): string {
     .split(' ')
     .filter(Boolean);
   if (words[0] === 'the') words.shift();
-  while (words.length > 1 && LEGAL_FORMS.has(words[words.length - 1] as string)) words.pop();
+  while (words.length > 1 && legalForms.has(words[words.length - 1] as string)) words.pop();
   return words.join(' ');
 }
 

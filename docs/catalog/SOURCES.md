@@ -455,15 +455,15 @@ Under CLAUDE.md ("Ask me before using a source whose terms prohibit automated ac
 |---|---|
 | Provides | Federal corporations (CBCA, not-for-profits, co-ops), active and inactive, from Innovation, Science and Economic Development Canada. Useful to confirm a Canadian company's legal name and status. |
 | Licence | "Open Government Licence – Canada": "worldwide, royalty-free, perpetual, non-exclusive licence to use the Information … including for commercial purposes". Attribution: "Contains information licensed under the Open Government Licence – Canada." https://open.canada.ca/en/open-government-licence-canada (checked 2026-10-26). Dataset: https://open.canada.ca/data/en/dataset/0032ce54-c5dd-4b66-99a0-320a7b5e99f2 (checked 2026-10-26). |
-| Terms on automated access | Licensed open data for download. The Open Government Licence – Canada has no anti-automation clause (https://open.canada.ca/en/open-government-licence-canada, checked 2026-10-26). |
+| Terms on automated access | Licensed open data for download. The Open Government Licence – Canada has no anti-automation clause (https://open.canada.ca/en/open-government-licence-canada, checked 2026-10-26; re-read 2026-11-04 for P3.18, unchanged). |
 | robots.txt | `open.canada.ca`: `Crawl-delay: 20`; disallows framework folders only. `ised-isde.canada.ca` sets crawl delays for named bots only. |
-| Access method | Bulk CSV (four subsets, EN/FR) plus an API (documented separately). |
+| Access method | Bulk CSV (four subsets, EN/FR) plus an API (documented separately). The dataset page links the files on a CloudFront host, `d4bf66bykfyaf.cloudfront.net` (checked 2026-11-04). Its robots.txt answers 403, which RFC 9309 treats as no restrictions; the pipeline keeps the 20 s delay anyway. |
 | Auth | None for the CSVs. API auth unknown (not checked: low priority). |
 | Rate limits | Respect `Crawl-delay: 20`; bulk files only. |
 | Ontario coverage | Federal corporations only (excludes Ontario-incorporated companies and financial institutions). |
 | Freshness | "Files are typically updated daily." |
-| Key fields | Unknown: the dataset page doesn't list its fields. A corporation number (key) and legal name are expected; confirm when building. |
-| Est. rows / size | Unknown: not stated. Process on the runner; store only matches (a few hundred rows). |
+| Key fields | Confirmed 2026-11-04 (all four English files share them): Corporation number, Business number (BN), Corporate name - form 1, Corporate name - form 2, Governing legislation, Status, Status Detail, Anniversary date, Year of last annual filing, Date of last annual meeting, Street, Street 2, City/town, Province/territory, Country, Postal code, Minimum number of directors, Maximum number of directors. UTF-8 with a BOM, RFC 4180 quoting, no line breaks inside fields. The number has no check-digit hyphen or leading zero: `126764` is shown as `012676-4` on the Corporations Canada page. One corporation's page: `https://ised-isde.canada.ca/cc/lgcy/fdrlCrpDtls.html?p=0&corpId=<number>`. |
+| Est. rows / size | Measured 2026-11-04: active CBCA 645,496 rows (104 MB), active other 51,319 (9 MB), inactive CBCA 837,960 (159 MB), inactive other 42,890 (9 MB). P3.18 reads the two active files and stores only matches: 20 of 160 Canadian companies (D-075). |
 | Verdict | **use**, low priority: an identity check, not an ownership graph. |
 
 ### S22 OpenCorporates API

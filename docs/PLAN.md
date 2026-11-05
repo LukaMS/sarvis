@@ -1307,7 +1307,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** the source-task rules, including the budget check.
 - ✅ Done 2026-11-04: runs `6290bdab` and `b811852e`. 9 pending edges (as the P3.16 dry run predicted), budget well inside (BUDGET P3.17 Actuals).
 
-### [ ] P3.18 Corporations Canada: identity check (low priority)
+### [x] P3.18 Corporations Canada: identity check (low priority)
 - **Slice:** source-corp-canada.
 - **Goal:** confirm Canadian companies' legal names and federal corporation numbers.
 - **Deps:** P3.3, P3.4, P3.13.
@@ -1318,6 +1318,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** Ontario-incorporated companies (not in this dataset).
 - **Files:** `pipeline/src/sources/corp-canada/*` and tests, `pipeline/src/sources/registry.ts`, `docs/catalog/SOURCES.md` (the field list).
 - **Verification:** the source-task rules for a sample and a full run, including the budget check. Also: the match count, and 5 matches checked by hand on the Corporations Canada search page.
+- ✅ Done 2026-11-04 (D-075): runs `ed156a4e`, `2859f150` (sample) and `adfcb843`, `61a10bcd` (full). 20 of 160 Canadian companies confirmed, 1 ambiguous, 0 malformed rows. Active files only, stricter legal-form list, no aliases.
 
 ### [ ] P3.19 Phase 3 exit check
 - **Slice:** release-check.
@@ -1368,6 +1369,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - **OFF codes with a bad check digit** (found in P3.6): 2,516 of 93,178 kept Canadian rows (2.7%) are GTIN-shaped but fail the check digit, so validation rejects them (`gtin_check_digit`, D-057). Restricted in-store codes are kept with `gtin` null (7,014 rows). P4.0 decides whether bad-check-digit codes get the same treatment (kept on `external_id`, no GTIN) for coverage, or stay out because the barcode is wrong.
   - **OFF size coverage** (found in P3.6): 71,315 of 90,659 OFF products (79%) are `unparsed`, but 70,196 of those have no `quantity` at all in OFF. Only ~1.1k have text the D-057 rule can't read (bare numbers like "1", "12 pcs", "CTN24"). The unit parser should handle `pcs` → `ct`; the missing sizes need another source (P4.0 decides whether to look for one).
   - Gold-set evaluation script that reports precision and recall.
+  - **Corporation numbers the exact rule leaves out** (found in P3.18, D-075): 140 of 160 `CA` companies have none. Some right answers sit behind aliases (Cargill Limited, Fairfax Financial Holdings Limited, Mitel Networks Corporation, A & W Food Services of Canada Inc.), but aliases also point at the wrong entity (Pharmaprix, Arista Wines, The SLF Limited), so the source ignores them. Shoppers Drug Mart fits two active corporations. Decide whether the resolver or review should fill these. Companies incorporated provincially are never in this dataset.
   - **Edges from several sources** (found in P3.16, D-074): `brand_ownership` and `company_ownership` key on the endpoints, relation and `valid_from`, not the source, so a second source writing the same edge overwrites the first's provenance. SEC EDGAR avoids it by skipping pairs that already have an edge. Before the brand resolver (or another source) writes edges, decide how an edge holds evidence from several sources (e.g. an `edge_sources` table like `company_sources`) and make the writers keep the first source's row.
 
 ## Phase 5 — Admin portal: catalog tools (outline)
