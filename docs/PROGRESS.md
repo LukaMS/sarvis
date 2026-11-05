@@ -2,6 +2,29 @@
 
 Newest entry first.
 
+## 2026-11-05 — P4.1 GTIN: UPC-E expansion and restricted EAN-8 (done)
+
+**What changed** (D-078)
+- `gtinNormalize` and `gtin_normalize` expand 8-digit UPC-E to UPC-A, through a new `upcEToUpcA` / `gtin_upce_to_upca`. `gtin_is_restricted` adds EAN-8 prefixes 0 and 2. Migration `gtin_upce` is applied to dev, and types are regenerated (1 new line).
+- One vector list, `packages/core/src/gtin.vectors.json`, replaces the two hand-synced ones. New `npm run check:gtin` runs it against SQL.
+- DATA_MODEL §1.4 and the P4.3 task updated.
+
+**Verification**
+- **Twin tests:** core `gtin.test.ts` passes on the shared vectors. `check:gtin` passes 5 of 5: all four SQL helpers on the vectors, and SQL = TS on 300 generated and 200 stored 8-digit codes.
+- **Prefix check:** of 50 sampled ambiguous codes with a brand, **23 agree** with another product of that brand, and 37 of the 50 have a brand with any UPC-A row to compare, so 23 of 37. Over all 332 codes, 101 agree, against 4 with shuffled brands. Examples: Coca-Cola `06782900` → `067000008290`, Canada Dry `06248017` → `062100004807`.
+- **Types:** the generated file differs from the committed one only by the new function.
+- `npm run typecheck`, `lint` and `test` pass. The security advisor shows only the existing leaked-password warning.
+
+**For the owner:**
+- **The prefix check changed the plan's rule.** Codes starting with 1 agreed 0 of 155 times, so only codes starting with 0 count as UPC-E. That recovers 633 rows rather than the 707 I told you in P4.0, and ~1,883 codes are really bad rather than ~1,809.
+- **New in P4.3:** 226 stored codes turn out to be in-store codes and will lose their barcode. Those products can then be found by search but not by scanning.
+- **Don't run an OFF import until P4.3 is done.** 608 stored rows now fail the `products` check on any update, until P4.3 rewrites them. Nothing is scheduled yet, so this only matters for a manual run.
+- **Not every ambiguous code is proven UPC-E.** 23 of 37 agree, and the rest have no evidence either way, because a brand can use several prefixes. An in-store code could get a GTIN by mistake. A scan still reaches the same row, and P4.3 checks the 35 clashes by hand.
+
+**Next:** P4.2 Product writer keeps resolved columns.
+
+---
+
 ## 2026-11-05 — P4.0 Refine Phase 4 (done)
 
 **What changed**

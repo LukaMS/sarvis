@@ -1375,7 +1375,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - 19,375 OFF brand strings, 18,816 after normalizing. 1,851 already match a brand name or alias, covering 28,084 of 81,779 brand mentions. The 525 strings on 20+ products cover 41,814 mentions. 12,720 strings appear on one product.
 - The top strings are grocers' own brands, and many are missing from `brands` (Compliments, Irresistibles) or split across spellings (PC, President's Choice, Presidents Choice, Le Choix du Président).
 - 37,783 of 90,662 OFF rows have categories (6,970 distinct tags). 52,879 (58%) have none.
-- 1,110 of the 2,516 bad-check-digit codes are 8 digits long, and 707 of those are valid **UPC-E**.
+- 1,110 of the 2,516 bad-check-digit codes are 8 digits long, and 633 of those are valid **UPC-E** (number system 0; P4.1 corrected the 707 first measured, D-078).
 
 **Milestones** (each one maps to tasks in the coverage table at the end of this phase):
 - **M1 Product identity:** UPC-E and EAN-8 rules, the writer fix that protects resolved columns, the OFF re-import of affected codes, the legacy takeover.
@@ -1407,13 +1407,13 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Bulk updates:** use batches small enough not to time out. Report dead tuples and table size afterwards, and vacuum if needed.
 - **Verification (all tasks):** `npm run typecheck`, `lint` and `test` pass. Data tasks run on a sample first, then report row counts, 5 example records and validation failures in PROGRESS. Bulk-write tasks add the budget check (the Phase 3 rule), and anything over its estimate by more than 20% becomes a PLAN task.
 
-### [ ] P4.1 GTIN: UPC-E expansion and restricted EAN-8
+### [x] P4.1 GTIN: UPC-E expansion and restricted EAN-8
 - **Slice:** core-gtin.
 - **Goal:** barcodes printed as UPC-E normalize to the same GTIN-14 as their UPC-A, in TS and SQL.
 - **Deps:** P3.19a.
 - **In:**
   - Expand 8-digit UPC-E (number system 0 or 1, valid check digit) to UPC-A, then GTIN-14, in `normalizeGtin`, with the SQL twin in a migration. `gtin_is_valid` stays a plain mod-10 check.
-  - **Ambiguity rule:** a code valid both ways (563 of the 1,206 valid 8-digit codes in OFF's Canadian rows) is read as UPC-E, since GS1 restricts EAN-8 prefix 0 and these look like North American products. Check this on a sample first: the expanded manufacturer prefix should match other products of the same brand.
+  - **Ambiguity rule:** a code valid both ways is read as UPC-E. Check this on a sample first: the expanded manufacturer prefix should match other products of the same brand. **The check narrowed the rule to number system 0** (382 codes; number system 1 agreed on 0 of 155, so those 181 stay EAN-8, D-078).
   - EAN-8 restricted prefixes (left to Phase 4 by D-035).
   - Keep the TS and SQL twins on one shared vector list, plus real examples: `04139344` Kikkoman → `041390000034`, `05514100` Häagen-Dazs → `055000001410`.
   - Update DATA_MODEL §1.4.
@@ -1423,6 +1423,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Twin tests pass on the same vectors in TS and SQL.
   - The prefix check on 50 ambiguous codes is in PROGRESS, with how many agree.
   - The generated types still match.
+- ✅ Done 2026-11-05: `npm run check:gtin` passes, 23 of 50 sampled codes agree (control 1%), and types are regenerated (D-078).
 
 ### [ ] P4.2 Product writer keeps resolved columns
 - **Slice:** pipeline-db.
@@ -1442,9 +1443,10 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Goal:** recover the rows validation dropped and correct GTINs stored from UPC-E codes.
 - **Deps:** P4.1, P4.2.
 - **In:**
-  - The OFF mapping uses the new normalizer. About 707 UPC-E rows now pass, and about 563 stored EAN-8 GTINs change to their UPC-A form (`external_id` is unchanged, so each row keeps its id).
-  - **The remaining ~1,809 bad-check-digit rows** get the same treatment as restricted in-store codes: kept on `external_id` with `gtin` null, unless they duplicate a kept product on normalized name + first brand (462 of the 2,516 did), in which case they're dropped and counted in a run event. Users can find them by search but not by scanning (D-077).
-  - **A code that expands to a GTIN already in the catalog** (28 found) stays on the existing product through `product_sources`. Check the writer does this when both rows come from one source, since D-046 only covers another source's product.
+  - The OFF mapping uses the new normalizer (D-078). About 633 UPC-E rows now pass. Of the stored 8-digit GTINs, 382 change to their UPC-A form, 226 (EAN-8 prefix 0 or 2) become restricted and lose their `gtin`, and the rest stay. `external_id` is unchanged, so each row keeps its id.
+  - **Those 608 rows fail the `products` check on any update until this task rewrites them** (P4.1 tightened `gtin_is_restricted`), so don't run an OFF import before P4.3.
+  - **The remaining ~1,883 bad-check-digit rows** get the same treatment as restricted in-store codes: kept on `external_id` with `gtin` null, unless they duplicate a kept product on normalized name + first brand (462 of the 2,516 did), in which case they're dropped and counted in a run event. Users can find them by search but not by scanning (D-077).
+  - **A code that expands to a GTIN already in the catalog** (35 found: 28 new rows, 7 stored rows) stays on the existing product through `product_sources`. Check the writer does this when both rows come from one source, since D-046 only covers another source's product.
   - Bump the `off` `method_version`. Report any Open Prices codes that now resolve, and add a task if a re-run is worthwhile.
 - **Out:** size parsing (P4.6).
 - **Files:** `pipeline/src/sources/off/map.ts`, its tests, `docs/catalog/BUDGET.md`.
@@ -1452,6 +1454,8 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `--dry-run --sample` first, then a full run and a second run that inserts 0 rows.
   - Before-and-after counts of products, GTINs and null GTINs, with 5 examples of each group.
   - Scan check: a UPC-E code and its UPC-A find the same row.
+  - `select count(*) from products where gtin_is_restricted(gtin)` returns 0 (608 today).
+  - The 35 collisions are looked at by hand: a different product under one GTIN means the code was an in-store code, not UPC-E.
   - Budget check.
 
 ### [ ] P4.4 Legacy products that hold an OFF GTIN: OFF takes over

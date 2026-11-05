@@ -1,51 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import legacyProducts from '../../../docs/legacy/data/products.json';
-import { gtinIsRestricted, gtinIsValid, gtinNormalize, normalizeGtin } from './gtin.ts';
+import { gtinIsRestricted, gtinIsValid, gtinNormalize, normalizeGtin, upcEToUpcA } from './gtin.ts';
+import vectors from './gtin.vectors.json';
 
-// The same vectors as supabase/tests/products.sql (P2.5). Keep the two lists in step.
-const SQL_IS_VALID: [string, boolean][] = [
-  ['036000291452', true],
-  ['4006381333931', true],
-  ['96385074', true],
-  ['10012345678902', true],
-  ['00036000291452', true],
-  ['036000291453', false],
-  ['4006381333932', false],
-  ['96385075', false],
-  ['10012345678903', false],
-  ['03600029145A', false],
-  ['03600029145', false],
-  ['123456789012345', false],
-  ['', false],
-  [' 036000291452', false],
-];
-const SQL_NORMALIZE: [string, string | null][] = [
-  ['036000291452', '00036000291452'],
-  ['4006381333931', '04006381333931'],
-  ['96385074', '00000096385074'],
-  ['10012345678902', '10012345678902'],
-  ['036000291453', null],
-  ['ABC', null],
-];
-const SQL_IS_RESTRICTED: [string, boolean][] = [
-  ['2012345678903', true],
-  ['212345678909', true],
-  ['0223456789019', true],
-  ['02012345678903', true],
-  ['036000291452', false],
-  ['4006381333931', false],
-  ['2012345678904', false],
-];
-
-describe('SQL twins', () => {
-  it.each(SQL_IS_VALID)('gtinIsValid(%j) = %s', (code, expected) => {
+describe('SQL twins (gtin.vectors.json, also run against SQL by `npm run check:gtin`)', () => {
+  it.each(vectors.isValid)('gtinIsValid($code) = $expected', ({ code, expected }) => {
     expect(gtinIsValid(code)).toBe(expected);
   });
-  it.each(SQL_NORMALIZE)('gtinNormalize(%j) = %j', (code, expected) => {
+  it.each(vectors.upce)('upcEToUpcA($code) = $expected', ({ code, expected }) => {
+    expect(upcEToUpcA(code)).toBe(expected);
+  });
+  it.each(vectors.normalize)('gtinNormalize($code) = $expected', ({ code, expected }) => {
     expect(gtinNormalize(code)).toBe(expected);
   });
-  it.each(SQL_IS_RESTRICTED)('gtinIsRestricted(%j) = %s', (code, expected) => {
+  it.each(vectors.isRestricted)('gtinIsRestricted($code) = $expected', ({ code, expected }) => {
     expect(gtinIsRestricted(code)).toBe(expected);
   });
 });
@@ -83,12 +52,35 @@ describe('normalizeGtin', () => {
     expect(normalizeGtin('94011')).toEqual({ kind: 'plu', value: '94011' });
   });
 
-  it('agrees with the SQL twins on every clean SQL vector', () => {
-    for (const [code] of [...SQL_IS_VALID, ...SQL_NORMALIZE, ...SQL_IS_RESTRICTED]) {
+  it('reads a valid UPC-E as its UPC-A, so both spellings reach one product', () => {
+    expect(normalizeGtin('04139344')).toEqual({ kind: 'gtin', value: '00041390000034' });
+    expect(normalizeGtin('041390000034')).toEqual({ kind: 'gtin', value: '00041390000034' });
+  });
+
+  it('prefers UPC-E when a code is valid both ways', () => {
+    expect(gtinIsValid('01234565')).toBe(true);
+    expect(normalizeGtin('01234565')).toEqual({ kind: 'gtin', value: '00012345000065' });
+  });
+
+  it('keeps number system 1 as EAN-8', () => {
+    expect(normalizeGtin('12345670')).toEqual({ kind: 'gtin', value: '00000012345670' });
+  });
+
+  it('classifies EAN-8 prefixes 0 and 2 as restricted', () => {
+    expect(normalizeGtin('01234503')).toEqual({ kind: 'restricted', value: '00000001234503' });
+    expect(normalizeGtin('21234569')).toEqual({ kind: 'restricted', value: '00000021234569' });
+  });
+
+  it('rejects an 8-digit code that is neither UPC-E nor EAN-8', () => {
+    expect(normalizeGtin('01234566')).toEqual({ kind: 'invalid', reason: 'check_digit' });
+  });
+
+  it('agrees with the twins on every clean vector', () => {
+    const all = [...vectors.isValid, ...vectors.normalize, ...vectors.isRestricted];
+    for (const { code } of all) {
       if (!/^[0-9]+$/.test(code) || code.length < 6) continue;
       const result = normalizeGtin(code);
-      const sqlValid = gtinIsValid(code);
-      expect(result.kind !== 'invalid', code).toBe(sqlValid);
+      expect(result.kind !== 'invalid', code).toBe(gtinNormalize(code) !== null);
       if (result.kind === 'gtin' || result.kind === 'restricted') {
         expect(result.value).toBe(gtinNormalize(code));
         expect(result.kind === 'restricted').toBe(gtinIsRestricted(code));

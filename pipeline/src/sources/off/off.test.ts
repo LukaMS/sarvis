@@ -157,7 +157,8 @@ describe('OFF mapping', () => {
     );
     expect(batch.stats).toMatchObject({ valid: 6, invalid: 0 });
     const kombucha = batch.valid.find((r) => r.external_id === '00202428');
-    expect(kombucha).toMatchObject({ gtin: '00000000202428', brand_text: null });
+    // 00202428 is valid as EAN-8 and as UPC-E, and UPC-E wins (D-078).
+    expect(kombucha).toMatchObject({ gtin: '00002200000248', brand_text: null });
   });
 });
 

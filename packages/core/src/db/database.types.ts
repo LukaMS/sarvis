@@ -4265,6 +4265,7 @@ export type Database = {
       gtin_is_restricted: { Args: { value: string }; Returns: boolean }
       gtin_is_valid: { Args: { value: string }; Returns: boolean }
       gtin_normalize: { Args: { value: string }; Returns: string }
+      gtin_upce_to_upca: { Args: { value: string }; Returns: string }
       normalize_match_text: { Args: { value: string }; Returns: string }
       off_brand_strings: {
         Args: never

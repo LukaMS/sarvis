@@ -35,38 +35,11 @@ declare
   v_approved_map bigint;
   v_ident bigint;
   v_row record;
-  v_bad text[];
   n bigint;
   state text;
   res text[] := '{}';
 begin
-  -- GTIN helpers ------------------------------------------------------------
-  select coalesce(array_agg(format('%s:%s', t.code, t.expected)), '{}') into v_bad
-  from (values
-    ('036000291452', true), ('4006381333931', true), ('96385074', true), ('10012345678902', true),
-    ('00036000291452', true),
-    ('036000291453', false), ('4006381333932', false), ('96385075', false), ('10012345678903', false),
-    ('03600029145A', false), ('03600029145', false), ('123456789012345', false), ('', false),
-    (' 036000291452', false)
-  ) as t (code, expected)
-  where public.gtin_is_valid(t.code) is distinct from t.expected;
-  res := res || format('gtin_is_valid matches the 14 vectors|%s|failures %s', cardinality(v_bad) = 0, v_bad);
-
-  select coalesce(array_agg(format('%s:%s', t.code, t.expected)), '{}') into v_bad
-  from (values
-    ('036000291452', '00036000291452'), ('4006381333931', '04006381333931'), ('96385074', '00000096385074'),
-    ('10012345678902', '10012345678902'), ('036000291453', null), ('ABC', null)
-  ) as t (code, expected)
-  where public.gtin_normalize(t.code) is distinct from t.expected;
-  res := res || format('gtin_normalize matches the 6 vectors|%s|failures %s', cardinality(v_bad) = 0, v_bad);
-
-  select coalesce(array_agg(format('%s:%s', t.code, t.expected)), '{}') into v_bad
-  from (values
-    ('2012345678903', true), ('212345678909', true), ('0223456789019', true), ('02012345678903', true),
-    ('036000291452', false), ('4006381333931', false), ('2012345678904', false)
-  ) as t (code, expected)
-  where public.gtin_is_restricted(t.code) is distinct from t.expected;
-  res := res || format('gtin_is_restricted matches the 7 vectors|%s|failures %s', cardinality(v_bad) = 0, v_bad);
+  -- GTIN helpers: packages/core/src/gtin.vectors.json, run here by `npm run check:gtin` (P4.1).
 
   -- Fixtures (as the migration owner) ----------------------------------------
   insert into auth.users (id, email, aud, role)
