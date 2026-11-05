@@ -1361,28 +1361,420 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 
 **Open 🟡 decisions in Phase 3:** none. P3.13c (budget levers) was decided in D-070. P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.
 
-## Phase 4 — Normalization and matching (outline)
+## Phase 4 — Normalization and matching (full detail)
 
-**Exit:** a labelled gold set (~200 product pairs, ~100 brand→company pairs) measures precision and recall. Auto-accept precision is ≥ 95%, and the rest goes to a review queue.
+**Exit:**
+- A labelled gold set (~200 product pairs, ~100 brand→company pairs) measures precision and recall on data the thresholds weren't tuned on.
+- Auto-accept precision is ≥ 95%.
+- Anything below the threshold stays hidden from users. Brands on 20+ products go to the review queue, and the long tail doesn't (D-077).
 
-- [ ] **P4.0 Refine Phase 4 into session-sized tasks.**
-- **Milestones:**
-  - Size/unit parser and unit price (g/kg/ml/L/ct, multipacks, "x"), tested on real strings from P3. Seed the tests from legacy `normalizer.test.ts` and fix the gaps in CATALOG_REVIEW §4.1.
-  - GTIN normalization: the TS function (P2.10) and the SQL check function (P2.5) arrive in Phase 2 (D-030). Phase 4 extends both with any rules the P3 data shows are missing.
-  - Category taxonomy: Sarvis taxonomy plus mappings from OFF categories (retailer categories only if a retailer is ever approved, D-013).
-  - Product matcher: GTIN exact first, then fuzzy name/brand/size (`pg_trgm` plus scoring in core), with a confidence score and stored match decisions (`match_candidates`).
-    - Includes **receipt-abbreviation → product** matching via `store_listings`. Receipts are the main price source (D-013 D7).
-    - Calibrate the legacy `match_receipt_items` tiers on the gold set.
-  - Brand → company resolver: exact, alias, Wikidata, fuzzy, plus the legacy BulkBrandLink rules (CATALOG_REVIEW §6). Unresolved brands go to the queue.
-    - This is also where OFF `brand_text` values become `brands` rows (new or an alias of an existing one) and products get `brand_id`. Phase 3 imports brand strings and Wikidata brands but doesn't join them (P3.0).
-    - Brand rows built from OFF strings are auto-approved (D-054). P4.0 decides how the resolver's low-confidence links are handled, since the owner wants no manual review of OFF and Wikidata data.
-  - `price_sanity_bounds` per category and unit basis, from StatCan `reference_prices` (P3.11) and observed distributions.
-  - **Legacy products that hold an OFF GTIN** (found in P3.5): the products writer keeps the first owner of a GTIN, so when a legacy product already has the GTIN, the OFF record goes to `product_sources` and the legacy row stays `pending` (hidden, D-050). The OFF data never shows. 1 of the 100 sample products (Kashi Bars); 3 after the full import (P3.6: Kashi Bars, Green Goodness, Scoobi Doo Pasta). P4.0 decides the rule, e.g. OFF takes over the product fields and the legacy row's review status, or a merge.
-  - **OFF codes with a bad check digit** (found in P3.6): 2,516 of 93,178 kept Canadian rows (2.7%) are GTIN-shaped but fail the check digit, so validation rejects them (`gtin_check_digit`, D-057). Restricted in-store codes are kept with `gtin` null (7,014 rows). P4.0 decides whether bad-check-digit codes get the same treatment (kept on `external_id`, no GTIN) for coverage, or stay out because the barcode is wrong.
-  - **OFF size coverage** (found in P3.6): 71,315 of 90,659 OFF products (79%) are `unparsed`, but 70,196 of those have no `quantity` at all in OFF. Only ~1.1k have text the D-057 rule can't read (bare numbers like "1", "12 pcs", "CTN24"). The unit parser should handle `pcs` → `ct`; the missing sizes need another source (P4.0 decides whether to look for one).
-  - Gold-set evaluation script that reports precision and recall.
-  - **Corporation numbers the exact rule leaves out** (found in P3.18, D-075): 140 of 160 `CA` companies have none. Some right answers sit behind aliases (Cargill Limited, Fairfax Financial Holdings Limited, Mitel Networks Corporation, A & W Food Services of Canada Inc.), but aliases also point at the wrong entity (Pharmaprix, Arista Wines, The SLF Limited), so the source ignores them. Shoppers Drug Mart fits two active corporations. Decide whether the resolver or review should fill these. Companies incorporated provincially are never in this dataset.
-  - **Edges from several sources** (found in P3.16, D-074): `brand_ownership` and `company_ownership` key on the endpoints, relation and `valid_from`, not the source, so a second source writing the same edge overwrites the first's provenance. SEC EDGAR avoids it by skipping pairs that already have an edge. Before the brand resolver (or another source) writes edges, decide how an edge holds evidence from several sources (e.g. an `edge_sources` table like `company_sources`) and make the writers keep the first source's row.
+- [x] **P4.0 Refine Phase 4** → done 2026-11-05 (this section; D-077).
+
+**Measured for this plan** (dev project and the 2026-10-30 OFF dump; D-077 has what each number decided):
+- 90,672 products, 11 with a `brand_id`, 0 with a category. 0 `store_listings`, 0 `match_candidates`.
+- 19,375 OFF brand strings, 18,816 after normalizing. 1,851 already match a brand name or alias, covering 28,084 of 81,779 brand mentions. The 525 strings on 20+ products cover 41,814 mentions. 12,720 strings appear on one product.
+- The top strings are grocers' own brands, and many are missing from `brands` (Compliments, Irresistibles) or split across spellings (PC, President's Choice, Presidents Choice, Le Choix du Président).
+- 37,783 of 90,662 OFF rows have categories (6,970 distinct tags). 52,879 (58%) have none.
+- 1,110 of the 2,516 bad-check-digit codes are 8 digits long, and 707 of those are valid **UPC-E**.
+
+**Milestones** (each one maps to tasks in the coverage table at the end of this phase):
+- **M1 Product identity:** UPC-E and EAN-8 rules, the writer fix that protects resolved columns, the OFF re-import of affected codes, the legacy takeover.
+- **M2 Sizes:** the size/unit parser and unit price, applied to OFF.
+- **M3 Derived jobs:** a runner for work that reads our own tables instead of fetching.
+- **M4 Taxonomy:** the Sarvis taxonomy, OFF tag mappings, then categories from names for products with no tags.
+- **M5 Brands:** brand keys, the private-label seed, brand rows from OFF strings, product → brand links.
+- **M6 Brand → company:** evidence from several sources per edge, resolver candidates, the brand gold set, calibration.
+- **M7 Product matcher:** candidate RPC plus scoring, the product gold set, calibration of the legacy tiers.
+- **M8 Price sanity:** `price_sanity_bounds` from StatCan and observed prices, wired into validation.
+
+**Not in Phase 4:**
+- Admin UI for the review queue and match decisions: Phase 5. Phase 4 writes the queue rows and `match_candidates`.
+- Scheduling the derived jobs after OFF deltas: Phase 6. Phase 4 runs them from the CLI.
+- Receipt parsing and the user confirmation step: Phase 8. The matcher ships as a function and an RPC, because no listings exist to match yet.
+- Merging OFF near-duplicates into one product. The matcher can find them, but nothing merges them. Add a task if the gold set shows search needs it.
+- AI classification or matching: the OpenRouter module arrives in Phase 7, and categories from names use free rules. If the rules leave too many products without a category, P4.17 raises it with the owner as a cost decision.
+- Filling Corporations Canada numbers through aliases (D-077). The P5 DB editor is where an admin can set one.
+- A new source for missing sizes (D-077).
+
+**Feature slices** (each task touches exactly one): `core-gtin`, `core-units`, `pipeline-db`, `pipeline-jobs`, `source-off`, `schema`, `taxonomy`, `brand-resolver`, `gold-set`, `product-matcher`, `price-sanity`, `release-check`.
+
+**Rules for every task in this phase:**
+- **Provenance:** a derived fact keeps the `source_id` it came from, with `method = derived` and the rule in `method_version` (`brand-resolver@1.0.0`). Match decisions record `match_method`, `match_method_version` and `reason` in `match_candidates`.
+- **Idempotent:** a second run of any job inserts 0 rows and updates 0 rows.
+- **Decisions don't get overwritten:** a job never changes a row an admin reviewed, a locked field, or a merged or rejected row (D-046, D-052).
+- **Legacy stays hidden:** no job approves a legacy row, apart from the takeover in P4.4 (D-077).
+- **Gold sets are real data.** Pairs are sampled from the catalog, not invented. Each label has an evidence URL or a stated reason. Thresholds are tuned on one half and precision is reported on the other, with a confidence interval, because a sample this size is noisy.
+- **Bulk updates:** use batches small enough not to time out. Report dead tuples and table size afterwards, and vacuum if needed.
+- **Verification (all tasks):** `npm run typecheck`, `lint` and `test` pass. Data tasks run on a sample first, then report row counts, 5 example records and validation failures in PROGRESS. Bulk-write tasks add the budget check (the Phase 3 rule), and anything over its estimate by more than 20% becomes a PLAN task.
+
+### [ ] P4.1 GTIN: UPC-E expansion and restricted EAN-8
+- **Slice:** core-gtin.
+- **Goal:** barcodes printed as UPC-E normalize to the same GTIN-14 as their UPC-A, in TS and SQL.
+- **Deps:** P3.19a.
+- **In:**
+  - Expand 8-digit UPC-E (number system 0 or 1, valid check digit) to UPC-A, then GTIN-14, in `normalizeGtin`, with the SQL twin in a migration. `gtin_is_valid` stays a plain mod-10 check.
+  - **Ambiguity rule:** a code valid both ways (563 of the 1,206 valid 8-digit codes in OFF's Canadian rows) is read as UPC-E, since GS1 restricts EAN-8 prefix 0 and these look like North American products. Check this on a sample first: the expanded manufacturer prefix should match other products of the same brand.
+  - EAN-8 restricted prefixes (left to Phase 4 by D-035).
+  - Keep the TS and SQL twins on one shared vector list, plus real examples: `04139344` Kikkoman → `041390000034`, `05514100` Häagen-Dazs → `055000001410`.
+  - Update DATA_MODEL §1.4.
+- **Out:** re-importing OFF (P4.3). Leading-zero recovery, unless the data needs it.
+- **Files:** `packages/core/src/gtin.ts`, `gtin.test.ts`, a new migration, `supabase/tests/`, `docs/catalog/DATA_MODEL.md`.
+- **Verification:**
+  - Twin tests pass on the same vectors in TS and SQL.
+  - The prefix check on 50 ambiguous codes is in PROGRESS, with how many agree.
+  - The generated types still match.
+
+### [ ] P4.2 Product writer keeps resolved columns
+- **Slice:** pipeline-db.
+- **Goal:** an OFF re-import can't erase a product's `brand_id` or `category_id`.
+- **Deps:** P3.19a.
+- **In:**
+  - Today the writer sends `brand_id: … ?? null` and `category_id: … ?? null`. Once a job has set them, the next OFF change to that product would clear them. A record with no `brand_slug` or `category_slug` must leave the stored value alone (the D-046 "missing is no opinion" rule). An explicit slug still writes.
+  - The content hash excludes columns the source doesn't own, so a resolved row still reads as `unchanged`.
+- **Out:** the jobs that set these columns.
+- **Files:** `pipeline/src/db/writers/products.ts`, `products.test.ts`, `pipeline/src/db/writers.devdb.ts`.
+- **Verification:**
+  - A unit test and a dev-DB check: write a product, set `brand_id` and `category_id`, re-write it with a changed name, and both survive.
+  - `npm run check:writers --workspace @sarvis/pipeline` passes.
+
+### [ ] P4.3 OFF: re-import UPC-E and bad-check-digit codes
+- **Slice:** source-off.
+- **Goal:** recover the rows validation dropped and correct GTINs stored from UPC-E codes.
+- **Deps:** P4.1, P4.2.
+- **In:**
+  - The OFF mapping uses the new normalizer. About 707 UPC-E rows now pass, and about 563 stored EAN-8 GTINs change to their UPC-A form (`external_id` is unchanged, so each row keeps its id).
+  - **The remaining ~1,809 bad-check-digit rows** get the same treatment as restricted in-store codes: kept on `external_id` with `gtin` null, unless they duplicate a kept product on normalized name + first brand (462 of the 2,516 did), in which case they're dropped and counted in a run event. Users can find them by search but not by scanning (D-077).
+  - **A code that expands to a GTIN already in the catalog** (28 found) stays on the existing product through `product_sources`. Check the writer does this when both rows come from one source, since D-046 only covers another source's product.
+  - Bump the `off` `method_version`. Report any Open Prices codes that now resolve, and add a task if a re-run is worthwhile.
+- **Out:** size parsing (P4.6).
+- **Files:** `pipeline/src/sources/off/map.ts`, its tests, `docs/catalog/BUDGET.md`.
+- **Verification:**
+  - `--dry-run --sample` first, then a full run and a second run that inserts 0 rows.
+  - Before-and-after counts of products, GTINs and null GTINs, with 5 examples of each group.
+  - Scan check: a UPC-E code and its UPC-A find the same row.
+  - Budget check.
+
+### [ ] P4.4 Legacy products that hold an OFF GTIN: OFF takes over
+- **Slice:** pipeline-db.
+- **Goal:** the 3 legacy products with an OFF barcode show OFF's data (owner decision, D-077).
+- **Deps:** P4.2.
+- **In:**
+  - When OFF brings a GTIN that a `legacy-import` product holds, the row takes OFF's imported fields and provenance and the D-050 auto-approve. The legacy record moves to `product_sources`, which keeps what the row was.
+  - **Nothing legacy may show.** Check every field left on the row. `product_features` and `transparency_steps` filter on their own `review_status`, so they should stay hidden; confirm that, and the same for product `certifications`.
+  - A row an admin reviewed isn't taken over.
+  - Applies to Kashi Bars, Green Goodness and Scoobi Doo Pasta, and to later cases.
+  - Add this exception to DATA_MODEL §1.5.
+- **Out:** other legacy products.
+- **Files:** `pipeline/src/db/writers/products.ts`, tests, `docs/catalog/DATA_MODEL.md`.
+- **Verification:**
+  - A dev-DB check as `anon` with the Supabase client: each of the 3 products reads with OFF's values, and its legacy features and certifications don't.
+  - The other 10 legacy products are unchanged and hidden.
+  - Re-running changes nothing.
+
+### [ ] P4.5 Size and unit parser
+- **Slice:** core-units.
+- **Goal:** turn real size strings into a base-unit quantity and pack count, and compute unit prices.
+- **Deps:** P3.19a.
+- **In:**
+  - `parseSize()` in core returns `unit_parse_status`, `net_quantity`, `net_unit` (`g`, `ml`, `ct`) and `pack_count`, plugged into the `UnitParser` hook.
+  - Cases, from CATALOG_REVIEW §4.1 and the P3.6 data: `N unit`, `N x M unit`, nested packs (`2 x 6 x 355 mL`), counts (`12 ea`, `6 pk`, `12 pcs`, `CTN24`), approximate weights (`approx. 1.2 kg`), per-weight text (`/kg`, `$/lb`), fractions, decimal commas, French units, `oz`, `lb`, `fl oz`, `cl`, and sizes containing commas. Bare numbers stay `unparsed` rather than guessing a unit. Mass and volume in one string is `ambiguous`.
+  - `unitPrice()` returns the price per base unit, computed by us rather than trusted from a source.
+  - Seed tests from legacy `normalizer.test.ts`, plus at least 150 real distinct strings from `quantity_text`, chosen across frequency and including the ~1.1k strings the D-057 rule can't read.
+- **Out:** applying it to stored rows (P4.6).
+- **Files:** `packages/core/src/units.ts`, `units.test.ts`, `packages/core/src/index.ts`.
+- **Verification:**
+  - Tests pass. Report the share of all distinct `quantity_text` values parsed, and 10 of what's left.
+  - Every result satisfies the product schema's rules.
+
+### [ ] P4.6 OFF: apply the size parser
+- **Slice:** source-off.
+- **Goal:** products get normalized sizes from the new parser.
+- **Deps:** P4.3, P4.5.
+- **In:**
+  - OFF passes `parseSize` to validation, replacing the D-057 rule. OFF's `product_quantity` still wins when it agrees with the text. A disagreement goes in a run event with examples.
+  - **Fallback:** when `quantity` is blank, parse a strict size pattern out of the name (about 216 products), marked in the method version.
+  - Bump the `off` `method_version`. Changed hashes mean one large update run, so expect it to take a while.
+- **Out:** a new size source (D-077).
+- **Files:** `pipeline/src/sources/off/map.ts`, `index.ts`, tests, `docs/catalog/BUDGET.md`.
+- **Verification:**
+  - Before-and-after `unit_parse_status` counts, with 5 examples each of `ok`, `ambiguous` and `unparsed`.
+  - A hand check of 30 changed rows against their source text, with errors reported.
+  - A second run updates 0 rows. Budget check, including dead tuples.
+
+### [ ] P4.7 Pipeline: derived-job runner
+- **Slice:** pipeline-jobs.
+- **Goal:** one way to run work that reads our own tables, with the same bookkeeping as a source.
+- **Deps:** P3.19a.
+- **In:**
+  - `npm run pipeline -- job <name> [--sample N] [--dry-run]`, with the same exit codes as `run`. The `Source` interface doesn't fit, because `parse` only sees raw fetched data and these jobs fetch nothing.
+  - An `ingestion_runs` row per job (`source_id` is required, so seed a `sarvis-derived` source row with `verdict = use` in a migration), counts, capped events, cancellation.
+  - **Incremental by design:** a job reads rows that need work, in id-ordered batches, so an interrupted run resumes and a run after an OFF delta touches only new rows.
+  - A `fixture` job for the tests.
+  - Add the command to `CLAUDE.md`.
+- **Out:** real jobs.
+- **Files:** `pipeline/src/jobs/`, `pipeline/src/cli.ts`, tests, a new migration, `docs/catalog/SOURCES.md`, `CLAUDE.md`.
+- **Verification:**
+  - Unit tests: a dry run writes nothing, a sample stops at N, a cancelled job resumes, exit codes.
+  - The fixture job run twice against dev updates nothing the second time.
+
+### [ ] P4.8 Taxonomy and OFF tag mappings
+- **Slice:** taxonomy.
+- **Goal:** a Sarvis grocery taxonomy that alternatives and price bounds can use, mapped from OFF tags.
+- **Deps:** P3.19a.
+- **In:**
+  - `docs/catalog/TAXONOMY.md`: 3 levels, about 200–400 nodes, with leaves narrow enough for "similar product" in Phase 9 (cheddar, not cheese or dairy). Design it from the OFF tag counts and the StatCan product list. Non-food aisles that OFF holds, such as supplements, get a node.
+  - A data migration seeds `categories` (reference config, like `sources`).
+  - `category_mappings` rows for OFF tags, covering at least 95% of the 37,783 categorised products. Tags already include their ancestors, so a product takes its deepest mapped tag and rare tags need no row of their own. Provenance: `method = derived` and the mapping file's version. Mappings are `approved` / `auto`.
+  - `products.category_rule` smallint null: which rule set the category. A `match_candidates` row per product would cost ≈ 20+ MB, so one compact code is the provenance here (D-077).
+- **Out:** assigning categories (P4.9). Retailer categories (D-013).
+- **Files:** `docs/catalog/TAXONOMY.md`, a new migration, `packages/core/src/db/database.types.ts`, `docs/catalog/DATA_MODEL.md`.
+- **Verification:**
+  - Mapped share of categorised products, by level, against the dump's tag counts.
+  - Every leaf has a parent chain, and no mapping points at a missing node.
+  - Advisors are clean and RLS is on. Every StatCan product maps to a node.
+
+### [ ] P4.9 Categories from OFF tags
+- **Slice:** taxonomy.
+- **Goal:** every OFF product with mapped tags gets a category.
+- **Deps:** P4.2, P4.7, P4.8.
+- **In:**
+  - A `categorize-tags` job. Tags aren't stored on `products`, so it re-parses the stored OFF raw extract (`readRaw`), which is what raw storage is for. It falls back to the cached dump if retention removed a part.
+  - The product takes its deepest mapped tag and a `category_rule` code.
+  - Writes only `category_id` and `category_rule`, and leaves locked rows alone.
+- **Out:** products with no tags (P4.17).
+- **Files:** `pipeline/src/jobs/categorize-tags.ts`, tests, `docs/catalog/BUDGET.md`.
+- **Verification:**
+  - Sample, then full, then a second run with 0 updates.
+  - Counts by level 1 node, and a hand check of 50 random products with errors reported.
+  - Budget check.
+
+### [ ] P4.10 Edges keep evidence from several sources
+- **Slice:** schema.
+- **Goal:** a second source confirming an ownership edge adds evidence instead of overwriting the first.
+- **Deps:** P3.19a.
+- **In:**
+  - An `edge_sources` table for `brand_ownership` and `company_ownership`, shaped like `company_sources`. RLS admin. Writers keep the edge's +prov block from the first source and upsert one evidence row per source.
+  - Wikidata, SEC EDGAR and the resolver write through it. SEC's skip of existing pairs (D-074) can become an evidence row. Existing edges keep their provenance.
+  - A BUDGET row with its width estimate.
+- **Out:** a confidence formula across sources.
+- **Files:** a new migration, `pipeline/src/db/writers/ownership.ts`, tests, `docs/catalog/DATA_MODEL.md`, `docs/catalog/BUDGET.md`, `packages/core/src/db/database.types.ts`.
+- **Verification:**
+  - `check:writers`: two sources write one edge, and both are recorded with the first source's provenance intact.
+  - An RLS check in `supabase/tests/`. Advisors are clean.
+
+### [ ] P4.11 Brand keys
+- **Slice:** brand-resolver.
+- **Goal:** one stable key per brand across spelling, case and accents.
+- **Deps:** P3.19a.
+- **In:**
+  - `brandKey()` in core: splits OFF's comma lists and removes accents, case, apostrophes (`President's` = `Presidents`), `&`/`and`, trademark signs and legal suffixes.
+  - A stoplist of strings that aren't brands (`Produit maison`, `Unknown`, `Generic`, `Sans marque`), with a test per entry.
+  - A pure clustering step: key → variants, counts, and the most common spelling as the display name.
+  - Which string names a product when `brand_text` lists several (1,659 products): the part that resolves to a known brand with an owner, else the first part. The rule is unit-tested here and used in P4.13.
+- **Out:** database writes. Translated names such as `Sans nom` are aliases (P4.12), not keys.
+- **Files:** `packages/core/src/brand.ts`, `brand.test.ts`, `packages/core/src/index.ts`.
+- **Verification:**
+  - Tests from the real top 500 strings.
+  - Report strings → keys and the 20 largest clusters, with any wrong merge listed.
+
+### [ ] P4.12 🟡 Private-label and high-impact brand seed
+- **Slice:** brand-resolver.
+- **Goal:** the brands on the most products have the right owner before anything automatic runs.
+- **Deps:** P4.11.
+- **In:**
+  - A cited seed of the top brand strings that Wikidata missed or split, starting with Canadian grocers' own brands: Compliments, President's Choice with PC and Le Choix du Président, No Name with Sans nom, Western Family, Irresistibles, Selection, Kirkland with Kirkland Signature, Your Fresh Market, Co-op Gold, Great Value. The top 88 strings hold 24,373 of 81,779 mentions.
+  - Each row: brand, aliases in both languages, owner, relation, `is_private_label`, and a citation URL. Set `is_private_label` on existing brands (0 today).
+  - **Existing edges that look wrong** go in the list too, such as Selection → a company called "Selection" (likely Metro's own label) and Safeway. A correction to an approved Wikidata edge closes the old edge rather than deleting it.
+  - **🟡 The owner approves the list** before it's written (D-050: AI-sourced rows are never auto-approved). It's a table of about 30–50 rows in PROGRESS. After approval, writes use the `manual` source and `method = manual`.
+- **Out:** long-tail brands.
+- **Files:** `docs/catalog/PRIVATE_LABELS.md`, `pipeline/src/jobs/brand-seed.ts`, tests.
+- **Verification:**
+  - Every row has a citation that was opened and read.
+  - After the write, each seeded brand has one current approved owner, shown as `anon` through `brand_current_owner`.
+  - A second run changes nothing.
+
+### [ ] P4.13 Brand rows and product links
+- **Slice:** brand-resolver.
+- **Goal:** OFF strings become brands, and products get `brand_id`.
+- **Deps:** P4.2, P4.7, P4.12.
+- **In:**
+  - A `link-brands` job: match keys against brand names and aliases, add new spellings as aliases, create a brand for each remaining key, and set `products.brand_id`.
+  - New brands are auto-approved (D-054): add `off` to `AUTO_APPROVE.brands`. `source_id` is OFF, `method = derived`, and `brand_text` stays on the product.
+  - No per-product `match_candidates` rows. They would blow the budget, and an exact key match has no score to review.
+  - Slugs from the key, with collisions handled.
+- **Out:** owners for the new brands (P4.14–P4.16).
+- **Files:** `pipeline/src/jobs/link-brands.ts`, `pipeline/src/db/writers/review.ts`, tests, `docs/catalog/BUDGET.md`.
+- **Verification:**
+  - Sample, then full, then a second run with 0 changes.
+  - Counts: brands created, aliases added, products linked, and products with `brand_text` left unlinked (expected: only stoplisted strings).
+  - As `anon`, a sample product returns its brand, and a legacy brand stays hidden.
+  - Budget check (20,000 brands estimated).
+
+### [ ] P4.14 Brand → company candidates
+- **Slice:** brand-resolver.
+- **Goal:** every brand without an owner gets scored candidates, with each rule's reason stored.
+- **Deps:** P4.10, P4.13.
+- **In:**
+  - A `brand-candidates` job, writing `match_candidates` with `kind = brand_company`. Tiers: exact company name or alias; the legacy BulkBrandLink rules (text equals brand; name starts with brand, longest wins; company owns exactly one brand); trigram fuzzy through the expression index with `%`, not a full scan.
+  - `features` holds the inputs. Common-word brands (Selection, Aurora, Cedar) need a guard, since a one-word exact match to an unrelated company is the likeliest false positive.
+  - A score floor and at most 2 candidates per brand, to fit the 40,000-row budget.
+  - Scores stay uncalibrated, and nothing is accepted yet.
+- **Out:** accepting links (P4.16).
+- **Files:** `pipeline/src/jobs/brand-candidates.ts`, `packages/core/src/match/brand.ts`, a new migration if an RPC is needed, tests, `docs/catalog/BUDGET.md`.
+- **Verification:**
+  - Counts per tier, brands with no candidate, and run time at full size.
+  - 5 examples per tier. A second run changes nothing. Budget check.
+
+### [ ] P4.15 Gold-set harness and the brand gold set
+- **Slice:** gold-set.
+- **Goal:** ~100 labelled brand → company pairs and a script that scores any matcher against them.
+- **Deps:** P4.14.
+- **In:**
+  - `docs/catalog/gold/brand_company.csv`: stratified across tiers and product counts, with extra pairs near likely thresholds, and including brands with no real owner in the catalog so recall has a true denominator. A fixed 50/50 tune and test split by hash.
+  - Labels come from evidence (the company's site, Wikipedia, a filing), with the URL per row. **Claude does the labelling, so PROGRESS lists 15 rows for the owner to spot-check.**
+  - `npm run pipeline -- eval <set>`: precision and recall per tier and threshold, Wilson intervals, and the wrong pairs by name.
+- **Out:** choosing thresholds (P4.16).
+- **Files:** `docs/catalog/gold/`, `pipeline/src/eval/`, tests, `CLAUDE.md`.
+- **Verification:**
+  - Unit tests on a small synthetic set with known precision and recall.
+  - The script runs on the real set, and the per-tier table goes in PROGRESS.
+  - Every row has a label and evidence.
+
+### [ ] P4.16 Calibrate and apply brand links
+- **Slice:** brand-resolver.
+- **Goal:** apply the links the evidence supports, and route the rest as the owner decided.
+- **Deps:** P4.15.
+- **In:**
+  - Pick per-tier thresholds on the tune half, and report precision on the test half.
+  - **Above the threshold:** the candidate is `accepted` / `auto`, and a `brand_ownership` edge with `match_candidate_id` is approved and visible. Respect the one-current-owner index; a conflict stays pending.
+  - **Below it (D-077):** the candidate stays `pending`, and users see the brand with no owner. Brands on 20+ products get one `review_queue` row (`match_candidate`). A big brand with no candidate gets a `brand` row. The long tail gets no queue row.
+  - If no tier reaches 95%, nothing is auto-accepted, and PROGRESS says so.
+- **Out:** the review UI (Phase 5).
+- **Files:** `pipeline/src/jobs/apply-brand-links.ts`, tests, `docs/catalog/BUDGET.md`, `docs/DECISIONS.md`.
+- **Verification:**
+  - `eval` on the test half: precision ≥ 95%, reported with its interval.
+  - Coverage: the share of products whose brand has an owner, before and after.
+  - Queue rows added (expected: at most ~525). As `anon`, a sample chain reads through `product_ownership_chain`, and a pending link doesn't.
+  - A second run changes nothing.
+
+### [ ] P4.17 Categories from product names
+- **Slice:** taxonomy.
+- **Goal:** cover the 58% of products OFF gives no category, without guessing.
+- **Deps:** P4.9, P4.13, P4.15.
+- **In:**
+  - A `categorize-names` job with free rules only: keyword rules on the name in English and French, then brand majority (a brand with ≥ 80% of its categorised products in one node).
+  - Each rule has its own `category_rule` code.
+  - A gold sample of ~200 uncategorised products, labelled and split as in P4.15. Rules that don't reach 95% aren't applied, so those products stay uncategorised.
+  - **If coverage stays low**, report the gap. An AI classifier after P7 is an owner cost decision.
+- **Out:** AI classification.
+- **Files:** `pipeline/src/jobs/categorize-names.ts`, `packages/core/src/category-rules.ts`, `docs/catalog/gold/category.csv`, tests.
+- **Verification:**
+  - `eval`: precision per rule on the test half.
+  - Share of all products with a category, before and after.
+  - A second run changes nothing. Budget check.
+
+### [ ] P4.18 Product matcher
+- **Slice:** product-matcher.
+- **Goal:** text in, ranked products out, with a score and a reason.
+- **Deps:** P4.5, P4.13.
+- **In:**
+  - A SQL candidate RPC using `normalize_match_text` with the `%` operator on the existing trigram index. This fixes the legacy problem where no index applied (CATALOG_REVIEW §5).
+  - `scoreProductMatch()` in `packages/core/src/match/`, in order: GTIN exact, listing exact (banner + normalized text, which replaces legacy `product_aliases`), name exact, brand + name, fuzzy name/brand/size. Size agreement counts through `parseSize`. The legacy tier values are the starting scores.
+  - An abbreviation expander for receipt text (`BTRMLK`), table-driven and tested.
+  - A helper that writes a decision to `match_candidates` (`listing_product`), for Phase 8 to call.
+  - Latency target: under 200 ms per line at 95k products, because a receipt has ~30 lines.
+- **Out:** edge functions and the app. Choosing thresholds (P4.21).
+- **Files:** `packages/core/src/match/product.ts`, tests, a new migration, `packages/core/src/db/database.types.ts`.
+- **Verification:**
+  - Unit tests per tier. `explain analyze` shows the trigram index in use, and the timings go in PROGRESS.
+  - 10 example queries with results.
+  - RLS check: the RPC returns only what the caller may see.
+
+### [ ] P4.19 Product gold set: catalog pairs
+- **Slice:** gold-set.
+- **Goal:** ~100 labelled pairs from real catalog text.
+- **Deps:** P4.15, P4.18.
+- **In:**
+  - `docs/catalog/gold/product_catalog.csv`: OFF near-duplicates and hard negatives (same brand and line, different size or flavour), sampled from trigram neighbours and stratified by score. Includes products with `gtin` null. Pairs sharing a GTIN through `product_sources` are easy positives, so they're capped at 10%.
+  - Labels from OFF's pages and photos, with the URL per row. 15 rows for the owner to spot-check.
+- **Out:** calibration (P4.21).
+- **Files:** `docs/catalog/gold/product_catalog.csv`, `docs/catalog/gold/README.md`.
+- **Verification:**
+  - `eval` runs with the starting tiers, and the table goes in PROGRESS.
+  - Every row has a label and evidence, and the balance of positives and negatives is reported.
+
+### [ ] P4.20 🟡 Product gold set: receipt lines
+- **Slice:** gold-set.
+- **Goal:** ~100 real receipt lines labelled with their true product.
+- **Deps:** P4.18.
+- **In:**
+  - **The owner supplies** about 100 item lines from a few of their own receipts, as photos or typed text (D-077). The task can't start before that.
+  - `docs/catalog/gold/receipt_lines.csv` holds **only the line text**, the banner name and the label. The repo is public, so each line is checked by hand for card digits, loyalty numbers, names and addresses. No store location, date, totals or images are committed.
+  - A line with no true match in the catalog is labelled `none`. That's useful in itself: it measures how much of what people buy the catalog covers.
+- **Out:** receipt OCR (Phase 8). Lines are matched as typed.
+- **Files:** `docs/catalog/gold/receipt_lines.csv`, `docs/catalog/gold/README.md`.
+- **Verification:**
+  - A scan for long digit runs and the owner's name and email finds nothing.
+  - `eval` runs with the starting tiers, and the table goes in PROGRESS.
+  - The share of lines labelled `none` is reported.
+
+### [ ] P4.21 Calibrate the product matcher
+- **Slice:** product-matcher.
+- **Goal:** tier scores and thresholds that come from data, replacing the legacy hand-picked values.
+- **Deps:** P4.19, P4.20.
+- **In:**
+  - Tune tier scores and the auto-accept threshold on the tune half of both sets. Report catalog pairs and receipt lines separately, because receipts will be worse and need their own threshold.
+  - Record the thresholds in core and in DECISIONS, with a `match_method_version` bump.
+  - If receipt lines can't reach 95% at a useful recall, say so. Every receipt match then needs user confirmation, which is an input to Phase 8's UX.
+- **Out:** Phase 8 wiring.
+- **Files:** `packages/core/src/match/product.ts`, tests, `docs/DECISIONS.md`.
+- **Verification:**
+  - `eval` on both test halves: auto-accept precision ≥ 95% on each, or the shortfall reported plainly.
+  - Recall at that threshold, and the wrong pairs by name.
+
+### [ ] P4.22 Price sanity bounds
+- **Slice:** price-sanity.
+- **Goal:** a bad price fails validation before it's written.
+- **Deps:** P4.5, P4.9.
+- **In:**
+  - Map each StatCan product to a category (`reference_prices.category_id`), and convert its units through `parseSize` (`200 grams`, `per kilogram`, `unit`).
+  - A `price-bounds` job builds `price_sanity_bounds` per category × unit basis from StatCan history and observed `price_observations`, with wide margins (a sale isn't an error). A category with no data takes its parent's bounds, and a price with no bound passes unchecked. `basis` records how each bound was made.
+  - Wire the bounds into `evaluateBatch` for Open Prices, through the existing `PriceBounds` hook.
+- **Out:** receipt prices (Phase 8 uses the same bounds).
+- **Files:** `pipeline/src/jobs/price-bounds.ts`, `pipeline/src/sources/open-prices/`, tests.
+- **Verification:**
+  - An Open Prices re-run: report `price_sanity` failures and examine each one. A good price that fails means the margin changes.
+  - A unit test with a planted 100× price and a planted 1/100 price, both caught.
+  - Coverage: the share of categories and of priced products with a bound.
+
+### [ ] P4.23 Phase 4 exit check
+- **Slice:** release-check.
+- **Goal:** prove the exit criteria.
+- **Deps:** every Phase 4 task.
+- **In:**
+  - `eval` on every gold set, and each exit line with its number.
+  - Catalog coverage: the share of products with a brand, an owner chain, a category and a size, compared with the start of the phase. Add how many have both a leaf category and a size, since Phase 9 needs both.
+  - Every job run twice, with no changes on the second run.
+  - A visibility check as `anon` (nothing pending or legacy), advisors, BUDGET §1 re-added against the measured DB size, and the latest CI run.
+- **Out:** fixing what it finds. Each gap becomes a task.
+- **Files:** `docs/PLAN.md`, `docs/PROGRESS.md`, `docs/catalog/BUDGET.md`.
+- **Verification:** every item above is in PROGRESS with its number. Failures are reported as they are, and the phase closes only when the exit lines pass or the owner accepts the gap.
+
+### Phase 4 milestone coverage
+
+| Milestone | Tasks |
+|---|---|
+| M1 Product identity | P4.1 (GTIN), P4.2 (writer), P4.3 (OFF codes), P4.4 (legacy takeover) |
+| M2 Sizes | P4.5 (parser), P4.6 (OFF) |
+| M3 Derived jobs | P4.7 |
+| M4 Taxonomy | P4.8 (taxonomy, mappings), P4.9 (from tags), P4.17 (from names) |
+| M5 Brands | P4.11 (keys), P4.12 (seed), P4.13 (brand rows, product links) |
+| M6 Brand → company | P4.10 (edge evidence), P4.14 (candidates), P4.15 (gold set), P4.16 (apply) |
+| M7 Product matcher | P4.18 (matcher), P4.19 (catalog gold), P4.20 (receipt gold), P4.21 (calibration) |
+| M8 Price sanity | P4.22 |
+| Exit criteria | P4.23 |
+
+**Open 🟡 steps in Phase 4:** P4.12 needs the owner to approve the seed list before it's written, and P4.13 onward waits on that. P4.20 needs the owner's receipt lines, and P4.21 waits on those.
 
 ## Phase 5 — Admin portal: catalog tools (outline)
 
@@ -1438,7 +1830,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Search: catalog-wide, by product, brand or company.
   - Product detail: ownership chain, rating, prices by store. Attribution next to OFF data and images (ODbL, CC BY-SA) and Open Prices prices (D-013 D1; moved here from Phase 3 in P3.0).
   - Company detail: scores with citations, articles, the Wikipedia summary with its CC BY-SA link (P3.14).
-  - Barcode scan.
+  - Barcode scan. Scanners report UPC-E as 8 digits, so the lookup goes through `normalizeGtin` (P4.1).
   - Receipt scan: rebuilt `process-receipt` on the shared AI module and the P4 matcher, with user confirmation of matches.
   - History and spending tracking: by month, store and company.
   - Stories/articles.
@@ -1459,6 +1851,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Define "similar": same taxonomy leaf and a size band compared by unit price.
   - Define "more ethical": a minimum score gap, and only published scores.
   - Same-store default. If the store has no data, fall back to the same chain, then other nearby chains, clearly labelled (D-011).
+  - **Size gap:** 79% of OFF products have no size (D-077), so unit-price comparison reaches only part of the catalog. P4.23 reports how many products have both a leaf category and a size. Decide here how to treat a candidate with no size.
   - **Audit note:** with no retailer sources (D-013), "available at this store" is known only from receipts and Open Prices, so expect thin same-store coverage at first. Label the source of each alternative's price ("seen on a receipt at …", with its date).
   - Precomputed alternatives table refreshed by the pipeline.
   - UI on the product, receipt-results and history screens.

@@ -2,6 +2,34 @@
 
 Newest entry first.
 
+## 2026-11-05 — P4.0 Refine Phase 4 (done)
+
+**What changed**
+- `docs/PLAN.md`: Phase 4 is now full detail. It has 23 tasks (P4.1–P4.23), shared rules, a "Not in Phase 4" list and a coverage table. The outline's "P4.0 decides" items are all settled in D-077.
+- Phase 8 and Phase 9 outlines: UPC-E barcodes at scan time, and the size gap.
+- `docs/DECISIONS.md`: D-077.
+
+**Found while planning** (measured on the dev project and the 2026-10-30 OFF dump)
+- **UPC-E bug:** 707 of the 2,516 "bad check digit" OFF rows are valid UPC-E codes we misread as EAN-8, such as Kikkoman, Häagen-Dazs and Hershey. Another 563 stored 8-digit codes are probably under the wrong GTIN. P4.1 and P4.3 fix this.
+- **Writer trap:** the products writer sends `brand_id` and `category_id` as null when a record has no slug, so an OFF update would wipe resolved links. P4.2 fixes it before anything sets them.
+- **58% of OFF products have no category** (52,879 of 90,662), and OFF tags aren't stored on `products`. P4.9 re-reads the raw extract, and P4.17 uses free rules for the rest.
+- **Grocers' own brands dominate the top strings** and several have no brand row (Compliments, Irresistibles). "Selection" points at a company of that name, likely wrong. P4.12 covers these.
+
+**Verification**
+- A script over the Phase 4 section: all 23 tasks have the seven fields (slice, goal, deps, in, out, files, verification), each names exactly one slice from the list, every dep exists and comes earlier, and every task appears in the coverage table. Every milestone M1–M8 maps to at least one task.
+- `npm run format:check` passes.
+
+**For the owner:**
+- **Your three decisions are recorded in D-077:** weak links stay hidden and only brands on 20+ products are queued; your receipts form the receipt gold set; OFF takes over the 3 legacy products.
+- **You'll be needed twice:** P4.12, to approve a list of about 30–50 grocer brands and their owners, and P4.20, to supply about 100 receipt lines. P4.1–P4.11 run without you. P4.13–P4.21 wait on the first, and P4.21 also on the second. P4.22 needs neither.
+- **My call, easy to change:** the ~1,809 codes that are really bad are kept with no barcode, so search finds them but scanning doesn't, unless they duplicate a kept product.
+- **79% of products will stay without a size.** No free source has them, so Phase 9's unit-price comparison will be limited. P4.23 reports the real number.
+- **Gold-set labels are mine,** so P4.15 and P4.19 each list 15 rows for you to spot-check.
+
+**Next:** P4.1 GTIN: UPC-E expansion and restricted EAN-8.
+
+---
+
 ## 2026-11-04 — P3.19a Budget: run-bookkeeping row widths (done)
 
 **Done** (no code, no schema change; D-076)
