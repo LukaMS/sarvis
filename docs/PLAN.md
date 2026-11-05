@@ -1320,7 +1320,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** the source-task rules for a sample and a full run, including the budget check. Also: the match count, and 5 matches checked by hand on the Corporations Canada search page.
 - ✅ Done 2026-11-04 (D-075): runs `ed156a4e`, `2859f150` (sample) and `adfcb843`, `61a10bcd` (full). 20 of 160 Canadian companies confirmed, 1 ambiguous, 0 malformed rows. Active files only, stricter legal-form list, no aliases.
 
-### [ ] P3.19 Phase 3 exit check
+### [x] P3.19 Phase 3 exit check
 - **Slice:** release-check.
 - **Goal:** prove the exit criteria together.
 - **Deps:** P3.1–P3.18.
@@ -1331,6 +1331,17 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** new features. Gaps become PLAN tasks.
 - **Files:** `docs/PROGRESS.md`, `docs/catalog/BUDGET.md`.
 - **Verification:** a checklist in PROGRESS with evidence for each exit bullet.
+- ✅ Done 2026-11-04 on `cbad52b`: DB 112.5 MB, catalog 91.2 MB, storage 29.1 MB. Row widths over §3 became P3.19a.
+
+### [ ] P3.19a Budget: run-bookkeeping row widths (added in P3.19)
+- **Slice:** release-check.
+- **Goal:** BUDGET §3 reflects the measured widths of the tables P3.19 found over, with row counts that match what runs write.
+- **Deps:** P3.19.
+- **Found in P3.19:** `ingestion_run_events` 869 B a row vs 178 B, `validation_failures` 614 B vs 308 B, `review_queue` 234 B vs 148 B, `raw_objects` 306 B vs 248 B. At the §3 row counts that's ≈ +17 MB, so the catalog ≈ 344 MB and the whole DB ≈ 435 MB. But those two row counts are the 50-per-run cap over 240 runs, and the 75 runs so far average 12 events and 6 failures, which keeps both at or under their §3 MB.
+- **In:** find what makes the rows wide (`pg_column_size` per column). Re-baseline the four rows with measured widths and index bytes (P3.13b method), and set the event and failure row counts from measured rates, with the assumption stated. Re-add §1. If the whole DB moves past ≈ 420 MB, say so in PROGRESS for the owner.
+- **Out:** changing the schema, the per-run caps or the payloads. If a smaller payload is needed, add a task.
+- **Files:** `docs/catalog/BUDGET.md`.
+- **Verification:** §1 re-added from §3; each new figure cites its measurement; `format:check` passes.
 
 ### Phase 3 milestone coverage
 
@@ -1344,7 +1355,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M6 Wikipedia | P3.14 (sample), P3.15 (full), P3.15b (summary cleanup) |
 | M7 SEC EDGAR | P3.16 (sample), P3.17 (full) |
 | M8 Corporations Canada | P3.18 (sample and full) |
-| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.13a, P3.13b, P3.13c, P3.15a, P3.19 |
+| M9 Budget | each scale-up (P3.6, P3.10, P3.11, P3.13, P3.15, P3.17, P3.18), P3.13a, P3.13b, P3.13c, P3.15a, P3.19, P3.19a |
 | Exit criteria | P3.19 |
 
 **Open 🟡 decisions in Phase 3:** none. P3.13c (budget levers) was decided in D-070. P3.13's Wikidata visibility rule is decided: no manual review (D-054). The other choices follow from SOURCES.md, DATA_MODEL and existing decisions; the new ones are in D-053.

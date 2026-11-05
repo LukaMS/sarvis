@@ -2,6 +2,59 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.19 Phase 3 exit check (done)
+
+**Done**
+- No code. P3.19 ticked; Phase 3 is complete. BUDGET has a new "Actuals: Phase 3 exit" note.
+- **New P3.19a** (PLAN): `ingestion_run_events` and `validation_failures` rows are much wider than §3, and a few smaller widths are over too. Nothing is over budget today. See "For the owner".
+
+**Exit checklist (commit `cbad52b`)**
+- [x] **Each approved source ran on a sample, then scaled, with row counts, examples and validation results in PROGRESS.** The 7 Phase 3 sources (S1, S5, S6, S17, S19, S20, S21); each one's own PROGRESS entry has the examples. Counts below are from `ingestion_runs`; "again" is the second run of the same command.
+
+  | Source (version) | Sample, then again | Full, then again | Inserted on the again run | Failures stored on the last sample / full run |
+  |---|---|---|---:|---|
+  | `off` (1.0.0, 1.0.1) | `88d60477` (100 fetched, 100 inserted), `3b2f8602` | `d84ff31f` (93,178 fetched, 90,662 valid, 2,516 invalid, 20,959 inserted, 69,703 unchanged), `22da94b5` | 0 / 0 | 0 / 50 `gtin_check_digit` (capped at 50; 2,516 counted) |
+  | `off` delta (1.0.1) | — | `73a48852` (2,584 fetched, 2,444 valid, 140 invalid, 1 updated), `0840fa2d` (nothing new) | 0 | 50 `gtin_check_digit` (capped; 140 counted) |
+  | `open-prices` (1.0.0, 1.0.1) | `5c261e72` (100 fetched, 95 valid, 87 inserted), `244ec6bc` | `10a5fe58` (792 fetched, 754 valid, 38 invalid, 534 inserted), `9a065a93`; 1.0.1 `d6e39878` (100 updated), `2f2bf00a` | 0 / 0 / 0 | 5 `gtin_check_digit` / 25 `gtin_check_digit`, 13 `schema` |
+  | `statcan-18100245` (1.0.0) | `71116a1e` (100 inserted), `64c6b56e` | `898792c1` (25,520 fetched, 25,420 inserted), `4d59addf` | 0 / 0 | 0 / 0 |
+  | `wikidata` (1.3.0, 1.4.0) | `86dc8057` (511 fetched, 7 inserted), `1f964672` | `5c5318eb` (6,019 fetched, 3,283 inserted), `3c9b0a8d` (4 updated) | 0 / 0 | 0 / 0 |
+  | `wikipedia` (1.0.0, 1.1.0) | `87fab3aa` (199 fetched, 99 inserted), `1b910b97` | `b1ef67a2` (2,067 fetched, 1,024 inserted), `ec27b26a`; 1.1.0 `e585a6ca` (67 updated), `202d2c35` | 0 / 0 / 0 | 0 / 0 |
+  | `sec-edgar` (1.0.0) | `54a03b1b` (21 fetched, 10 inserted), `6deb8462` | `6290bdab` (159 fetched, 74 inserted), `b811852e` | 0 / 0 | 0 / 0 |
+  | `corp-canada` (1.0.0) | `ed156a4e` (5 updated), `2859f150` | `adfcb843` (20 fetched, 15 updated), `61a10bcd` | 0 / 0 | 0 / 0 |
+
+  - **All stored failures by rule** (every run, dry runs too): `off` 250 `gtin_check_digit`; `open-prices` 115 `gtin_check_digit`, 52 `schema`; `wikidata` 1 `duplicate` (dry run `ab117c92`); the others 0. A run stores at most 50, so `counts.invalid` is the real total.
+  - **Rows reconcile for OFF:** 90,662 valid = 90,659 OFF rows in `products` + 3 in `product_sources` (legacy rows hold those GTINs, P3.6).
+  - **6 runs ended `failed`**, each followed by a clean run: `07a79dc0` (OFF, bad Unicode escape), `233b18f5` (OFF delta, robots.txt), `81f67046`, `dd22662c`, `e2253350`, `21a3c41c` (Wikidata, HTTP 429). All fixed in their tasks.
+- [x] **Provenance.** `source_id`, `fetched_at` and `method` are missing on 0 rows in all 25 tables that have them. For the 10 main tables, by source: `method_version` and `ingestion_run_id` are missing on 0 rows. Every Phase 3 row has a `source_url` or a source with a `url_template` (`products` OFF 90,659, `price_observations` 521). The 122 rows with neither in those tables are all `legacy-import` (13 products, 49 brands, 11 companies, 49 brand edges), and all are `pending`, so hidden.
+- [x] **DB and storage within budget** (details in BUDGET "Actuals: Phase 3 exit"):
+
+  | Measure | Actual | Warn / alarm |
+  |---|---:|---:|
+  | Whole DB (`pg_database_size`) | 112.5 MB | 330 MB (reserve lever) / 400 MB |
+  | Catalog tables (39, all of `public` except `profiles`) | 91.2 MB | 320 MB / 350 MB |
+  | Other schemas | 21.3 MB | ≈ 42 MB estimated |
+  | Storage: `raw` | 22.0 MB, 4,086 objects | 6,000 `raw_objects` |
+  | Storage: `public-exports` | 7.1 MB, 8 objects | §5: 16 MB |
+  | Storage total | 29.1 MB | 700 MB / 800 MB |
+
+- [x] **`get_advisors`:** security shows only the existing project-wide "Leaked password protection disabled" WARN. Performance shows only INFO `unused_index` (49, was 58), expected until the app and Phase 4 query these tables. No ERROR.
+- [x] **Clean clone:** fresh `git clone` from GitHub into the scratchpad, `npm ci`. `typecheck`, `lint` and `format:check` exit 0. `npm test`: **571 passed, 1 skipped** (the dev-DB e2e skips without `.env`).
+- [x] **Fixture e2e:** `npm run e2e --workspace @sarvis/pipeline`, run twice from the main checkout: both exit 0 (21.0 s, 16.4 s).
+- [x] **Latest CI run is green:** `cbad52b`, https://github.com/LukaMS/sarvis/actions/runs/41938308237.
+- [x] **Migrations:** 17 applied on dev, 17 files in `supabase/migrations/`.
+
+**For the owner:**
+- **Phase 3 meets its exit criteria.** The DB is 22% of the free tier, and storage is 3%.
+- **P3.19a (a docs task):** events are 869 B a row against 178 B in §3, and validation failures 614 B against 308 B. If both tables reached their §3 row counts, that's ≈ +15 MB, or ≈ +17 MB with the smaller widths. The catalog would be ≈ 344 MB (under 350) and the whole DB ≈ 435 MB (under the 450 critical line, over the 400 alarm). At today's rate (12 events and 6 failures a run) they'd stay at or under their §3 MB, because those counts assume the 50-per-run cap, far above what runs write. P3.19a settles which to believe.
+- **Coverage is still thin where Phase 4 comes in:** products are at 95% of the 95k target, but brands are at 9% of 20k and companies at 35% of 5k, and no OFF product links to a brand yet.
+- **Raw retention isn't running yet.** It's the Phase 6 cleanup job, so every file since Phase 2 is still stored: Wikidata holds 3,813 files from 18 runs, against 3,291 when it keeps 3. That's under the 6,000 bound, and a task already covers it.
+- **The last OFF delta ran on 2026-10-30.** A gap over 14 days between deltas needs another full run (PLAN Phase 6, freshness policy), so that applies if scheduling starts after about 2026-11-13.
+- One bookkeeping leftover: a `fixture` dry run from 2026-10-29 (`7ed2ee6c`) with one validation failure. It's from a manual run, not the e2e, and it's harmless. I left it.
+
+**Next:** P3.19a Budget: run-bookkeeping row widths.
+
+---
+
 ## 2026-11-04 — P3.18 Corporations Canada: identity check (done)
 
 **Done** (`corp-canada@1.0.0`, D-075)

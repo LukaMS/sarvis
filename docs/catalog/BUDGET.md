@@ -399,6 +399,50 @@ Runs `ed156a4e`, `2859f150` (sample of 5) and `adfcb843`, `61a10bcd` (full). 20 
 
 Nothing over its estimate, so no PLAN task. §1 is unchanged.
 
+### Actuals: Phase 3 exit (P3.19, 2026-11-04, dev project)
+
+Measured with `pg_total_relation_size`, `pg_database_size`, `count(*)` and `pg_column_size(row)` after all Phase 3 sources.
+
+| Measure | Actual | Budget |
+|---|---:|---:|
+| Whole DB (`pg_database_size`) | 112.5 MB | warn 330 MB (reserve lever 1), alarm 400 MB |
+| Catalog tables (39, all of `public` except `profiles`) | 91.2 MB | warn 320 MB, limit 350 MB |
+| Other schemas (`pg_catalog` 12.2, `storage` 7.5, `auth` 1.5, the rest 0.5) | 21.3 MB | ≈ 42 MB at target |
+| Storage, `raw` | 22.0 MB, 4,086 objects | 6,000 `raw_objects` |
+| Storage, `public-exports` | 7.1 MB, 8 objects | 16 MB |
+| Storage total | 29.1 MB | warn 700 MB, alarm 800 MB |
+
+| Table | Rows now / §3 | MB now / §3 | B/row now / §3 | Note |
+|---|---:|---:|---:|---|
+| `products` (with trigram) | 90,672 / 95,000 | 67.9 / 73.8 | 351 / 348 | ✅ |
+| `reference_prices` | 25,520 / 30,000 | 9.1 / 11.2 | 266 / 276 | ✅ |
+| `raw_objects` | 4,086 / 6,000 | 2.3 / 3.0 | 306 / 248 | **+23%**, ≈ +0.4 MB. P3.19a |
+| `companies` | 1,737 / 5,000 | 1.8 / 4.4 | 380 / 478 | ✅ |
+| `brands` | 1,828 / 20,000 | 1.5 / 12.3 | 321 / 324 | ✅ |
+| `documents` | 1,198 / 30,000 | 1.2 / 19.8 | 731 / 741 and 328 | ✅ nearly all Wikipedia so far |
+| `brand_ownership` | 1,573 / 22,000 | 1.1 / 12.6 | 248 / 248 | ✅ |
+| `ingestion_run_events` | 905 / 12,000 | 0.93 / 3.2 | 869 / 178 | **+388%**, ≈ +9 MB at the §3 rows. P3.19a |
+| `company_sources` | 1,231 / 4,100 | 0.72 / 2.4 | 352 / 357 | ✅ |
+| `company_ownership` | 665 / 10,000 | 0.55 / 5.6 | 262 / 262 | ✅ |
+| `price_observations` | 521 / 20,000 | 0.53 / 9.3 | 211 / 208 | ✅ |
+| `validation_failures` | 419 / 12,000 | 0.38 / 4.9 | 614 / 308 | **+99%**, ≈ +6 MB at the §3 rows. P3.19a |
+| `company_scores` | 66 / 13,000 | 0.24 / 10.4 | 250 / 528 | legacy only, no rationale text yet |
+| `review_queue` | 280 / 15,000 | 0.21 / 4.0 | 234 / 148 | **+58%**, ≈ +1.4 MB. P3.19a (known since P2.19) |
+| `stores` | 100 / 3,000 | 0.20 / 1.7 | 333 / 278 | +20%, ≈ +0.2 MB |
+| Other 24 tables | — | 2.5 / — | — | mostly empty; each has its fixed pages (P2.19). `certifications` (+28%), `product_features` and `transparency_steps` (+25%) are a few legacy rows |
+
+| Raw files by source | Files / runs | MB | §5 | Note |
+|---|---:|---:|---:|---|
+| Wikidata | 3,813 / 18 | 8.5 | 6 | 2.2 MB per full run, so 6.6 MB once the Phase 6 job keeps 3 (+11%) ✅ |
+| OFF | 43 / 6 | 12.1 | 66 | ✅ |
+| Wikipedia | 61 / 3 | 0.5 | 7 | ✅ |
+| SEC EDGAR | 85 / 2 | 0.4 | 18 | ✅ |
+| StatCan | 28 / 4 | 0.3 | 2 | ✅ |
+| Open Prices | 12 / 6 | 0.08 | 1 | ✅ |
+| Legacy, Corporations Canada | 44 / 8 | 0.07 | — | ✅ |
+
+**Run bookkeeping:** the §3 rows for `ingestion_run_events` and `validation_failures` assume the cap of 50 per run over 240 runs. The 75 runs so far average 12 events and 6 failures, which at measured widths gives ≈ 3.1 MB and ≈ 1.3 MB, so at or under their §3 MB. At the cap they'd be ≈ 12 MB and ≈ 11 MB. §1 is unchanged until P3.19a settles it. Worst case with every width above: catalog ≈ 344 MB, whole DB ≈ 435 MB.
+
 ## 5. Storage estimate
 
 | Item | Basis | MB |
