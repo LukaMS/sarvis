@@ -2,6 +2,27 @@
 
 Newest entry first.
 
+## 2026-11-04 — P3.19a Budget: run-bookkeeping row widths (done)
+
+**Done** (no code, no schema change; D-076)
+- BUDGET §3 re-baselined for `ingestion_run_events`, `validation_failures`, `review_queue` and `raw_objects`, from per-column measurements. §1 re-added. New BUDGET note "Actuals: run bookkeeping re-baselined" has the method.
+- What makes the rows wide: `wikidata_match` event details (32% of event rows, 62% of the bytes), the trimmed record in `validation_failures.payload` (78% of the row), and Wikipedia's long `request_url` in `raw_objects`.
+- BUDGET §2 now states the units, and the Phase 6 budget monitor bullet says to pick one (see below).
+
+**Verification**
+- §1 re-added from §3 by a script over the catalog table: 39 rows summed to 295.8 MB before this task, so **299.4 MB** after it (+2.0, −2.2, +2.6, +1.2), and each row matches `rows × (heap × 1.15 + index)` apart from `reference_prices`, which is measured whole (P3.11a).
+- Each new figure cites its measurement in BUDGET (`pg_column_size`, `pg_relation_size`, 75 runs).
+- `npm run format:check` passes.
+
+**For the owner:**
+- **Result:** catalog ≈ 329 MB with bloat (≈ 325 before; budget 350), and whole DB **≈ 420 MB** (≈ 416 before). That sits at the point where the task said to tell you. It's over the 400 MB warning and under the 450 MB critical line. D-070's reserve lever still brings it to ≈ 393–404 MB, so nothing changes today. The measured DB is 112.5 MB.
+- **The row counts are my assumption:** 20 events and 15 failures a run, rounded up from the 17 and 13 that full and delta runs average, over 240 runs a month. If every run hit the 50 cap, the whole DB would be ≈ 15 MB higher, still under 450 MB. Phase 6 will have real scheduled runs to check this against.
+- **Units:** BUDGET's estimates are decimal MB, but the measured figures in its Actuals notes are 2^20-byte MB, about 4.6% smaller. So actuals read slightly low against estimates, and ≈ 420 MB is ≈ 401 MB in the measured unit. I didn't convert the old notes. I don't know which unit Supabase's 500 MB limit uses, so the Phase 6 monitor should check that when it picks one.
+
+**Next:** P4.0 Refine Phase 4 into session-sized tasks.
+
+---
+
 ## 2026-11-04 — P3.19 Phase 3 exit check (done)
 
 **Done**

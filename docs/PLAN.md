@@ -1333,7 +1333,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** a checklist in PROGRESS with evidence for each exit bullet.
 - ✅ Done 2026-11-04 on `cbad52b`: DB 112.5 MB, catalog 91.2 MB, storage 29.1 MB. Row widths over §3 became P3.19a.
 
-### [ ] P3.19a Budget: run-bookkeeping row widths (added in P3.19)
+### [x] P3.19a Budget: run-bookkeeping row widths (added in P3.19)
 - **Slice:** release-check.
 - **Goal:** BUDGET §3 reflects the measured widths of the tables P3.19 found over, with row counts that match what runs write.
 - **Deps:** P3.19.
@@ -1342,6 +1342,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** changing the schema, the per-run caps or the payloads. If a smaller payload is needed, add a task.
 - **Files:** `docs/catalog/BUDGET.md`.
 - **Verification:** §1 re-added from §3; each new figure cites its measurement; `format:check` passes.
+- ✅ Done 2026-11-04: +3.6 MB, catalog ≈ 329 MB with bloat, whole DB ≈ 420 MB (BUDGET P3.19a Actuals).
 
 ### Phase 3 milestone coverage
 
@@ -1409,7 +1410,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Supabase keep-alive.
   - Freshness policy: per-source refresh intervals and stale-price thresholds. OFF (P3.7): a daily `--mode delta` run plus a periodic `--mode full`. A gap of more than 14 days between delta runs loses files, so it should trigger a full run. A robots.txt 5xx fails a run (D-059), so the next scheduled run is the retry.
   - Raw-retention cleanup job (retention per DATA_MODEL §5, using `retentionFor()` and `deleteRawFile()` from P2.14; the per-subject limit for Wikipedia and EDGAR needs a subject derived from `request_url`, D-044), plus the row-retention purges (events, validation failures, candidates, queue).
-  - A budget monitor (DB size, storage size, OpenRouter spend, egress) that warns at the thresholds in BUDGET §6, including the 330 MB trigger for the reserve lever 1 (D-070).
+  - A budget monitor (DB size, storage size, OpenRouter spend, egress) that warns at the thresholds in BUDGET §6, including the 330 MB trigger for the reserve lever 1 (D-070). Pick one unit for the thresholds: BUDGET is decimal MB, `pg_size_pretty` is 2^20 bytes (§2, found in P3.19a).
   - Budget purges adopted in P3.13c (D-070): store-level `price_points_monthly` rows older than 6 months roll up to the banner; `company_scores` versions beyond the latest 2 (with their `score_citations`); `documents` that no entity, score or company links to.
   - Failure notification by opening a GitHub issue.
 

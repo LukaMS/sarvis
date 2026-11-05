@@ -10,13 +10,13 @@ Estimated 2026-10-26.
 
 | Budget | Limit | Estimate (target coverage, 12 months) | Status |
 |---|---|---|---|
-| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 325 MB** (296 MB plus 10%) | ✅ within budget, ~25 MB headroom (levers 2–4 adopted, P3.13c; P3.15a added `company_sources` and the Wikipedia width; Phase 6 warns at 320 MB) |
+| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 329 MB** (299 MB plus 10%) | ✅ within budget, ~21 MB headroom (levers 2–4 adopted, P3.13c; P3.15a added `company_sources` and the Wikipedia width; P3.19a re-baselined the run bookkeeping; Phase 6 warns at 320 MB) |
 | User data (100 active users, 12 months, plus 10%) | — | ≈ 49 MB | — |
 | Platform overhead (system catalogs, auth, storage metadata, extensions) | — | ≈ 42 MB (P3.13c: 26.7 MB measured today, plus Storage metadata for the files §3 and §5 allow) | — |
-| **Whole database** | 500 MB, alarm 400 MB | **≈ 416 MB** (≈ 389–400 MB with the reserve lever 1) | ⚠️ ~16 MB over the 400 MB warning, under the 450 MB critical line. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB (D-070) |
+| **Whole database** | 500 MB, alarm 400 MB | **≈ 420 MB** (≈ 393–404 MB with the reserve lever 1) | ⚠️ ~20 MB over the 400 MB warning, under the 450 MB critical line. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB (D-070) |
 | **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 285 MB** (248 MB plus 15%) | ✅ within budget |
 
-A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), P3.13c adopted §7 levers 2–4 plus the rollup and document trims (−45.2 MB), and P3.15a measured the Wikipedia documents and added the missing `company_sources` (+3.9 MB), so the subtotal is now 296 MB.
+A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), P3.13c adopted §7 levers 2–4 plus the rollup and document trims (−45.2 MB), P3.15a measured the Wikipedia documents and added the missing `company_sources` (+3.9 MB), and P3.19a re-baselined the run bookkeeping tables (+3.6 MB), so the subtotal is now 299 MB.
 
 **Target coverage** means:
 - every OFF product sold in Canada that passes the import filter;
@@ -29,6 +29,7 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 - **Index** = rows × the summed per-row bytes of the planned indexes (btree on uuid ≈ 36 B per entry including overhead; trigram GIN ≈ 3× the text length).
 - **Bloat:** +10% on top for dead tuples between autovacuum runs.
 - Byte counts per row come from the column lists in DATA_MODEL.md §3, using typical values: OFF names ≈ 35 characters, GTIN `char(14)`, uuid 16 B, timestamptz 8 B, `numeric` ≈ 8 B.
+- **Units:** §1, §3 and §5 are decimal MB (10^6 bytes). The measured totals in the Actuals notes are `pg_size_pretty`-style MB (2^20 bytes), about 4.6% smaller for the same bytes, so they read slightly low against §3.
 - These are estimates. Phase 2 checks them against `pg_total_relation_size` after the first seed, and Phase 3 after each scale-up (PLAN: "budget check after each scale-up task").
 
 ## 3. Database estimate per table
@@ -68,15 +69,15 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `product_features, transparency_steps` | 5,000 | 228 | 150 | 2.1 | legacy product-page content. Index projected (P3.13b) |
 | `stories` | 200 | 828 | 194 | 0.2 | editorial. Index projected (P3.13b) |
 | `match_candidates` | 40,000 | 168 | 201 | 15.8 | pending + accepted only; rejected purged after 30 days. Index projected (P3.13b) |
-| `review_queue` | 15,000 | 148 | 94 | 4.0 | open + resolved for 90 days. Index projected (P3.13b) |
+| `review_queue` | 15,000 | 298 | 94 | 6.6 | open + resolved for 90 days. Width **measured** on non-legacy rows (P3.19a); index projected (P3.13b) |
 | `sources` | 40 | 628 | 40 | 0.0 | one row per SOURCES.md entry in use |
 | `ingestion_runs` | 3,000 | 328 | 109 | 1.5 | about 8 runs/day, kept 13 months. Index projected (P3.13b) |
-| `ingestion_run_events` | 12,000 | 178 | 66 | 3.2 | ≤ 50 per run, 30 days. Index projected (P3.13b) |
-| `raw_objects` | 6,000 | 248 | 223 | 3.0 | rows for files still in storage. Index projected (P3.13b) |
-| `validation_failures` | 12,000 | 308 | 51 | 4.9 | ≤ 50 per run, 30 days. Index projected (P3.13b) |
+| `ingestion_run_events` | 4,800 | 869 | 90 | 5.2 | 240 runs in 30 days × 20 events (the cap is 50). Width and index **measured** (P3.19a) |
+| `raw_objects` | 6,000 | 379 | 257 | 4.2 | rows for files still in storage. Width from the measured per-source widths at the §5 mix, index **measured** (P3.19a) |
+| `validation_failures` | 3,600 | 614 | 51 | 2.7 | 240 runs in 30 days × 15 failures (the cap is 50). Width **measured** (P3.19a); index projected (P3.13b) |
 | `ai_calls` | 30,000 | 168 | 140 | 10.0 | 13 months. Index projected (P3.13b) |
 | `audit_log` | 20,000 | 228 | 175 | 8.7 | manual edits. Index projected (P3.13b) |
-| **Subtotal** | | | | **296** | |
+| **Subtotal** | | | | **299** | |
 
 **User data (100 active users, 12 months)**
 
@@ -442,6 +443,33 @@ Measured with `pg_total_relation_size`, `pg_database_size`, `count(*)` and `pg_c
 | Legacy, Corporations Canada | 44 / 8 | 0.07 | — | ✅ |
 
 **Run bookkeeping:** the §3 rows for `ingestion_run_events` and `validation_failures` assume the cap of 50 per run over 240 runs. The 75 runs so far average 12 events and 6 failures, which at measured widths gives ≈ 3.1 MB and ≈ 1.3 MB, so at or under their §3 MB. At the cap they'd be ≈ 12 MB and ≈ 11 MB. §1 is unchanged until P3.19a settles it. Worst case with every width above: catalog ≈ 344 MB, whole DB ≈ 435 MB.
+
+### Actuals: run bookkeeping re-baselined (P3.19a, 2026-11-04, dev project)
+
+The P3.19 widths, split by column. Rows are the same 75 runs as P3.19.
+
+| Table | What makes it wide | Measured |
+|---|---|---|
+| `ingestion_run_events` | `details`, above all `wikidata_match`, which lists the brand decisions: 287 rows at 1,689 B, 32% of the rows and 62% of the bytes | every other event type averages 489 B |
+| `validation_failures` | `payload`, the rejected record trimmed to ≤ 1 KB: 480 B on average, 592 B at most | 78% of the row, the same in every source (608–648 B) |
+| `review_queue` | `reason`: 111 B on legacy rows, 165 B on SEC EDGAR edges | legacy 232 B (271 rows), non-legacy **298 B** (9 rows) |
+| `raw_objects` | `request_url`: 34 B on Wikidata, 550 B on Wikipedia (up to 20 titles in the URL) | Wikidata 296 B, Wikipedia 816 B, others 336–362 B |
+
+| Table | Rows (old → new) | B / row (old → new) | Index B / row (old → new) | MB (old → new) |
+|---|---:|---:|---:|---:|
+| `ingestion_run_events` | 12,000 → **4,800** | 178 → **869** | 66 → **90** | 3.2 → 5.2 |
+| `validation_failures` | 12,000 → **3,600** | 308 → **614** | 51 | 4.9 → 2.7 |
+| `review_queue` | 15,000 | 148 → **298** | 94 | 4.0 → 6.6 |
+| `raw_objects` | 6,000 | 248 → **379** | 223 → **257** | 3.0 → 4.2 |
+| **Total** | | | | 15.1 → **18.7** (+3.6) |
+
+- **Row counts:** 240 runs in the 30-day window (the §3 `ingestion_runs` rate of about 8 a day). The 28 full and delta runs so far average 17 events and 13 failures. I rounded up to 20 and 15 for the sources and rules still to come: Phase 4 starts `unit_parse` and `price_sanity`, and Phase 7 adds articles. The caps stay at 50 per run, so the most these two tables can hold is ≈ 12 MB and ≈ 11 MB, as in P3.19, which would put the whole DB ≈ 15 MB higher.
+- **`ingestion_run_events` width:** the whole-table 869 B, on the safe side. A month of mostly daily runs would have far fewer `wikidata_match` rows, so ≈ 510 B is likely (4 Wikidata full runs in 240). Index: pkey 27 and (run, at) 63, each net of its 2 fixed pages.
+- **`raw_objects` width:** 3,291 Wikidata files at 296 B, 750 Wikipedia at 816 B (the D-071 worst case) and 1,959 others at ≈ 350 B. Index: measured 257 B (`storage_path` 166, pkey 44, expiry 16, run 16, source 14).
+- **`validation_failures` and `review_queue` indexes** stay as projected: at 419 and 280 rows they're still mostly fixed pages.
+- **`review_queue` width** rests on 9 rows, but legacy rows won't be typical at target, so the higher figure is the safer one.
+
+**Totals:** catalog 295.8 → **299.4 MB** (≈ 329 MB with bloat, under 350). Whole DB ≈ 416 → **≈ 420 MB**: over the 400 MB warning, under the 450 MB critical line, and ≈ 393–404 MB with the reserve lever 1. Nothing here needs a schema or payload change.
 
 ## 5. Storage estimate
 
