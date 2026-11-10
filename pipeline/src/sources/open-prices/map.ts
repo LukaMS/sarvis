@@ -3,7 +3,7 @@
 // (D-012). Mapping is pure, so a stored extract re-parses to the same records.
 import { type RecordInputOf, cleanText, slugify } from '@sarvis/core';
 
-import { offGtin } from '../off/map.ts';
+import { gtinOrBadCode } from '../off/map.ts';
 
 export const OP_KEY = 'open-prices';
 export const OP_JOB = 'open-prices-import';
@@ -323,7 +323,7 @@ export function toStoreRecord(loc: OpLocation, fetchedAt: string): RecordInputOf
 const PRICE_PER: Record<string, 'unit' | 'kg' | 'lb'> = { UNIT: 'unit', KILOGRAM: 'kg' };
 
 export function toPriceRecord(p: OpPrice, fetchedAt: string): RecordInputOf<'price_observation'> {
-  const gtin = offGtin(p.product_code.trim());
+  const gtin = gtinOrBadCode(p.product_code.trim());
   return {
     external_id: String(p.id),
     store: { osm_type: p.osm_type, osm_id: p.osm_id },

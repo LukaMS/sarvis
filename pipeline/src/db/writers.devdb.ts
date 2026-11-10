@@ -4,6 +4,8 @@
 // and a company enrichment, written twice. P3.6 discontinues an unseen product and revives it.
 // P3.7 writes a newer then an older reading of one product: only the newer one lands.
 // P4.2 sets a brand and category as a job would, re-writes the product, and both survive.
+// P4.3 moves one record's code onto another record's GTIN: it goes to product_sources, and its
+// old row is merged into the holder.
 // Prints the counts, checks provenance on every row, and
 // deletes everything it wrote, even when a step fails.
 //
@@ -48,6 +50,11 @@ const GTINS = [1, 2, 3, 4, 5].map(gtin);
 /** P4.2: products a job has resolved, and the category it set. */
 const RESOLVED_GTINS = [6, 7].map(gtin);
 const CATEGORY = TAG;
+/** P4.3: the holder's GTIN, the stray row's GTIN before its code normalized, and the codes. */
+const [HOLDER_GTIN, STRAY_GTIN, PAIR_GTIN] = [8, 9, 10].map(gtin) as [string, string, string];
+const COLLISION_IDS = ['holder', 'stray', 'new', 'pair-a', 'pair-b'].map(
+  (k) => `${TAG}-collision-${k}`,
+);
 
 const prov = (version = 'p216-check@1.0.0') => ({
   source_key: 'fixture',
@@ -158,6 +165,16 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
 
   afterAll(async () => {
     if (!ctx) return;
+    // P4.3 rows: product_sources first, then the merged row, which points at the holder.
+    const collision = [
+      await db.from('product_sources').delete().in('external_id', COLLISION_IDS),
+      await db
+        .from('products')
+        .delete()
+        .not('merged_into_id', 'is', null)
+        .in('external_id', COLLISION_IDS),
+      await db.from('products').delete().in('external_id', COLLISION_IDS),
+    ];
     const ids =
       (
         await db
@@ -188,6 +205,19 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       await db.from('ingestion_runs').delete().eq('id', ctx.runId),
     ];
     const left = {
+      collision:
+        ((
+          await db
+            .from('products')
+            .select('id', { count: 'exact', head: true })
+            .in('external_id', COLLISION_IDS)
+        ).count ?? 0) +
+        ((
+          await db
+            .from('product_sources')
+            .select('id', { count: 'exact', head: true })
+            .in('external_id', COLLISION_IDS)
+        ).count ?? 0),
       products: (
         await db
           .from('products')
@@ -235,7 +265,7 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       ).count,
     };
     logger.info('cleaned up', {
-      errors: steps.filter((s) => s.error).map((s) => s.error?.message),
+      errors: [...collision, ...steps].filter((s) => s.error).map((s) => s.error?.message),
       left,
     });
     expect(Object.values(left).every((n) => n === 0)).toBe(true);
@@ -780,5 +810,90 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
     const settled = counts(await write('product', [record(0, named)]));
     expect(settled).toMatchObject({ updated: 0, unchanged: 1 });
     logger.info('resolved columns', { changed: changed.updated, unchanged: again.unchanged });
+  });
+
+  it('sends a record whose code now normalizes to a GTIN another row holds to product_sources (P4.3)', async () => {
+    const [holderId, strayId, newId, pairA, pairB] = COLLISION_IDS as [
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
+    const record = (external_id: string, g: string, name: string) =>
+      parse('product', { gtin: g, external_id, name, brand_text: 'P43 Brand', ...prov() });
+    const row = async (external_id: string) =>
+      (
+        await db
+          .from('products')
+          .select('id, gtin, name, status, merged_into_id')
+          .eq('external_id', external_id)
+          .maybeSingle()
+      ).data;
+    const sources = async () =>
+      (
+        await db
+          .from('product_sources')
+          .select('product_id, external_id')
+          .in('external_id', COLLISION_IDS)
+          .order('external_id')
+      ).data ?? [];
+
+    // Before: the UPC-A row, and the UPC-E row stored under its EAN-8 reading.
+    const first = counts(
+      await write('product', [
+        record(holderId, HOLDER_GTIN, 'P43 Holder'),
+        record(strayId, STRAY_GTIN, 'P43 Stray'),
+      ]),
+    );
+    expect(first).toMatchObject({ inserted: 2, rejected: 0 });
+    const holder = await row(holderId);
+
+    // The UPC-E code now normalizes to the holder's GTIN.
+    const moved = counts(await write('product', [record(strayId, HOLDER_GTIN, 'P43 Stray')]));
+    expect(moved).toMatchObject({ inserted: 1, updated: 1, rejected: 0 });
+    expect(await row(holderId)).toEqual(holder);
+    expect(await row(strayId)).toMatchObject({
+      gtin: null,
+      status: 'merged',
+      merged_into_id: holder?.id,
+    });
+
+    // A new code from the same source under the same GTIN: beside the holder, which keeps its name.
+    const added = counts(await write('product', [record(newId, HOLDER_GTIN, 'P43 New')]));
+    expect(added).toMatchObject({ inserted: 1, updated: 0, rejected: 0 });
+    expect(await row(newId)).toBeNull();
+    expect(await sources()).toEqual([
+      { product_id: holder?.id, external_id: newId },
+      { product_id: holder?.id, external_id: strayId },
+    ]);
+
+    // Two codes for one GTIN no row holds yet, in one batch: the first writes it.
+    const pair = counts(
+      await write('product', [
+        record(pairA, PAIR_GTIN, 'P43 Pair A'),
+        record(pairB, PAIR_GTIN, 'P43 Pair B'),
+      ]),
+    );
+    expect(pair).toMatchObject({ inserted: 2, updated: 0, rejected: 0 });
+    const a = await row(pairA);
+    expect(a).toMatchObject({ gtin: PAIR_GTIN, name: 'P43 Pair A' });
+    expect(await row(pairB)).toBeNull();
+    expect((await sources()).find((r) => r.external_id === pairB)).toEqual({
+      product_id: a?.id,
+      external_id: pairB,
+    });
+
+    const again = counts(
+      await write('product', [
+        record(holderId, HOLDER_GTIN, 'P43 Holder'),
+        record(strayId, HOLDER_GTIN, 'P43 Stray'),
+        record(newId, HOLDER_GTIN, 'P43 New'),
+        record(pairA, PAIR_GTIN, 'P43 Pair A'),
+        record(pairB, PAIR_GTIN, 'P43 Pair B'),
+      ]),
+    );
+    expect(again).toMatchObject({ inserted: 0, updated: 0, unchanged: 5, rejected: 0 });
+    logger.info('same-source collision', { moved, added, again });
   });
 });

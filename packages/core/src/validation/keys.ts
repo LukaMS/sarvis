@@ -39,7 +39,9 @@ const KEYS: { [K in RecordKind]: (r: RecordOf<K>) => (string | false | null | un
   company_enrichment: (r) => [
     `${r.source_key}>${r.match.wikidata_qid ?? r.match.slug ?? r.match.sec_cik ?? r.match.corp_canada_number}`,
   ],
-  product: (r) => [`src:${r.source_key}:${r.external_id}`, r.gtin && `gtin:${r.gtin}`],
+  // Not the GTIN: two codes of one source can name one item (a UPC-E and its UPC-A), and the
+  // writer files the second beside the first in product_sources (D-081).
+  product: (r) => [`src:${r.source_key}:${r.external_id}`],
   product_identifier: (r) => [`${r.scheme}:${r.value}@${r.banner_slug ?? ''}`],
   store: (r) => [
     `slug:${r.slug}`,

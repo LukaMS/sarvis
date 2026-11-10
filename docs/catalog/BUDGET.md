@@ -160,6 +160,20 @@ Measured after two clean full runs (plus one failed attempt) on the 2026-10-30 d
 
 Nothing is over its estimate by more than 20% at the line level, so no PLAN task comes before the next scale-up.
 
+### Actuals: OFF re-import of UPC-E and bad-check-digit codes (P4.3, 2026-11-10, dev project)
+
+Full run `83205eb0` on the 2026-11-10 dump (1.53 GB gz, 4,904,675 rows), then `5ca89bdc` on the same dump (0 inserted, 0 updated).
+
+| Measure | Actual | Estimate (D-077, D-078) | Note |
+|---|---:|---:|---|
+| Kept by the filter | 93,411 | — | 359 bad-code rows dropped as duplicates of a kept product (est. 462 on the old dump) |
+| New rows with a bad check digit (`gtin` null) | 1,599 | ~1,883 − duplicates | ✅ |
+| New UPC-E rows with a GTIN | 609, plus 28 to `product_sources` | 633 | ✅ |
+| Stored 8-digit rows rewritten | 373 to UPC-A, 228 lost a restricted GTIN, 7 merged | 382 / 226 | ✅ (2 UPC-E codes expand to a restricted UPC-A) |
+| `products` (with trigram) | **74.1 MB**, 93,395 rows (793 B/row) | 73.8 MB at 95k rows (§3) | +0.4% on the line, +1% per row; after `vacuum (analyze)` |
+| `product_sources` | 96 KB, 38 OFF rows | 3.5 MB | ✅ |
+| Whole DB | 115.5 MB | alarm 400 MB | ✅ (+2.5 MB since the review) |
+
 ### Actuals: OFF daily deltas (P3.7, 2026-10-30, dev project)
 
 First delta run over the 13 files listed (2026-10-17 → 2026-10-30): 104,412 changed products scanned worldwide, 2,584 Canadian ones kept (~200 a day), 2,444 valid.

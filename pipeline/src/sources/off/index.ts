@@ -15,6 +15,7 @@ import type { FetchResult, ParseResult, RawPayload, Source, SourceRunContext } f
 import {
   type FilterCounts,
   type OffRow,
+  createBadCodeGate,
   createRowFilter,
   emptyFilterCounts,
   parseExtract,
@@ -49,26 +50,39 @@ export interface OffSourceOptions {
 interface RowFeed {
   /** `peek` (default true) reads one row ahead, so the last batch says it is the last. */
   take(n: number, peek?: boolean): Promise<{ rows: OffRow[]; done: boolean }>;
+  /** The held bad-code rows of a stream that is closed before its end (a sample). */
+  release(): OffRow[];
   close(): Promise<void>;
 }
 
-/** The filtered rows of a line stream. `lines` is read lazily and closed on `close`. */
+/**
+ * The filtered rows of a line stream. `lines` is read lazily and closed on `close`. Rows whose
+ * code fails its check digit come last, once the stream has ended, without the duplicates.
+ */
 function feedOf(lines: AsyncGenerator<string>, counts: FilterCounts): RowFeed {
   let keep: ((line: string) => OffRow | null) | null = null;
   let done = false;
   let ahead: OffRow | null = null;
+  let ended = false;
+  let tail: OffRow[] | null = null;
+  const gate = createBadCodeGate(counts);
 
   const next = async (): Promise<OffRow | null> => {
-    for (;;) {
+    while (!ended) {
       const r = await lines.next();
-      if (r.done) return null;
+      if (r.done) {
+        ended = true;
+        break;
+      }
       if (!keep) {
         keep = createRowFilter(r.value, counts);
         continue;
       }
       const row = keep(r.value);
-      if (row) return row;
+      if (row && gate.admit(row)) return row;
     }
+    tail ??= gate.release();
+    return tail.shift() ?? null;
   };
 
   return {
@@ -87,6 +101,7 @@ function feedOf(lines: AsyncGenerator<string>, counts: FilterCounts): RowFeed {
       }
       return { rows, done };
     },
+    release: () => gate.release(),
     async close() {
       await lines.return(undefined);
     },
@@ -101,7 +116,8 @@ function filterEvent(counts: FilterCounts) {
     message:
       `Scanned ${counts.scanned} rows, kept ${counts.kept}. Dropped: ${d.malformed} malformed, ` +
       `${d.not_canada} not sold in Canada, ${d.no_name} without a name, ` +
-      `${d.no_brand_or_category} without a brand or category.`,
+      `${d.no_brand_or_category} without a brand or category, ${d.bad_code_duplicate} with a bad ` +
+      `check digit that duplicate a kept product.`,
     details: { scanned: counts.scanned, kept: counts.kept, dropped: { ...d } },
   };
 }
@@ -120,7 +136,8 @@ function deltaEvent(file: DeltaFile, counts: FilterCounts, index: DeltaIndexSumm
     message:
       `${file.name}: scanned ${counts.scanned}, kept ${counts.kept}. Dropped: ${d.malformed} ` +
       `malformed, ${d.not_canada} not sold in Canada, ${d.no_name} without a name, ` +
-      `${d.no_brand_or_category} without a brand or category.`,
+      `${d.no_brand_or_category} without a brand or category, ${d.bad_code_duplicate} with a ` +
+      `bad check digit that duplicate a kept product.`,
     details: {
       file: file.name,
       window: [new Date(file.from * 1000).toISOString(), new Date(file.to * 1000).toISOString()],
@@ -145,18 +162,24 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
   let deltaIndex: DeltaIndexSummary | null = null;
   let held: { rows: OffRow[]; fetchedAt: string; counts: FilterCounts } | null = null;
 
-  /** A sample reads only as far as it needs; the stream is closed before anything is written. */
+  /**
+   * A sample reads only as far as it needs; the stream is closed before anything is written. The
+   * bad-code rows read on the way come last, in place of the last good rows, so it stays N rows.
+   */
   async function openSample(ctx: SourceRunContext, size: number): Promise<RowFeed> {
     dump = { url: csvUrl, sha256: null, fetchedAt: new Date().toISOString() };
     const lines = openLines(csvUrl, isUrl ? { http: ctx.http } : {});
     const streamed = feedOf(lines, counts);
     try {
-      const { rows } = await streamed.take(size, false);
+      const { rows: good } = await streamed.take(size, false);
+      const bad = streamed.release().slice(0, size);
+      const rows = [...good.slice(0, size - bad.length), ...bad];
       return {
         take: async (n) => {
           const part = rows.splice(0, n);
           return { rows: part, done: rows.length === 0 };
         },
+        release: () => [],
         close: async () => {},
       };
     } finally {
@@ -200,12 +223,15 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
     if (chunk === 0) {
       const counts = emptyFilterCounts();
       const keep = createDeltaFilter(counts);
+      // A delta checks bad codes against its own file only; the next full run drops the rest.
+      const gate = createBadCodeGate(counts);
       const fetchedAt = new Date().toISOString();
       const rows: OffRow[] = [];
       for await (const line of openLines(file.url, { http: ctx.http, gzip: true })) {
         const row = keep(line);
-        if (row) rows.push(row);
+        if (row && gate.admit(row)) rows.push(row);
       }
+      rows.push(...gate.release());
       held = { rows, fetchedAt, counts };
     }
     if (!held) throw new Error('off: delta extract read out of order');

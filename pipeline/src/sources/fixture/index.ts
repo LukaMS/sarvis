@@ -5,7 +5,7 @@
 import { type RecordInputOf, cleanText, slugify } from '@sarvis/core';
 
 import { SourceResponseError } from '../../errors.ts';
-import { offGtin } from '../off/map.ts';
+import { gtinOrBadCode } from '../off/map.ts';
 import type { FetchResult, ParseResult, RawPayload, Source } from '../source.ts';
 import type { OffProduct } from './data.ts';
 import { type FixtureServer, type FixtureServerOptions, startFixtureServer } from './server.ts';
@@ -43,7 +43,7 @@ export function toProductRecord(p: OffProduct, raw: RawPayload): RecordInputOf<'
   const unit = UNITS[String(p.product_quantity_unit ?? '').toLowerCase()];
   const sized = unit !== undefined && quantity > 0;
   return {
-    gtin: offGtin(p.code),
+    gtin: gtinOrBadCode(p.code),
     external_id: p.code,
     // Blank stays null, so validation reports a missing name as required_field.
     name: cleanText(p.product_name) as string,

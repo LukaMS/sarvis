@@ -112,13 +112,25 @@ describe('OFF delta records', () => {
     expect(one.counts).toEqual({
       scanned: 8,
       kept: 4,
-      dropped: { malformed: 1, not_canada: 1, no_name: 1, no_brand_or_category: 1 },
+      dropped: {
+        malformed: 1,
+        not_canada: 1,
+        no_name: 1,
+        no_brand_or_category: 1,
+        bad_code_duplicate: 0,
+      },
     });
     const two = keptRows(2);
     expect(two.counts).toEqual({
       scanned: 7,
       kept: 4,
-      dropped: { malformed: 0, not_canada: 1, no_name: 1, no_brand_or_category: 1 },
+      dropped: {
+        malformed: 0,
+        not_canada: 1,
+        no_name: 1,
+        no_brand_or_category: 1,
+        bad_code_duplicate: 0,
+      },
     });
   });
 
@@ -137,7 +149,7 @@ describe('OFF delta records', () => {
       unit_parse_status: 'ok',
       image_key: '007/680/801/1159/front_en.8.400.jpg',
       source_url: null,
-      method_version: 'off@1.0.1',
+      method_version: 'off@1.1.0',
     });
   });
 

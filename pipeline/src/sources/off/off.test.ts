@@ -2,7 +2,9 @@
 // rows, with every column the source doesn't read blanked (no contributor names, D-012). The
 // slice has one non-Canadian row, one truncated line, one Canadian row without a name, one with
 // neither a brand nor a category, and six that pass. No network.
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { validateBatch } from '@sarvis/core';
@@ -17,14 +19,16 @@ import type { SourceRow } from '../source.ts';
 import {
   EXTRACT_COLUMNS,
   type OffRow,
+  createBadCodeGate,
   createRowFilter,
+  duplicateKey,
   emptyFilterCounts,
   headerIndex,
   parseExtract,
   toExtract,
 } from './csv.ts';
 import { createOffSource } from './index.ts';
-import { imageKeyOf, sizeOf, toProductRecord } from './map.ts';
+import { hasBadCheckDigit, imageKeyOf, offGtin, sizeOf, toProductRecord } from './map.ts';
 
 const FIXTURE = fileURLToPath(new URL('./fixture.products.tsv', import.meta.url));
 const FETCHED_AT = '2026-10-30T12:00:00.000Z';
@@ -45,7 +49,13 @@ describe('OFF CSV filter', () => {
     expect(counts).toEqual({
       scanned: 10,
       kept: 6,
-      dropped: { malformed: 1, not_canada: 1, no_name: 1, no_brand_or_category: 1 },
+      dropped: {
+        malformed: 1,
+        not_canada: 1,
+        no_name: 1,
+        no_brand_or_category: 1,
+        bad_code_duplicate: 0,
+      },
     });
     expect(rows.map((r) => r.code)).toEqual([
       '0008577002786',
@@ -77,6 +87,66 @@ describe('OFF CSV filter', () => {
     expect(extract.split('\n')[0]).toBe(EXTRACT_COLUMNS.join('\t'));
     expect(parseExtract(extract)).toEqual(rows);
     expect(parseExtract(toExtract([]))).toEqual([]);
+  });
+});
+
+/** The fixture with two copies of real rows under codes that fail their check digit, read first. */
+function badCodeFixture(): string {
+  const [header = '', ...lines] = readFileSync(FIXTURE, 'utf8').split('\n');
+  const copy = (code: string, as: string, edit = (l: string) => l) => {
+    const line = lines.find((l) => l.startsWith(`${code}\t`) && l.split('\t').length > 200);
+    return edit((line ?? '').replace(`${code}\t`, `${as}\t`));
+  };
+  const extra = [
+    // The maple syrup again: a duplicate of a kept product, so it's dropped.
+    copy('0008577002786', '0008577002787'),
+    // Another vanilla: a new product, kept without a GTIN.
+    copy('0011110020758', '0011110020759', (l) =>
+      l.replace('Imitation vanilla flavor', 'Pure vanilla extract'),
+    ),
+  ];
+  const path = join(mkdtempSync(join(tmpdir(), 'off-bad-code-')), 'products.tsv');
+  writeFileSync(path, [header, ...extra, ...lines].join('\n'));
+  return path;
+}
+
+describe('OFF codes', () => {
+  it('reads UPC-E as its UPC-A, and keeps no GTIN for restricted or bad codes (D-077, D-078)', () => {
+    expect(offGtin('04139344')).toBe('00041390000034');
+    expect(offGtin('0008577002786')).toBe('00008577002786');
+    expect(offGtin('0008577002787')).toBeNull();
+    expect(hasBadCheckDigit('0008577002787')).toBe(true);
+    expect(offGtin('2012345000001')).toBeNull();
+    expect(hasBadCheckDigit('2012345000001')).toBe(false);
+    expect(hasBadCheckDigit('4011')).toBe(false);
+  });
+
+  it('holds bad-code rows to the end and drops those that duplicate a kept row', () => {
+    const { rows } = fixtureRows();
+    const counts = { ...emptyFilterCounts(), kept: rows.length + 3 };
+    const gate = createBadCodeGate(counts);
+    const bad = (row: OffRow, code: string, name = row.product_name) => ({
+      ...row,
+      code,
+      product_name: name,
+    });
+    const maple = rows[0]!;
+    const held = [
+      // Same name and first brand once accents, case and spacing are folded.
+      bad(maple, '0008577002787', `  ${maple.product_name.toUpperCase()} `),
+      bad(maple, '0008577002788', 'Maple Syrup Amber'),
+      bad(maple, '0008577002789', 'Maple Syrup Amber'),
+    ];
+    expect(gate.admit(held[0]!)).toBeNull();
+    for (const row of rows) expect(gate.admit(row)).toBe(row);
+    expect(gate.admit(held[1]!)).toBeNull();
+    expect(gate.admit(held[2]!)).toBeNull();
+    expect(gate.release().map((r) => r.code)).toEqual(['0008577002788']);
+    expect(gate.release()).toEqual([]);
+    expect(counts.kept).toBe(rows.length + 1);
+    expect(counts.dropped.bad_code_duplicate).toBe(2);
+    expect(duplicateKey(held[0]!)).toBe(duplicateKey(maple));
+    expect(duplicateKey({ ...maple, brands: 'Other' })).not.toBe(duplicateKey(maple));
   });
 });
 
@@ -145,7 +215,7 @@ describe('OFF mapping', () => {
       source_url: null,
       fetched_at: FETCHED_AT,
       method: 'import',
-      method_version: 'off@1.0.1',
+      method_version: 'off@1.1.0',
     });
   });
 
@@ -222,9 +292,53 @@ describe('OFF source through the driver', () => {
     expect(filter.at(-1)?.details).toMatchObject({
       scanned: 10,
       kept: 6,
-      dropped: { malformed: 1, not_canada: 1, no_name: 1, no_brand_or_category: 1 },
+      dropped: {
+        malformed: 1,
+        not_canada: 1,
+        no_name: 1,
+        no_brand_or_category: 1,
+        bad_code_duplicate: 0,
+      },
     });
     expect(store.runs[0]?.dump_url).toBe(FIXTURE);
+  });
+
+  it('writes bad-code rows last, without a GTIN, and drops the duplicates', async () => {
+    const source = createOffSource({ csvUrl: badCodeFixture(), extractSize: 4 });
+    const store = createMemoryRunStore({ sources: [SOURCE_ROW] });
+    const written: { external_id: string; gtin: string | null; name: string }[] = [];
+    const result = await runSource(
+      source,
+      { mode: 'full', sampleSize: null, trigger: 'cli' },
+      {
+        store,
+        writer: {
+          async upsert(records) {
+            written.push(...(records as typeof written));
+            return { inserted: records.length, updated: 0, unchanged: 0, skipped_locked: 0 };
+          },
+          deactivateUnseen: async () => 0,
+        },
+        raw: () => ({ store: async (seq) => ({ id: `raw-${seq}` }) }),
+        http: createHttpClient({ cache: null, log: silent }),
+        contactEmail: 'test@example.org',
+        log: silent,
+      },
+    );
+    expect(result.status).toBe('completed');
+    expect(result.counts).toMatchObject({ fetched: 7, valid: 7, invalid: 0 });
+    expect(written.at(-1)).toMatchObject({
+      external_id: '0011110020759',
+      gtin: null,
+      name: 'Pure vanilla extract',
+    });
+    expect(written.map((r) => r.external_id)).not.toContain('0008577002787');
+    const filter = store.events.filter((e) => e.event_type === 'off_filter');
+    expect(filter.at(-1)?.details).toMatchObject({
+      scanned: 12,
+      kept: 7,
+      dropped: { bad_code_duplicate: 1 },
+    });
   });
 
   it('a sample stops reading once it has enough rows', async () => {

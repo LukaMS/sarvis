@@ -413,6 +413,16 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-081 OFF bad codes, and two codes for one GTIN in one source — Accepted (P4.3, `off@1.1.0`)
+- **Bad check digits:** `offGtin` gives null for them, so the row is kept on `external_id`, like a restricted code (D-077). Open Prices and the fixture source keep reporting them as `gtin_check_digit` (`gtinOrBadCode`), since a price can't be kept without a product.
+- **Duplicates of bad-code rows** are decided at fetch time, so parse stays pure: a gate holds every bad-code row until its stream ends, then drops those whose normalized name + first brand (`normalizeMatchText`) a kept row has, first one wins. Dropped rows never reach the extract and are counted as `bad_code_duplicate` in the filter event. A sample puts its bad-code rows in place of its last good rows, so it stays N rows. A delta checks against its own file only; a duplicate it lets in isn't in the next full run's extract, so that run discontinues it.
+- **Two codes, one GTIN, one source** (a UPC-E and its UPC-A): the row that holds the GTIN keeps it, and the other record goes to `product_sources`, as for another source's record. Within one batch, the first record to name a new GTIN writes it. The product duplicate key is now the source record only (`src:…`), not the GTIN, so validation no longer drops the second code.
+- **A row the second code had before** (7 UPC-E rows stored under their EAN-8 reading) is set `status = merged`, `merged_into_id` = the holder, `gtin` null. A locked `status` or `gtin` is reported instead. This is an exact-GTIN rule, not the fuzzy merging Phase 4 leaves out.
+- **Deactivation clears a GTIN a later rule restricts,** so discontinuing such a row can't fail the `products` check.
+- **Hand check of the 35:** all have the manufacturer's own prefix. 33 are the same item. 2 are the same brand but a different variant (Cracker Barrel 06852225 "Pizza Mozzarella" vs "Fromage marbré léger"; Sprite 06746102 vs "Zero Sugar"), which is a labelling error on one OFF entry, not an in-store code. Left as is.
+- **Not changed:** `product_sources` has no `ingestion_run_id`, and a merge doesn't touch the merged row's run columns.
+**Why:** a product found by search beats a missing one, and a UPC-E and its UPC-A are one item, so neither should overwrite the other or fail validation.
+
 ## D-080 Review outcomes: what "alternatives" means, plan order, and eight owner answers — Accepted by owner (2026-11-10)
 
 The independent review (`docs/REVIEW.md`) ended with eight questions. The owner took the recommended answer to each and delegated the remaining judgment calls. The first list is the owner's answers. The second is what I decided under that delegation, so it can be overruled.

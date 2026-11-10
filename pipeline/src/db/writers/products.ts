@@ -1,7 +1,8 @@
 // Products and product identifiers (DATA_MODEL §3.3). A product keys on its GTIN, then on
-// (source_id, external_id). When the GTIN already belongs to another source's product, that
-// product is left as it is and this source's record goes to product_sources instead.
-import type { ProductRecord, TablesInsert } from '@sarvis/core';
+// (source_id, external_id). When the GTIN already belongs to another record's product, from
+// another source or from another external_id of this one, that product is left as it is and the
+// record goes to product_sources instead.
+import { type ProductRecord, type TablesInsert, gtinIsRestricted } from '@sarvis/core';
 
 import { CatalogError } from '../../errors.ts';
 import { byteaHash, roundTo } from '../change.ts';
@@ -13,7 +14,7 @@ import {
   mergeWriteResults,
   upsertKeyed,
 } from '../keyed.ts';
-import { type AnyRow, selectIn, updateMany } from '../query.ts';
+import { type AnyRow, selectIn, updateById, updateMany } from '../query.ts';
 import type { RefResolver } from '../refs.ts';
 import {
   type DomainWriter,
@@ -177,7 +178,9 @@ export const MAX_DEACTIVATION_SHARE = 0.1;
  * Discontinues the source's active products whose external_id the run didn't see. Products are
  * never deleted, rows with `status` locked are left alone, and the cleared content_hash makes the
  * next sighting rewrite the row, which brings it back to `active`. Products this source only
- * contributes to (product_sources) belong to another source and aren't touched.
+ * contributes to (product_sources) belong to another source and aren't touched. A GTIN that a
+ * later rule restricts (an EAN-8 with prefix 0 or 2, D-078) would fail the `products` check, so
+ * it's cleared with the status.
  */
 export async function deactivateUnseenProducts(
   db: ServiceClient,
@@ -188,7 +191,7 @@ export async function deactivateUnseenProducts(
   const active = await selectIn(
     db,
     'products',
-    'id, external_id, locked_fields',
+    'id, gtin, external_id, locked_fields',
     'source_id',
     [sourceId],
     (q) => q.eq('status', 'active'),
@@ -207,13 +210,76 @@ export async function deactivateUnseenProducts(
       { alert: true },
     );
   }
+  const restricted = (r: AnyRow) => typeof r.gtin === 'string' && gtinIsRestricted(r.gtin);
+  const patch = { status: 'discontinued', content_hash: null };
   await updateMany(
     db,
     'products',
-    gone.map((r) => r.id as string),
-    { status: 'discontinued', content_hash: null },
+    gone.filter((r) => !restricted(r)).map((r) => r.id as string),
+    patch,
+  );
+  await updateMany(
+    db,
+    'products',
+    gone.filter(restricted).map((r) => r.id as string),
+    { ...patch, gtin: null },
   );
   return gone.length;
+}
+
+function secondaryOf(p: ProductPayload, productId: string): SecondaryPayload {
+  return {
+    product_id: productId,
+    source_id: p.source_id,
+    external_id: p.external_id,
+    source_url: p.source_url ?? null,
+    fetched_at: p.fetched_at,
+    last_seen_at: p.fetched_at,
+    content_hash: byteaHash(p),
+    method: p.method,
+    method_version: p.method_version,
+  };
+}
+
+/**
+ * A record that now goes to product_sources may still have its own product row from before its
+ * code normalized to the holder's GTIN (a UPC-E stored as EAN-8). That row is merged into the
+ * holder and loses its GTIN, so one item has one product (D-081). A merged or rejected row is
+ * left alone, and one whose `status` or `gtin` is locked is reported instead.
+ */
+export async function mergeSuperseded(
+  db: ServiceClient,
+  secondary: readonly SecondaryPayload[],
+): Promise<WriteResult> {
+  const result = emptyWriteResult();
+  const target = new Map(secondary.map((s) => [`${s.source_id}:${s.external_id}`, s.product_id]));
+  const stored = await selectIn(
+    db,
+    'products',
+    'id, source_id, external_id, status, locked_fields',
+    'external_id',
+    secondary.map((s) => s.external_id),
+  );
+  const updates: { id: string; patch: AnyRow; label: string }[] = [];
+  for (const row of stored) {
+    const into = target.get(`${row.source_id as string}:${row.external_id as string}`);
+    if (!into || into === row.id || productSpec.frozen?.(row)) continue;
+    const label = `src:${row.external_id as string}`;
+    const locked = (row.locked_fields as string[] | null) ?? [];
+    if (locked.includes('status') || locked.includes('gtin')) {
+      result.rejected.push({ key: label, message: `Superseded by product ${into}, but locked.` });
+      continue;
+    }
+    updates.push({
+      id: row.id as string,
+      patch: { status: 'merged', merged_into_id: into, gtin: null, content_hash: null },
+      label,
+    });
+  }
+  const failed = await updateById(db, 'products', updates);
+  result.updated += updates.length - failed.length;
+  for (const e of failed) result.rejected.push({ key: e.row.label, message: e.message });
+  return result;
 }
 
 export function productWriter(db: ServiceClient): DomainWriter<'product'> {
@@ -222,43 +288,53 @@ export function productWriter(db: ServiceClient): DomainWriter<'product'> {
     async upsert(records, ctx) {
       const { payloads, rejected, notes, refs } = await productPayloads(db, records, ctx);
 
-      // A GTIN already held by another source's product: record this source beside it.
+      // A GTIN already held by another record's product: record this one beside it. Within one
+      // source that's two codes for one item, such as a UPC-E and its UPC-A (D-081).
       const byGtin = await selectIn(
         db,
         'products',
-        'id, gtin, source_id',
+        'id, gtin, source_id, external_id',
         'gtin',
         payloads.map((p) => p.gtin),
       );
       const owner = new Map(byGtin.map((r) => [r.gtin as string, r]));
       const own: ProductPayload[] = [];
       const secondary: SecondaryPayload[] = [];
+      // A GTIN that no row holds yet but two records of this batch name: the first one writes it.
+      const claimed = new Map<string, ProductPayload>();
+      const later: { payload: ProductPayload; first: ProductPayload }[] = [];
       for (const p of payloads) {
         const held: AnyRow | undefined = p.gtin ? owner.get(p.gtin) : undefined;
-        if (!held || held.source_id === p.source_id) {
+        const first = p.gtin && !held ? claimed.get(p.gtin) : undefined;
+        if (first) {
+          later.push({ payload: p, first });
+          continue;
+        }
+        if (!held || (held.source_id === p.source_id && held.external_id === p.external_id)) {
+          if (p.gtin && !held) claimed.set(p.gtin, p);
           own.push(p);
           continue;
         }
-        secondary.push({
-          product_id: held.id as string,
-          source_id: p.source_id,
-          external_id: p.external_id,
-          source_url: p.source_url ?? null,
-          fetched_at: p.fetched_at,
-          last_seen_at: p.fetched_at,
-          content_hash: byteaHash(p),
-          method: p.method,
-          method_version: p.method_version,
-        });
+        secondary.push(secondaryOf(p, held.id as string));
       }
 
       const main = await upsertKeyed(db, productSpec, own);
+      // Inserted rows come back as copies, so they're found by source record, not by object.
+      const recordKey = (p: AnyRow) => `${p.source_id as string}:${p.external_id as string}`;
+      const written = new Map(main.rows.map((r) => [recordKey(r.payload), r.id as string]));
+      for (const { payload, first } of later) {
+        const id = written.get(recordKey(first));
+        if (id) secondary.push(secondaryOf(payload, id));
+        else
+          rejected.push({ key: productSpec.label(payload), message: 'Its GTIN was not written.' });
+      }
       // Validated OFF products are approved by rule, not reviewed (D-050, D-054).
       const autoSources = autoSourceIds(refs, 'products');
       await approveAuto(db, 'products', autoApproveIds(main.rows, autoSources, productSpec.frozen));
       await queueNotes(db, productSpec, notes, main);
       const extra = await upsertKeyed(db, productSourceSpec, secondary);
-      const result = mergeWriteResults(main.result, extra.result);
+      const merged = await mergeSuperseded(db, secondary);
+      const result = mergeWriteResults(mergeWriteResults(main.result, extra.result), merged);
       return { ...result, rejected: [...rejected, ...result.rejected] };
     },
   };

@@ -2,6 +2,41 @@
 
 Newest entry first.
 
+## 2026-11-10 — P4.3 OFF: re-import UPC-E and bad-check-digit codes
+
+**What changed** (`off@1.1.0`, D-081)
+- **Bad check digits are kept, without a GTIN.** Search finds them and a scan doesn't. A row is dropped if another kept product has the same normalized name and first brand. The check runs when the rows are fetched (the rows wait until the end of the stream), so a stored extract re-parses to the same records. The filter event reports the drop count.
+- **Two codes for one GTIN in one source** (a UPC-E and its UPC-A): the row that already holds the GTIN keeps it, and the other code goes to `product_sources`. Before, the second code either overwrote the first row or failed validation as a `duplicate`. Products no longer use the GTIN as a duplicate key. The old row of such a code is merged into the holder (7 rows).
+- Deactivation clears a GTIN that a later rule restricts, so discontinuing that row can't fail the `products` check.
+- Open Prices and the fixture source still report bad codes as `gtin_check_digit` (`gtinOrBadCode`).
+- Docs: DATA_MODEL §1.4 and `product_sources`, a new BUDGET actuals section.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 625 passed, 1 skipped. `check:writers` 8 of 8, with the new collision case: a moved code, a new code, and two codes in one batch, written twice. `check:gtin` 5 of 5. Pipeline e2e 1 of 1.
+- `--sample 5000 --dry-run`: 5,000 valid, 0 invalid. (The first try caught the Heinz UPC-E and UPC-A codes in one extract failing as `duplicate`, which led to the key change.)
+- Full run `83205eb0` on the 2026-11-10 dump: 93,411 kept, valid 93,411, invalid 0 (was 2,516). 2,758 inserted, 1,345 updated (7 of them merges), 89,315 unchanged, 2 discontinued (a cat food and a Molisana pasta that left the Canadian set). 359 bad-code duplicates dropped.
+- Run `5ca89bdc` on the same dump (cache revalidated): **0 inserted, 0 updated**, 93,411 unchanged.
+- **Before → after (OFF rows):** 90,659 → 93,382 products. GTINs 83,645 → 84,448. Null GTINs 7,014 → 8,934. `gtin_is_restricted` 608 → **0**. OFF `product_sources` 3 → 38.
+- Inserted: 1,599 bad-code rows, 609 UPC-E rows, 514 other products new since 2026-10-30 (85 with no GTIN). Updated stored 8-digit rows: 373 moved to UPC-A, 228 lost a restricted GTIN.
+- **Examples** (code → GTIN):
+  - Moved to UPC-A: `08867827` → `00088200006787` Monster Energy; `05161454` → `00051614000054` Leclerc vital; `05964253` → `00059642000053` Dubble Bubble; `06827618` → `00068100002768` McDonald's Big Mac Sauce; `00776363` → `00007763000063` Trader Joe's Aglio Olio.
+  - Lost a restricted GTIN: `03830116` PC Gruau instantané; `02275949` Kirkland butter cream cake; `05700103` Heinz Yellow Mustard; `06431440` Real Canadian Superstore praline peanuts; `00030403` Purdys dark chocolate.
+  - New, bad code, no GTIN: `09000530` goodfood Margarine; `0028684050216` Canfisco smoked sockeye; `0628123558837` we cook fajita chicken; `0006810004715` Kraft Russian Dressing; `0623110120366` Banquet Gourmet feijoada mix.
+  - New UPC-E: `06849328` → `00068200004938` Cracker Barrel; `06887416` → `00068100008746` Cracker Barrel Swiss; `06364637` → `00063600000467` Irrésistibles cocktail sauce; `07816806` → `00078000001686` Canada Dry; `06211518` → `00062100001158` Vrai ginger ale.
+  - Merged: `06221010` → `0062100002100` Canada Dry; `05522149` → `0055220000019` Knorr; `05730704` → `0057000003074` Heinz Chili Sauce; `06793401` → `0067000009341` Fresca; `06782900` → `0067000008290` Coca-Cola.
+- **Scan check:** `04139344` and `041390000034` reach the same Kikkoman row. `05514100` and `055000001410` reach Häagen-Dazs. `05730704` and `057000003074` reach the Heinz holder.
+- **The 35 collisions, checked by hand** against each code's own OFF name: every holder carries the manufacturer's prefix (Knorr, Heinz, Nestlé, Wrigley, Kellogg's, Pepsi…). 33 are the same item. 2 are the same brand with a different variant: Cracker Barrel `06852225` "Pizza Mozzarella" vs "Fromage marbré léger", and Sprite `06746102` vs "Zero Sugar". That's a labelling error on one OFF entry, not an in-store code, so both stay as they are.
+- **Open Prices:** re-matching the last full run's 692 prices against the catalog, 6 more now resolve (unmatched 92 → 86; 8-digit codes found 4 → 10 of 19). P4.22 already re-runs Open Prices, so no new task.
+- **Budget:** `products` 71.2 → 74.1 MB at 93,395 rows (793 B/row, measured 784 before). The §3 line is 73.8 MB at 95k rows, so it's +0.4%, inside the 20% line. Dead tuples 4,092 → 0 after `vacuum (analyze)`. Whole DB 115.5 MB.
+
+**For the owner**
+- Nothing to decide. The OFF update window problem (H-8) is solved: today's full run caught up on everything since 2026-10-30.
+- P4.24 still needs your barcodes and receipt lines, so `/next` skips it.
+
+**Next:** P2.24 Pipeline hardening before anything is scheduled.
+
+---
+
 ## 2026-11-10 — Independent review, and the plan changes it led to (no task ID)
 
 **What happened**

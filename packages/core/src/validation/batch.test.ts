@@ -207,17 +207,14 @@ describe('validateBatch', () => {
       expect(r.stats.valid).toBe(2);
     });
 
-    it('keeps the first and fails later records sharing any stable key', () => {
+    it('keeps the first and fails later records with the same source id', () => {
       const r = validateBatch('product', [
         product(),
-        product({ external_id: 'other-id' }), // same GTIN
+        product({ external_id: 'other-id' }), // same GTIN: the writer files it beside the first
         product({ gtin: null }), // same source id
       ]);
-      expect(r.valid).toHaveLength(1);
-      expect(r.failures.map((f) => [f.index, f.rule])).toEqual([
-        [1, 'duplicate'],
-        [2, 'duplicate'],
-      ]);
+      expect(r.valid).toHaveLength(2);
+      expect(r.failures.map((f) => [f.index, f.rule])).toEqual([[2, 'duplicate']]);
       expect(r.failures[0]?.message).toContain('record 0');
     });
 

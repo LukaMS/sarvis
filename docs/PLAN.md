@@ -1446,7 +1446,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `npm run check:writers --workspace @sarvis/pipeline` passes.
 - ✅ Done 2026-11-05: `check:writers` passes 7 of 7, and the new check fails on the old code (D-079).
 
-### [ ] P4.3 OFF: re-import UPC-E and bad-check-digit codes
+### [x] P4.3 OFF: re-import UPC-E and bad-check-digit codes
 - **Slice:** source-off.
 - **Goal:** recover the rows validation dropped and correct GTINs stored from UPC-E codes.
 - **Deps:** P4.1, P4.2.
@@ -1466,6 +1466,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `select count(*) from products where gtin_is_restricted(gtin)` returns 0 (608 today).
   - The 35 collisions are looked at by hand: a different product under one GTIN means the code was an in-store code, not UPC-E.
   - Budget check.
+- ✅ Done 2026-11-10: full run `83205eb0` (2,758 inserted, 1,345 updated, 0 invalid), run `5ca89bdc` 0 inserted / 0 updated, restricted GTINs 608 → 0, 35 collisions checked, products 74.1 MB (D-081).
 
 ### [ ] P4.24 🟡 Coverage probe: is what the owner buys in the catalog? (added by the review)
 - **Slice:** gold-set.

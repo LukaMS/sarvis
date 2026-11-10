@@ -2,7 +2,10 @@
 // line, no quoting (OFF strips tabs and newlines from values). The source keeps only the columns
 // it parses, for the Canadian rows that pass the import filter (BUDGET §4), and stores those as a
 // smaller TSV extract with the same header names (D-044: split into `seq` files).
+import { normalizeMatchText } from '@sarvis/core';
+
 import { SourceResponseError } from '../../errors.ts';
+import { hasBadCheckDigit } from './map.ts';
 
 /** The columns the source reads, in extract order. Checked against the real header first. */
 export const EXTRACT_COLUMNS = [
@@ -32,6 +35,8 @@ export interface FilterCounts {
     not_canada: number;
     no_name: number;
     no_brand_or_category: number;
+    /** A code with a bad check digit whose name and first brand another kept row has (D-077). */
+    bad_code_duplicate: number;
   };
 }
 
@@ -39,7 +44,13 @@ export function emptyFilterCounts(): FilterCounts {
   return {
     scanned: 0,
     kept: 0,
-    dropped: { malformed: 0, not_canada: 0, no_name: 0, no_brand_or_category: 0 },
+    dropped: {
+      malformed: 0,
+      not_canada: 0,
+      no_name: 0,
+      no_brand_or_category: 0,
+      bad_code_duplicate: 0,
+    },
   };
 }
 
@@ -91,6 +102,49 @@ export function keepRow(row: OffRow, counts: FilterCounts): OffRow | null {
     return row;
   }
   return null;
+}
+
+/** Normalized name + first brand: what makes a bad-code row a duplicate of a kept product. */
+export function duplicateKey(row: OffRow): string {
+  const brand = row.brands.split(',')[0] ?? '';
+  return `${normalizeMatchText(row.product_name)}|${normalizeMatchText(brand)}`;
+}
+
+/**
+ * Holds the kept rows whose code fails its check digit until every other row of the stream has
+ * been read, then releases those whose name and first brand no kept row has (D-077). The first
+ * held row with a key wins over later ones. A drop moves the row from `kept` to
+ * `bad_code_duplicate`, so `kept` stays the number of rows the extracts hold.
+ */
+export function createBadCodeGate(counts: FilterCounts) {
+  const seen = new Set<string>();
+  const held: OffRow[] = [];
+  return {
+    /** The row, to pass on now, or null when it's held for `release`. */
+    admit(row: OffRow): OffRow | null {
+      if (hasBadCheckDigit(row.code.trim())) {
+        held.push(row);
+        return null;
+      }
+      seen.add(duplicateKey(row));
+      return row;
+    },
+    /** The held rows that aren't duplicates, in the order they were read. Empties the hold. */
+    release(): OffRow[] {
+      const out: OffRow[] = [];
+      for (const row of held.splice(0)) {
+        const key = duplicateKey(row);
+        if (seen.has(key)) {
+          counts.kept--;
+          counts.dropped.bad_code_duplicate++;
+          continue;
+        }
+        seen.add(key);
+        out.push(row);
+      }
+      return out;
+    },
+  };
 }
 
 /** The stored extract: the header, then one line per row, columns in EXTRACT_COLUMNS order. */

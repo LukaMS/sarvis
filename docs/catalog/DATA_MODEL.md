@@ -68,7 +68,8 @@ Admin edits to a field that an import also writes add the field name to the row'
 ### 1.4 GTIN rule
 - Digits only. Validate the check digit. Store as **GTIN-14**: UPC-A gets `00` prepended, EAN-13 gets `0`, EAN-8 gets six `0`s.
 - An 8-digit code that is a valid number-system-0 **UPC-E** is expanded to its UPC-A first, even when it's also a valid EAN-8 (D-078). Number system 1 stays EAN-8.
-- A bad check digit is a validation failure; it is never stored as a GTIN.
+- A bad check digit is never stored as a GTIN. For a price it's a validation failure (`gtin_check_digit`). An OFF product with one is kept on `external_id` with `gtin` null, so search finds it and a scan doesn't, unless its normalized name and first brand match another kept product (D-077, D-081).
+- Two codes of one source that normalize to one GTIN (a UPC-E and its UPC-A) are one product: the first record to hold the GTIN keeps the row, and the other goes to `product_sources`. A row the second code had before its code normalized is merged into the holder and loses its GTIN (D-081).
 - Restricted-circulation prefixes are stored in `product_identifiers` with scheme `store_internal` (banner-scoped), not as a GTIN. That covers GS1 prefixes 02 and 20–29 (variable-weight and in-store codes), and EAN-8 prefixes 0 and 2 (RCN-8).
 - PLU codes (4–5 digits) use scheme `plu`.
 - The function lives in `packages/core/src/gtin.ts` (moved forward to P2.10, D-030) and is mirrored as an immutable SQL function for lookups.
@@ -282,7 +283,7 @@ Indexes: `gtin` unique; `(source_id, external_id)` unique; `brand_id`; `category
 
 bigint id · `product_id` · `scheme` (`gtin_alt`, `store_sku`, `store_internal`, `plu`) · `value` text · `banner_id` uuid null (required for `store_sku` / `store_internal`) · +prov. Unique on `(scheme, value, coalesce(banner_id, nil-uuid))`.
 
-**`product_sources`**: only for products with more than one contributing source record (e.g. OFF plus a manual edit, or OFF plus the barcode-lookup fallback). RLS **admin**.
+**`product_sources`**: only for products with more than one contributing source record (e.g. OFF plus a manual edit, OFF plus the barcode-lookup fallback, or two OFF codes for one GTIN, D-081). RLS **admin**.
 
 bigint id · `product_id` · `source_id` · `external_id` · `source_url` · `fetched_at` · `last_seen_at` · `content_hash` · `method` · `method_version`. Unique on `(source_id, external_id)`.
 
