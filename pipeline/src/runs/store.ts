@@ -63,6 +63,11 @@ export interface RunStore {
   /** `counts.fetched` of the source's last clean, full run of this job, for the drop safeguard. */
   previousFullCount(sourceId: string, job: string): Promise<number | null>;
   /**
+   * When the source's newest `completed` full or delta run of this job started, or null. What came
+   * out after that start may not be in it, so `--mode auto` measures the gap from here (P6.1).
+   */
+  lastCaughtUpAt(sourceId: string, job: string): Promise<Date | null>;
+  /**
    * Which of `urls` a `completed` run of this source, job and mode stored as a raw object's
    * `request_url`. A failed, cancelled or errored run's files don't count, so they're fetched again.
    */
@@ -173,6 +178,21 @@ export function createSupabaseRunStore(db: ServiceClient): RunStore {
       if (error) fail('Reading the previous run', error);
       const fetched = (data?.counts as Partial<RunCounts> | undefined)?.fetched;
       return typeof fetched === 'number' ? fetched : null;
+    },
+
+    async lastCaughtUpAt(sourceId, job) {
+      const { data, error } = await db
+        .from('ingestion_runs')
+        .select('started_at')
+        .eq('source_id', sourceId)
+        .eq('job', job)
+        .in('mode', ['full', 'delta'])
+        .eq('status', 'completed')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) fail('Reading the last completed run', error);
+      return data ? new Date(data.started_at) : null;
     },
 
     async storedRequestUrls(sourceId, job, mode, urls) {
@@ -301,6 +321,19 @@ export function createMemoryRunStore(
         .sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
       const fetched = (last?.counts as Partial<RunCounts> | undefined)?.fetched;
       return typeof fetched === 'number' ? fetched : null;
+    },
+
+    async lastCaughtUpAt(sourceId, job) {
+      const last = store.runs
+        .filter(
+          (r) =>
+            r.source_id === sourceId &&
+            r.job === job &&
+            (r.mode === 'full' || r.mode === 'delta') &&
+            r.status === 'completed',
+        )
+        .sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
+      return last ? new Date(last.started_at) : null;
     },
 
     async storedRequestUrls(sourceId, job, mode, urls) {

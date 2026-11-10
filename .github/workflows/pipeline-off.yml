@@ -1,0 +1,100 @@
+# Daily OFF refresh on the dev project (PLAN P6.1, D-084). It also keeps the free-tier project from
+# pausing after 7 idle days, since every run writes its run row.
+#
+# `--mode auto` runs a delta while OFF's 14-day delta index still reaches back to the last clean
+# full or delta run, and a full import once it doesn't (more than 13 days).
+#
+# Never on pull_request or push: forks can't reach the secrets. The logs are public (D-003): the
+# pipeline logger redacts keys and the contact email, and Actions masks every secret as well.
+name: Pipeline OFF
+
+on:
+  schedule:
+    # Daily at 09:17 UTC, after OFF's nightly export and delta file.
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'auto (default), delta or full'
+        type: choice
+        options: [auto, delta, full]
+        default: auto
+      force_failure:
+        description: 'Fail before the run, to test the failure issue (P6.1 verification)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+# Shared with every workflow that writes to the dev project (P6.2), so they queue, not overlap.
+# A queued run waits; it is never cancelled mid-import.
+concurrency:
+  group: dev-db
+  cancel-in-progress: false
+
+jobs:
+  off:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # The HTTP cache only (robots.txt, the delta index, delta files). The OFF export in
+      # .cache/dumps/ is 1.5 GB and changes every night, so caching it saves nothing.
+      - name: Restore the HTTP cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .cache/http
+          key: pipeline-http-${{ github.run_id }}
+          restore-keys: pipeline-http-
+
+      - name: Forced failure
+        if: ${{ inputs.force_failure }}
+        run: |
+          echo "Failing on purpose (force_failure), to test the failure issue."
+          exit 1
+
+      - name: Run OFF
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL }}
+          SUPABASE_DEV_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_DEV_SERVICE_ROLE_KEY }}
+          PIPELINE_CONTACT_EMAIL: ${{ secrets.PIPELINE_CONTACT_EMAIL }}
+          MODE: ${{ inputs.mode || 'auto' }}
+        # Exit 2 (completed with errors) fails the job too, so it opens an issue.
+        run: npm run pipeline -- run off --mode "$MODE"
+
+      - name: Save the HTTP cache
+        if: ${{ always() }}
+        uses: actions/cache/save@v6
+        with:
+          path: .cache/http
+          key: pipeline-http-${{ github.run_id }}
+
+      # One open issue per workflow: a later failure comments on it instead of opening another.
+      # The body holds links only, no log lines.
+      - name: Open or update the failure issue
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVENT: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          title="Pipeline OFF failed"
+          body="The ${EVENT} run at ${SHA} failed: ${RUN_URL}"
+          gh label create pipeline-failure --color B60205 --description "A scheduled pipeline run failed" 2>/dev/null || true
+          existing=$(gh issue list --state open --label pipeline-failure --search "\"${title}\" in:title" --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --label pipeline-failure --body "$body
+
+          Close this issue once it is fixed; the next failure opens a new one."
+          fi

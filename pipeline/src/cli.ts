@@ -5,12 +5,13 @@
 //
 // `--sample N` runs the first N records; `--dry-run` fetches, parses and validates but writes no
 // catalog rows or raw files (the run row and its events are still recorded). Without either, the
-// run is `--mode` (default full). Exit codes: 0 completed, 2 completed with errors, 1 failed or a
-// bad command, 130 cancelled. `export odbl` publishes the ODbL extract (P3.8): exit 0 or 1.
+// run is `--mode` (default full; `auto` picks delta or full, P6.1). Exit codes: 0 completed, 2
+// completed with errors, 1 failed or a bad command, 130 cancelled. `export odbl` publishes the
+// ODbL extract (P3.8): exit 0 or 1.
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import type { RunMode } from '@sarvis/core';
+import type { RunMode, RunTrigger } from '@sarvis/core';
 
 import { type ServiceClient, getServiceClient } from './db/client.ts';
 import { writerFor } from './db/writers/index.ts';
@@ -18,6 +19,7 @@ import { parseContactEmail } from './env.ts';
 import { exportOdbl } from './exports/odbl.ts';
 import { ConfigurationError, classifyError } from './errors.ts';
 import { type Logger, logger as rootLogger } from './log.ts';
+import { chooseAutoMode } from './runs/auto-mode.ts';
 import { type RunResult, runSource, storageRawWriter } from './runs/driver.ts';
 import { createSupabaseRunStore } from './runs/store.ts';
 import { createShutdownController } from './shutdown.ts';
@@ -29,7 +31,9 @@ export const USAGE = `Usage: npm run pipeline -- run <source> [--sample N] [--dr
   --sample N   Run the first N records only (mode sample).
   --dry-run    Fetch, parse and validate, but write no catalog rows or raw files.
                With --sample, a dry run of the first N records.
-  --mode M     full (default) or delta. Not with --sample or --dry-run.
+  --mode M     full (default), delta, or auto. Not with --sample or --dry-run.
+               auto: delta while the source's delta window reaches back to its last
+               completed full or delta run, else full (sources without deltas: full).
   --help       Show this help.
 
   export odbl  Publish the ODbL extract (OFF products, Open Prices stores and prices) to the
@@ -38,7 +42,7 @@ export const USAGE = `Usage: npm run pipeline -- run <source> [--sample N] [--dr
 export type CliCommand =
   | { command: 'help' }
   | { command: 'export'; target: 'odbl' }
-  | { command: 'run'; sourceKey: string; mode: RunMode; sampleSize: number | null };
+  | { command: 'run'; sourceKey: string; mode: RunMode | 'auto'; sampleSize: number | null };
 
 /** Parses argv (without node and the script). Throws ConfigurationError on a bad command. */
 export function parseCliArgs(argv: string[]): CliCommand {
@@ -87,18 +91,18 @@ export function parseCliArgs(argv: string[]): CliCommand {
   }
   const dryRun = values['dry-run'] === true;
   if (values.mode !== undefined) {
-    if (values.mode !== 'full' && values.mode !== 'delta') {
-      throw new ConfigurationError(`--mode must be full or delta, got "${values.mode}".`);
+    if (values.mode !== 'full' && values.mode !== 'delta' && values.mode !== 'auto') {
+      throw new ConfigurationError(`--mode must be full, delta or auto, got "${values.mode}".`);
     }
     if (dryRun || sampleSize !== null) {
       throw new ConfigurationError('--mode cannot be combined with --sample or --dry-run.');
     }
   }
-  const mode: RunMode = dryRun
+  const mode: RunMode | 'auto' = dryRun
     ? 'dry_run'
     : sampleSize !== null
       ? 'sample'
-      : ((values.mode as RunMode | undefined) ?? 'full');
+      : ((values.mode as 'full' | 'delta' | 'auto' | undefined) ?? 'full');
   return { command: 'run', sourceKey, mode, sampleSize };
 }
 
@@ -106,6 +110,14 @@ export function parseCliArgs(argv: string[]): CliCommand {
 function actionsRunUrl(env: NodeJS.ProcessEnv): string | null {
   const { GITHUB_SERVER_URL: server, GITHUB_REPOSITORY: repo, GITHUB_RUN_ID: id } = env;
   return server && repo && id ? `${server}/${repo}/actions/runs/${id}` : null;
+}
+
+/** `ingestion_runs.triggered_by`: the Actions event that started the run, else `cli`. */
+export function runTrigger(env: NodeJS.ProcessEnv): RunTrigger {
+  if (env.GITHUB_ACTIONS !== 'true') return 'cli';
+  if (env.GITHUB_EVENT_NAME === 'schedule') return 'schedule';
+  if (env.GITHUB_EVENT_NAME === 'workflow_dispatch') return 'dispatch';
+  return 'cli';
 }
 
 export interface RunCommandDeps {
@@ -116,36 +128,51 @@ export interface RunCommandDeps {
   log?: Logger;
   /** Overrides `PIPELINE_CONTACT_EMAIL` from the environment (null means unset). */
   contactEmail?: string | null;
+  /** Overrides `process.env` for the trigger, git SHA and Actions URL. */
+  env?: NodeJS.ProcessEnv;
 }
 
 /** One `run` command against the dev project, with the real run store, raw store and writer. */
 export async function runCommand(
   cmd: Extract<CliCommand, { command: 'run' }>,
   deps: RunCommandDeps = {},
-): Promise<RunResult> {
+): Promise<RunResult & { mode: RunMode }> {
   registerAllSources();
   const source = deps.source ?? createSource(cmd.sourceKey);
   const db = deps.db ?? getServiceClient();
-  return runSource(
+  const env = deps.env ?? process.env;
+  const store = createSupabaseRunStore(db);
+  let mode: RunMode;
+  if (cmd.mode === 'auto') {
+    const choice = await chooseAutoMode(source, store);
+    (deps.log ?? rootLogger).info(`--mode auto chose ${choice.mode}.`, {
+      sourceKey: source.key,
+      ...choice,
+    });
+    mode = choice.mode;
+  } else {
+    mode = cmd.mode;
+  }
+  const result = await runSource(
     source,
     {
-      mode: cmd.mode,
+      mode,
       sampleSize: cmd.sampleSize,
-      trigger: 'cli',
-      gitSha: process.env.GITHUB_SHA ?? null,
-      actionsRunUrl: actionsRunUrl(process.env),
+      trigger: runTrigger(env),
+      gitSha: env.GITHUB_SHA ?? null,
+      actionsRunUrl: actionsRunUrl(env),
       signal: deps.signal,
     },
     {
-      store: createSupabaseRunStore(db),
+      store,
       raw: storageRawWriter(db),
       writer: writerFor(db, source.recordKind),
       writerFor: (kind) => writerFor(db, kind),
       log: deps.log,
-      contactEmail:
-        deps.contactEmail === undefined ? parseContactEmail(process.env) : deps.contactEmail,
+      contactEmail: deps.contactEmail === undefined ? parseContactEmail(env) : deps.contactEmail,
     },
   );
+  return { ...result, mode };
 }
 
 const EXIT_CODES: Record<RunResult['status'], number> = {
@@ -198,10 +225,10 @@ export async function main(argv: string[], log: Logger = rootLogger): Promise<nu
   const shutdown = createShutdownController({ log });
   try {
     const result = await runCommand(cmd, { signal: shutdown.signal, log });
-    const { runId, status, counts, expectedTotal, errorSummary } = result;
+    const { runId, status, counts, expectedTotal, errorSummary, mode } = result;
     log.info('pipeline run finished', {
       sourceKey: cmd.sourceKey,
-      mode: cmd.mode,
+      mode,
       runId,
       runStatus: status,
       counts,
@@ -209,7 +236,7 @@ export async function main(argv: string[], log: Logger = rootLogger): Promise<nu
       errorSummary,
     });
     process.stdout.write(
-      `\n${cmd.sourceKey} ${cmd.mode}${cmd.sampleSize ? ` (sample ${cmd.sampleSize})` : ''}: ${status}\n` +
+      `\n${cmd.sourceKey} ${mode}${cmd.mode === 'auto' ? ' (auto)' : ''}${cmd.sampleSize ? ` (sample ${cmd.sampleSize})` : ''}: ${status}\n` +
         Object.entries(counts)
           .map(([k, v]) => `  ${k.padEnd(15)} ${v}`)
           .join('\n') +

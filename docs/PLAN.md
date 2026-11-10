@@ -1515,6 +1515,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - A manual dispatch completes, and its run row shows the Actions URL.
   - A forced failure opens an issue. The public log shows no key, email or row data.
+- ⏳ 2026-11-10: built and tested locally (D-084): `--mode auto`, the workflow, unit and workflow tests, and a live `--mode auto` run on dev. Still open: the three secrets, a push of the workflow to `main`, then a manual dispatch (`gh workflow run pipeline-off.yml`) and a forced-failure dispatch (`-f force_failure=true`).
 
 ### [ ] P6.2 CI runs the dev-database checks (pulled forward by the review; runs here)
 - **Slice:** ci.

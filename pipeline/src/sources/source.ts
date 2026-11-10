@@ -16,6 +16,12 @@ export interface SourceCapabilities {
   /** Supports `mode = 'delta'` (only records changed since the last run). */
   supportsDelta: boolean;
   /**
+   * How many days back a delta run can see (OFF: its index lists the last 14 days). `--mode auto`
+   * runs `full` instead of `delta` once the last clean full or delta run is older than this less a
+   * day, because the files in between are gone from the index (P6.1).
+   */
+  deltaWindowDays?: number;
+  /**
    * A full run sees every record the source has, so records missing from a clean full run may be
    * marked inactive. False for lookups and searches, which only ever see part of the source.
    */

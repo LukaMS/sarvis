@@ -2,6 +2,28 @@
 
 Newest entry first.
 
+## 2026-11-10 — P6.1 Scheduled OFF refresh: built locally, waiting on secrets (not ticked)
+
+**What changed** (D-084)
+- **`--mode auto`** (`pipeline/src/runs/auto-mode.ts`): delta while the last `completed` full or delta run of the job is at most 13 days old (OFF's `deltaWindowDays: 14`, less a day), else full. The CLI logs the choice and reason, and the run row and summary show the chosen mode. `RunStore.lastCaughtUpAt` (Supabase and memory).
+- **`triggered_by`** now comes from the Actions event (`schedule` / `dispatch`), else `cli`.
+- **`.github/workflows/pipeline-off.yml`:** daily 09:17 UTC + `workflow_dispatch` (mode, `force_failure`). No push or PR trigger. `contents: read`, `issues: write`. Concurrency group `dev-db`, never cancelled. Caches `.cache/http` only. A failure opens or comments on one `pipeline-failure` issue, with links only.
+- `pipeline/test/workflow-off.test.ts` guards the triggers, group, permissions and secret wiring. `CLAUDE.md` Commands: new "OFF scheduled refresh" row.
+
+**Verification so far**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 657 passed, 1 skipped (new: 10 auto-mode, 5 trigger, 6 workflow tests).
+- Live on dev: `run off --mode auto` → "chose delta, inside the delta window, gap 0 days" (the full run earlier today counts). Run `b7ce50e0`: delta index 13 files, all already imported, 0 fetched, `completed`, exit 0.
+- Action versions checked against their latest releases (checkout v7, setup-node v7, cache v6).
+- **Not done:** the plan's verification (a manual dispatch with the Actions URL on its run row, and a forced failure that opens an issue). `gh secret list` shows no secrets, and the workflow isn't on GitHub yet (this run doesn't push).
+
+**For the owner**
+- **To finish P6.1:** add the Actions secrets `SUPABASE_DEV_URL`, `SUPABASE_DEV_SERVICE_ROLE_KEY` and `PIPELINE_CONTACT_EMAIL`, then push `main`. Then `gh workflow run pipeline-off.yml` (check the run row's `actions_run_url`) and `gh workflow run pipeline-off.yml -f force_failure=true` (check that an issue opens and the log is clean). P6.2 and P6.3 wait on this.
+- Your automation files (`.claude/settings.json`, `.gitignore`, `.claude/commands/auto-next.md`, `run-tasks.ps1`) are left uncommitted on purpose. They aren't task work. `settings.json` turns on `bypassPermissions` and removes the `.env` read deny, so you should commit that one yourself if you want it. Note that `execute_sql` on `supabase-dev` was still refused in this run.
+
+**Next:** P4.4 Legacy products that hold an OFF GTIN: OFF takes over (P6.2 and P6.3 wait on P6.1).
+
+---
+
 ## 2026-11-10 — P2.24 Pipeline hardening
 
 **What changed** (D-083)

@@ -263,6 +263,8 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
     recordKind: 'product',
     capabilities: {
       supportsDelta: true,
+      // /data/delta/index.txt lists the last 14 days of files.
+      deltaWindowDays: 14,
       // The export holds every product, so one missing from a clean full run left the Canadian set.
       supportsDeactivation: true,
       storeSpecificPricing: false,
