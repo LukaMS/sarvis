@@ -67,7 +67,13 @@ function source(contact?: SourceCapabilities['contact']): Source<'product', numb
     },
     plan: () => [0],
     async fetch(_step, ctx) {
-      const res = await ctx.http.request({ url: `${base}/items`, method: 'POST', body: '{}' });
+      // TTL 0: POST 200s are cached (P2.24), and each test here must reach the server.
+      const res = await ctx.http.request({
+        url: `${base}/items`,
+        method: 'POST',
+        body: '{}',
+        cacheTtlMs: 0,
+      });
       const response: RawInput = {
         url: res.url,
         status: res.status,

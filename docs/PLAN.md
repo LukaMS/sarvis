@@ -1485,7 +1485,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The P4.20 scan for long digit runs and the owner's name and email finds nothing.
   - If fewer than 60% of barcodes are found, add a task for an on-scan lookup through the OFF API (S2, already approved as a lookup fallback).
 
-### [ ] P2.24 Pipeline hardening before anything is scheduled (added by the review; runs here)
+### [x] P2.24 Pipeline hardening before anything is scheduled (added by the review; runs here)
 - **Slice:** pipeline-runs.
 - **Goal:** scheduled and manual runs can't collide, and a network blip doesn't kill a long run (review M-4, M-7).
 - **Deps:** P4.3.
@@ -1499,6 +1499,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - Unit tests: a second run of one source is refused; a 503 from the database is retried and succeeds; a repeated POST is served from the cache.
   - `check:writers` and the pipeline e2e pass. Advisors are clean.
+- ✅ Done 2026-11-10: unit tests for all three, a live lock check on dev, `check:writers` 8 of 8, pipeline e2e passes, advisors unchanged (D-083).
 
 ### [ ] P6.1 🟡 Scheduled keep-alive and OFF refresh (pulled forward by the review; runs here)
 - **Slice:** ops.

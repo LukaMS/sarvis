@@ -1,7 +1,7 @@
 // The generic run lifecycle every source plugs into (adapted from legacy worker/job-runner.ts and
 // commands/shared.ts). One call = one `ingestion_runs` row:
 //
-//   check source → sweep stale runs → create run → verifyContext → plan
+//   check source → sweep the source's stale runs → create run (refused if one is running) → verifyContext → plan
 //   → per step: fetch → store raw → parse → validate → safeguards → upsert
 //   → run-level safeguards → expected total → final status → conservative deactivation
 //
@@ -28,6 +28,7 @@ import {
   CancelledError,
   ConfigurationError,
   DatabaseError,
+  RunLockedError,
   SourceBlockedError,
   classifyError,
 } from '../errors.ts';
@@ -225,20 +226,36 @@ export async function runSource<K extends RecordKind>(
   const signal = opts.signal ?? new AbortController().signal;
   const dryRun = isDryRun(opts.mode);
   const started = now();
+  // Only this source's stale runs: another source's run is its own driver's business (P2.24).
   const sweptStaleRuns = await store.sweepStaleRuns(
+    row.id,
     new Date(started.getTime() - (opts.runTimeoutMs ?? DEFAULT_RUN_TIMEOUT_MS)),
     started,
   );
-  const runId = await store.createRun({
-    source_id: row.id,
-    job: source.job,
-    job_version: source.version,
-    mode: opts.mode,
-    sample_size: sampleSize,
-    triggered_by: opts.trigger,
-    git_sha: opts.gitSha ?? null,
-    actions_run_url: opts.actionsRunUrl ?? null,
-  });
+  let runId: string;
+  try {
+    runId = await store.createRun({
+      source_id: row.id,
+      job: source.job,
+      job_version: source.version,
+      mode: opts.mode,
+      sample_size: sampleSize,
+      triggered_by: opts.trigger,
+      git_sha: opts.gitSha ?? null,
+      actions_run_url: opts.actionsRunUrl ?? null,
+    });
+  } catch (err) {
+    // The run lock: refused before a row exists, so the running run is left alone.
+    if (err instanceof RunLockedError) {
+      throw new RunLockedError({
+        sourceKey: row.key,
+        job: err.job,
+        runningRunId: err.runningRunId,
+        runningSince: err.runningSince,
+      });
+    }
+    throw err;
+  }
   const log = (deps.log ?? rootLogger).child({ sourceKey: row.key, runId });
 
   let eventsWritten = 0;

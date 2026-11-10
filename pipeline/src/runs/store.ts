@@ -1,9 +1,11 @@
 // Run bookkeeping behind an interface, so the driver can be tested against memory and run against
 // Supabase. Every method maps to one table in DATA_MODEL §3.1.
+import { randomUUID } from 'node:crypto';
+
 import type { Json, RunCounts, RunMode, RunStatus, RunTrigger, ValidationRule } from '@sarvis/core';
 
 import type { ServiceClient } from '../db/client.ts';
-import { DatabaseError } from '../errors.ts';
+import { DatabaseError, RunLockedError } from '../errors.ts';
 import type { LogLevel } from '../log.ts';
 import type { SourceRow } from '../sources/source.ts';
 
@@ -48,8 +50,12 @@ export interface FailureRow {
 
 export interface RunStore {
   loadSource(key: string): Promise<SourceRow | null>;
-  /** Marks `running` runs started before `startedBefore` as failed. Returns how many. */
-  sweepStaleRuns(startedBefore: Date, finishedAt: Date): Promise<number>;
+  /** Marks the source's `running` runs started before `startedBefore` as failed. Returns how many. */
+  sweepStaleRuns(sourceId: string, startedBefore: Date, finishedAt: Date): Promise<number>;
+  /**
+   * Creates a `running` run. Throws RunLockedError when the source already has a `running` run of
+   * the same job (the partial unique index `ingestion_runs_one_running_idx`).
+   */
   createRun(run: NewRun): Promise<string>;
   updateRun(id: string, patch: RunPatch): Promise<void>;
   addEvent(event: RunEvent): Promise<void>;
@@ -67,6 +73,8 @@ export interface RunStore {
     urls: string[],
   ): Promise<Set<string>>;
 }
+
+const UNIQUE_VIOLATION = '23505';
 
 export const STALE_SWEEP_SUMMARY = 'Swept at start-up: still running past the run timeout.';
 
@@ -89,7 +97,7 @@ export function createSupabaseRunStore(db: ServiceClient): RunStore {
       return { ...data, verdict: data.verdict as SourceRow['verdict'] };
     },
 
-    async sweepStaleRuns(startedBefore, finishedAt) {
+    async sweepStaleRuns(sourceId, startedBefore, finishedAt) {
       const { data, error } = await db
         .from('ingestion_runs')
         .update({
@@ -97,6 +105,7 @@ export function createSupabaseRunStore(db: ServiceClient): RunStore {
           finished_at: finishedAt.toISOString(),
           error_summary: STALE_SWEEP_SUMMARY,
         })
+        .eq('source_id', sourceId)
         .eq('status', 'running')
         .lt('started_at', startedBefore.toISOString())
         .select('id');
@@ -105,9 +114,29 @@ export function createSupabaseRunStore(db: ServiceClient): RunStore {
     },
 
     async createRun(run) {
-      const { data, error } = await db.from('ingestion_runs').insert(run).select('id').single();
-      if (error) fail('Creating the run', error);
-      return data.id;
+      // The id is chosen here, so an insert the retrying fetch sent twice (the first landed, its
+      // answer was lost) is recognised as this run rather than as a lock held by another (D-083).
+      const id = randomUUID();
+      const { error } = await db.from('ingestion_runs').insert({ ...run, id });
+      if (!error) return id;
+      if (error.code !== UNIQUE_VIOLATION) fail('Creating the run', error);
+
+      const mine = await db.from('ingestion_runs').select('id').eq('id', id).maybeSingle();
+      if (mine.error) fail('Reading the new run', mine.error);
+      if (mine.data) return id;
+      const holder = await db
+        .from('ingestion_runs')
+        .select('id, started_at')
+        .eq('source_id', run.source_id)
+        .eq('job', run.job)
+        .eq('status', 'running')
+        .maybeSingle();
+      if (holder.error) fail('Reading the running run', holder.error);
+      throw new RunLockedError({
+        job: run.job,
+        runningRunId: holder.data?.id,
+        runningSince: holder.data?.started_at,
+      });
     },
 
     async updateRun(id, patch) {
@@ -204,10 +233,14 @@ export function createMemoryRunStore(
       return store.sources.find((s) => s.key === key) ?? null;
     },
 
-    async sweepStaleRuns(startedBefore, finishedAt) {
+    async sweepStaleRuns(sourceId, startedBefore, finishedAt) {
       let n = 0;
       for (const run of store.runs) {
-        if (run.status === 'running' && new Date(run.started_at) < startedBefore) {
+        if (
+          run.source_id === sourceId &&
+          run.status === 'running' &&
+          new Date(run.started_at) < startedBefore
+        ) {
           run.status = 'failed';
           run.finished_at = finishedAt.toISOString();
           run.error_summary = STALE_SWEEP_SUMMARY;
@@ -218,6 +251,16 @@ export function createMemoryRunStore(
     },
 
     async createRun(run) {
+      const holder = store.runs.find(
+        (r) => r.source_id === run.source_id && r.job === run.job && r.status === 'running',
+      );
+      if (holder) {
+        throw new RunLockedError({
+          job: run.job,
+          runningRunId: holder.id,
+          runningSince: holder.started_at,
+        });
+      }
       const id = `run-${nextId++}`;
       store.runs.push({
         ...run,

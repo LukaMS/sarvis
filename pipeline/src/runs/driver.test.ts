@@ -1,8 +1,8 @@
 // The run driver with a fake source and the in-memory run store: no network, no database.
 import type { RecordKind, RecordOf } from '@sarvis/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { SourceBlockedError } from '../errors.ts';
+import { RunLockedError, SourceBlockedError } from '../errors.ts';
 import type { HttpClient } from '../http/client.ts';
 import { createLogger } from '../log.ts';
 import type { RawInput } from '../raw/store.ts';
@@ -243,6 +243,7 @@ describe('runSource: lifecycle', () => {
   });
 
   it('sweeps a stale running run to failed at start, and leaves a recent one', async () => {
+    // The recent run is another job of the source, so the run lock doesn't refuse this start.
     const old: MemoryRun = {
       id: 'old',
       source_id: 'src-1',
@@ -263,12 +264,17 @@ describe('runSource: lifecycle', () => {
     const recent: MemoryRun = {
       ...old,
       id: 'recent',
+      job: 'fixture-other',
       started_at: new Date(Date.now() - 60_000).toISOString(),
     };
-    const { store, deps } = setup({ runs: [old, recent] });
+    // Another source's stale run is its own driver's business (P2.24).
+    const elsewhere: MemoryRun = { ...old, id: 'elsewhere', source_id: 'src-2' };
+    const { store, deps } = setup({ runs: [old, recent, elsewhere] });
     const result = await runSource(fakeSource({ pages: [[good('a')]] }), full, deps);
 
     expect(result.sweptStaleRuns).toBe(1);
+    expect(result.status).toBe('completed');
+    expect(store.runs.find((r) => r.id === 'elsewhere')!.status).toBe('running');
     expect(store.runs.find((r) => r.id === 'old')).toMatchObject({
       status: 'failed',
       error_summary: STALE_SWEEP_SUMMARY,
@@ -276,6 +282,70 @@ describe('runSource: lifecycle', () => {
     expect(store.runs.find((r) => r.id === 'old')!.finished_at).not.toBeNull();
     expect(store.runs.find((r) => r.id === 'recent')!.status).toBe('running');
     expect(store.events.some((e) => e.event_type === 'stale_runs_swept')).toBe(true);
+  });
+
+  it('refuses a second run of a source and job while one is running (P2.24)', async () => {
+    const running: MemoryRun = {
+      id: 'scheduled',
+      source_id: 'src-1',
+      job: 'fixture-import',
+      job_version: '0.0.1',
+      mode: 'delta',
+      sample_size: null,
+      triggered_by: 'schedule',
+      git_sha: null,
+      actions_run_url: null,
+      status: 'running',
+      started_at: new Date(Date.now() - 60_000).toISOString(),
+      finished_at: null,
+      counts: {},
+      expected_total: null,
+      error_summary: null,
+    };
+    const { store, deps, upserted } = setup({ runs: [running] });
+    const run = runSource(fakeSource({ pages: [[good('a')]] }), full, deps);
+    await expect(run).rejects.toThrow(RunLockedError);
+    await expect(runSource(fakeSource({ pages: [[good('a')]] }), full, deps)).rejects.toThrow(
+      /fixture \(fixture-import\) is already running as run scheduled/,
+    );
+    // Nothing was created, written or swept, and the running run is untouched.
+    expect(store.runs).toHaveLength(1);
+    expect(store.runs[0]).toMatchObject({ id: 'scheduled', status: 'running' });
+    expect(store.events).toHaveLength(0);
+    expect(upserted).toHaveLength(0);
+
+    // Once it finishes, the next start goes ahead.
+    running.status = 'completed';
+    const next = await runSource(fakeSource({ pages: [[good('a')]] }), full, deps);
+    expect(next.status).toBe('completed');
+  });
+
+  it('runs one source and job at a time, but two sources side by side', async () => {
+    const { store, deps } = setup({
+      sources: [SOURCE_ROW, { ...SOURCE_ROW, id: 'src-2', key: 'fixture-2' }],
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const slow = fakeSource({ pages: [[good('a')]] });
+    const fetch = slow.fetch.bind(slow);
+    slow.fetch = async (page, ctx) => {
+      await gate;
+      return fetch(page, ctx);
+    };
+    const first = runSource(slow, full, deps);
+    await vi.waitFor(() => expect(store.runs).toHaveLength(1));
+    await expect(runSource(fakeSource({ pages: [[good('b')]] }), full, deps)).rejects.toThrow(
+      RunLockedError,
+    );
+    const other = await runSource(
+      { ...fakeSource({ pages: [[good('c')]] }), key: 'fixture-2' },
+      full,
+      deps,
+    );
+    expect(other.status).toBe('completed');
+    release();
+    expect((await first).status).toBe('completed');
+    expect(store.runs.map((r) => r.status)).toEqual(['completed', 'completed']);
   });
 
   it('stores 50 failures for 60 invalid records, with counts.invalid = 60', async () => {

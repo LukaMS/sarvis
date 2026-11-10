@@ -362,6 +362,37 @@ describe('cache', () => {
     expect(etagHits[1]!.headers['if-none-match']).toBe('"v1"');
   }, 20_000);
 
+  it('serves a repeated POST from the cache, keyed on its body (P2.24)', async () => {
+    routes.set('/sparql', (req, res) => {
+      let body = '';
+      req.on('data', (c: Buffer) => (body += c.toString()));
+      req.on('end', () => {
+        res.writeHead(200, { etag: '"p1"', 'content-type': 'text/plain' }).end(`answer to ${body}`);
+      });
+    });
+    const cache = createDiskCache(join(cacheDir, 'post'));
+    const post = (body: string) =>
+      client({ cache }).request({ url: at('127.0.0.1', '/sparql'), method: 'POST', body });
+    const first = await post('query=a');
+    const second = await post('query=a');
+    const other = await post('query=b');
+    expect(first).toMatchObject({ cache: null, body: 'answer to query=a' });
+    expect(second).toMatchObject({ cache: 'ttl', body: 'answer to query=a' });
+    expect(other).toMatchObject({ cache: null, body: 'answer to query=b' });
+    expect(hitsTo('/sparql')).toHaveLength(2);
+
+    // Past the TTL a POST is fetched again, without validators (a match would mean 412).
+    const expired = await client({ cache, cacheTtlMs: 0 }).request({
+      url: at('127.0.0.1', '/sparql'),
+      method: 'POST',
+      body: 'query=a',
+    });
+    expect(expired.cache).toBeNull();
+    const postHits = hitsTo('/sparql');
+    expect(postHits).toHaveLength(3);
+    expect(postHits[2]!.headers['if-none-match']).toBeUndefined();
+  }, 20_000);
+
   it('does not cache errors', async () => {
     routes.set('/gone', (_req, res) => res.writeHead(404).end());
     const cache = createDiskCache(join(cacheDir, 'errors'));

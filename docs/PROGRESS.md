@@ -2,6 +2,28 @@
 
 Newest entry first.
 
+## 2026-11-10 — P2.24 Pipeline hardening
+
+**What changed** (D-083)
+- **Run lock:** migration `20261110204141_ingestion_runs_run_lock.sql` adds a partial unique index on `ingestion_runs (source_id, job) where status = 'running'`. A second start of the same source and job is refused with `RunLockedError` ("fixture (fixture-import) is already running as run …, started …") before any row is created. The stale sweep now covers only the source being started.
+- **Database retries:** the service client's fetch (`pipeline/src/db/client.ts` `retryingFetch`) retries PostgREST reads and writes on network errors and 5xx, 4 attempts with backoff. postgrest-js's own GET-only retry is off, so the two don't stack. `createRun` picks its own UUID, so a retried insert that had already landed isn't mistaken for a lock.
+- **POST cache:** the HTTP client caches POST 200s (key = method + URL + body). Validators go only on GETs. Wikidata and StatCan re-runs within 12 h are now served from the cache, as the Commands table says.
+- `contact.test.ts` now asks for TTL 0, since its POSTs would otherwise be served from the cache.
+
+**Verification**
+- `npm run typecheck`, `lint`, `format:check` pass. `npm test`: 634 passed, 1 skipped.
+- New unit tests: a second run of one source and job is refused, nothing is written, and the next start after it finishes goes ahead; two sources run side by side; a 503 on an insert is retried and succeeds with the same body; network error + 502 on a read, then success; gives up after 4 attempts; 4xx not retried; storage not retried; abort stops retries; a repeated POST is served from the cache, a different body isn't, and an expired POST is fetched again without `If-None-Match`.
+- Live on dev through the real Supabase store: first run created, the second refused with `RunLockedError`, a new run allowed once the first completed, both rows deleted.
+- `check:writers`: 8 of 8. Pipeline e2e (run twice): passes.
+- Advisors: security shows only the existing leaked-password warning; performance shows only the existing unused-index notices. The index doesn't change the generated types, so they weren't regenerated.
+
+**For the owner**
+- Nothing to decide. A retried write that had already landed can show up as a "valid records were not written" warning (a unique violation) in that run. A re-run is clean. Storage uploads aren't retried yet; that's outside this task.
+
+**Next:** P6.1 Scheduled keep-alive and OFF refresh (needs three GitHub Actions secrets from the owner).
+
+---
+
 ## 2026-11-10 — P4.24 Coverage probe
 
 **What changed** (D-082)

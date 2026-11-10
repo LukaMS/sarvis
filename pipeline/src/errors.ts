@@ -74,6 +74,37 @@ export class SourceBlockedError extends CatalogError {
   }
 }
 
+/**
+ * Another run of the same source and job is still `running` (the run lock, P2.24). Thrown before a
+ * run row is created, so the running run is left alone.
+ */
+export class RunLockedError extends ConfigurationError {
+  readonly job: string;
+  /** The run holding the lock, when it could be read. */
+  readonly runningRunId: string | null;
+  readonly runningSince: string | null;
+
+  constructor(info: {
+    sourceKey?: string;
+    job: string;
+    runningRunId?: string | null;
+    runningSince?: string | null;
+  }) {
+    const what = info.sourceKey ? `${info.sourceKey} (${info.job})` : info.job;
+    const which = info.runningRunId
+      ? ` as run ${info.runningRunId}${info.runningSince ? `, started ${info.runningSince}` : ''}`
+      : '';
+    super(
+      `${what} is already running${which}. Wait for it to finish. A run still marked running ` +
+        'after the 6 h run timeout is swept to failed at the next start.',
+    );
+    this.name = 'RunLockedError';
+    this.job = info.job;
+    this.runningRunId = info.runningRunId ?? null;
+    this.runningSince = info.runningSince ?? null;
+  }
+}
+
 /** robots.txt disallows the path for our User-Agent. Thrown before any request is made. */
 export class RobotsDisallowedError extends CatalogError {
   readonly url: string;

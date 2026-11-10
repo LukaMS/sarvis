@@ -187,7 +187,7 @@ Each table lists its columns, its keys, and its **RLS** level. "+prov" means the
 
 **`ingestion_runs`**: one row per pipeline run. RLS **admin**.
 
-`id` uuid · `source_id` · `job` text (`off-import`) · `job_version` text · `mode` (`full` | `delta` | `sample` | `dry_run`) · `sample_size` int null · `status` (`running` | `completed` | `completed_with_errors` | `failed` | `cancelled`) · `started_at`, `finished_at` · `triggered_by` (`schedule` | `dispatch` | `cli`) · `git_sha` · `actions_run_url` · `counts` jsonb (`fetched`, `valid`, `invalid`, `inserted`, `updated`, `unchanged`, `skipped_locked`) · `expected_total` int null (so capped pagination is caught, per review lesson 3) · `dump_url`, `dump_sha256`, `dump_fetched_at` (bulk sources, D-010) · `error_summary`.
+`id` uuid · `source_id` · `job` text (`off-import`) · `job_version` text · `mode` (`full` | `delta` | `sample` | `dry_run`) · `sample_size` int null · `status` (`running` | `completed` | `completed_with_errors` | `failed` | `cancelled`) · `started_at`, `finished_at` · `triggered_by` (`schedule` | `dispatch` | `cli`) · `git_sha` · `actions_run_url` · `counts` jsonb (`fetched`, `valid`, `invalid`, `inserted`, `updated`, `unchanged`, `skipped_locked`) · `expected_total` int null (so capped pagination is caught, per review lesson 3) · `dump_url`, `dump_sha256`, `dump_fetched_at` (bulk sources, D-010) · `error_summary`. **Run lock:** at most one `running` row per `(source_id, job)` (partial unique index `ingestion_runs_one_running_idx`, D-083).
 
 A run left in `running` past its timeout is marked `failed` by the next run's start-up sweep (replaces legacy heartbeats).
 

@@ -4,7 +4,8 @@
 // - robots.txt, checked before any request to a path;
 // - backoff with jitter on 5xx and network errors;
 // - 403 and 429 stop the source (SourceBlockedError); a 429 honours Retry-After once first;
-// - an on-disk cache with a TTL, revalidated with ETag / Last-Modified.
+// - an on-disk cache with a TTL, revalidated with ETag / Last-Modified. A POST 200 is cached too,
+//   keyed on its body (P2.24): the POST sources (Wikidata SPARQL, StatCan WDS) only read.
 // Large files go through `stream` and `download` (P3.3): the same rules, but the body is never
 // held in memory.
 import { Readable } from 'node:stream';
@@ -363,8 +364,10 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
     }
 
     const headers: Record<string, string> = { ...req.headers, 'user-agent': ua };
-    if (cached?.headers.etag) headers['if-none-match'] = cached.headers.etag;
-    if (cached?.headers['last-modified']) {
+    // Validators only on a GET: a matching If-None-Match on a POST means 412, not 304 (RFC 9110
+    // §13.1.2), so an expired POST entry is simply fetched again.
+    if (method === 'GET' && cached?.headers.etag) headers['if-none-match'] = cached.headers.etag;
+    if (method === 'GET' && cached?.headers['last-modified']) {
       headers['if-modified-since'] = cached.headers['last-modified'];
     }
     const state = { retryAfterUsed: false };
@@ -387,7 +390,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
         fetchedAt: new Date().toISOString(),
         cache: null,
       };
-      if (cache && method === 'GET' && res.status === 200) await cache.set(toEntry(key, out));
+      if (cache && res.status === 200) await cache.set(toEntry(key, out));
       log.debug('http ok', fields);
       return out;
     }, retryOptions(url));
