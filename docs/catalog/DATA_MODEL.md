@@ -85,6 +85,8 @@ Public RLS shows only `approved` rows. `auto` means the row passed a rule writte
 
 Companies, brands and products carry the block too (P2.22, D-050, D-052): users see none of them until approved. Imports never change `review_status` (apart from the D-050 OFF auto-approve); legacy and AI-sourced entities are never auto-approved.
 
+**The one legacy exception (P4.4, D-077, D-085):** when OFF brings a GTIN that a `legacy-import` product holds, and nobody has decided on that row (still `pending`, no reviewer, not merged or rejected, no locked field), OFF takes the row over. The legacy record moves to `product_sources`, the row takes OFF's `source_id`, `external_id` and provenance, every content column is cleared and then written from the OFF record (so no legacy description, brand link or label is left), and the D-050 auto-approve applies. The row's open legacy `review_queue` item is dismissed, and OFF's own `product_sources` row for that code is removed. The row keeps its id, so the legacy `product_features`, `transparency_steps` and product `certifications` still point at it; they stay hidden because each has its own `review_status`. A row an admin reviewed or locked keeps its legacy content, and OFF stays in `product_sources`.
+
 ### 1.6 RLS levels (every table has RLS enabled)
 
 | Level | Read | Write |

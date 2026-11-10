@@ -1535,7 +1535,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/raw/`, `pipeline/src/cli.ts`, the workflow, tests, `CLAUDE.md`.
 - **Verification:** a dry run lists what would go. After a real run, Wikidata keeps its last 3 runs, and the OFF extract is still readable with `readRaw`.
 
-### [ ] P4.4 Legacy products that hold an OFF GTIN: OFF takes over
+### [x] P4.4 Legacy products that hold an OFF GTIN: OFF takes over
 - **Slice:** pipeline-db.
 - **Goal:** the 3 legacy products with an OFF barcode show OFF's data (owner decision, D-077).
 - **Deps:** P4.2.
@@ -1551,6 +1551,17 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A dev-DB check as `anon` with the Supabase client: each of the 3 products reads with OFF's values, and its legacy features and certifications don't.
   - The other 10 legacy products are unchanged and hidden.
   - Re-running changes nothing.
+- ✅ Done 2026-11-10: full OFF run `aef030a6` took over the 3 rows (3 updated), `check:takeover` passes as `anon`, the other 10 legacy rows are byte-identical, and the re-runs (`legacy-import` `68b38bd5`, OFF `34152f6e`) change nothing (D-085).
+
+### [ ] P4.30 OFF deltas apply the bad-code duplicate rule (found in P4.4)
+- **Slice:** source-off.
+- **Goal:** a delta and a full run agree on which bad-check-digit rows are kept, so rows don't flip between active and discontinued.
+- **Deps:** P4.3.
+- **Found:** full run `aef030a6` (same dump as P4.3) discontinued 15 rows, all with `gtin` null and `source_modified_at` from 2026-11-01 to 2026-11-08, such as two "Oven Roasted Turkey Breast" codes (`0063100108734`, `0063100108730`). Deltas inserted them, and the full run drops them as duplicates of a kept product on normalized name + first brand (359 dropped). The delta path doesn't check new bad-code rows against the catalog, so the next delta that lists one revives it.
+- **In:** in delta mode, a bad-code row (no GTIN) is dropped when an active product of the source already has the same normalized name + first brand, and the drop is counted in the `off_filter` event, as in a full run. Check what the D-081 rule does when the kept product itself arrives in the same delta.
+- **Out:** merging near-duplicates (Phase 4 "Not in Phase 4").
+- **Files:** `pipeline/src/sources/off/delta.ts`, `index.ts`, tests.
+- **Verification:** a unit test with a delta that holds a bad-code duplicate of a stored product. A delta run on dev drops it, and the next full run on the same dump discontinues 0.
 
 ### [ ] P4.5 Size and unit parser
 - **Slice:** core-units.
@@ -1934,7 +1945,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 
 | Milestone | Tasks |
 |---|---|
-| M1 Product identity | P4.1 (GTIN), P4.2 (writer), P4.3 (OFF codes), P4.4 (legacy takeover) |
+| M1 Product identity | P4.1 (GTIN), P4.2 (writer), P4.3 (OFF codes), P4.4 (legacy takeover), P4.30 (delta duplicates) |
 | M2 Sizes | P4.5 (parser), P4.6 (OFF) |
 | M3 Derived jobs | P4.7 |
 | M4 Taxonomy | P4.8 (taxonomy, mappings), P4.9 (from tags), P4.17 (from names) |

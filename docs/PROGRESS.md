@@ -2,6 +2,34 @@
 
 Newest entry first.
 
+## 2026-11-10 — P4.4 Legacy products that hold an OFF GTIN: OFF takes over
+
+**What changed** (D-085)
+- **Product writer** (`pipeline/src/db/writers/products.ts`): when an OFF record names a GTIN a `legacy-import` row holds, and nobody has decided on that row (pending, no reviewer, not merged or rejected, nothing locked), OFF takes the row over. The legacy record goes to `product_sources`. The row takes OFF's identity and provenance with every content column cleared, then OFF's values. OFF's old `product_sources` row for the code is removed, the open legacy queue item is dismissed, and the D-050 auto-approve applies. The row keeps its id.
+- Unit tests: who may be taken over (6 refusals), and a typed list of every `products` column as cleared or kept, so a new column fails to compile until someone decides.
+- New read-only dev-DB check `npm run check:takeover` (CLAUDE.md Commands). DATA_MODEL §1.5 now describes the exception.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 661 passed, 1 skipped. `check:writers` 8 of 8. Pipeline e2e passes.
+- Before the run, `check:takeover` failed 3 of 3 (as expected). Full OFF run `aef030a6` (dump unchanged, 304): 93,411 fetched, 0 inserted, **3 updated** (the takeovers), 0 invalid.
+- `check:takeover` then passed 3 of 3. As `anon`:
+  - Kashi `00018627102557` → OFF name "Chocolate Chip Chia 7-Grain & Quinoa bars…", brand text "Kashi 🇺🇸Solana Beach California", 5 x 40 g, image.
+  - Green Goodness `00071464316549` → "GREEN GOODNESS JUICE SMOOTHIE", Bolthouse Farms, 946 ml, image.
+  - Scoobi Doo `00067800005093` → "Scoobi Doo Pasta", Unico, no size or image in OFF. Its legacy description and brand link are gone.
+  - All 3: `off@1.1.0`, approved `auto`, `description` and `brand_id` null. Their 4 legacy features, 4 steps and 0 certifications read as `[]` for anon and are still pending for admins.
+- Service role: each has exactly one `legacy-import` `product_sources` row and no OFF one. Queue items 135, 136 and 276 are `dismissed` (open queue 280 → 277). `product_sources` stays at 38 (3 removed, 3 added), and products stay at 93,410.
+- The other 10 legacy products have byte-identical rows before and after (sha256 of each row), and are still pending and invisible to anon.
+- **Re-runs change nothing:** `legacy-import` `68b38bd5` 271 unchanged, 0 inserted, 0 updated. OFF full `34152f6e`: 0 inserted, 0 updated, 0 deactivated, no takeovers. A row snapshot after the re-runs matches the one before them.
+
+**For the owner**
+- Nothing to decide. Kashi's OFF name and brand text are messy (an emoji and a city in the brand). That's OFF's data, and the brand resolver (P4.13) works from it.
+- **New task P4.30:** run `aef030a6` also discontinued 15 bad-code rows (no GTIN) that deltas had inserted, such as a second "Oven Roasted Turkey Breast" code. The full run drops these as duplicates of a kept product (D-081), but the delta path doesn't check them, so they can flip between active and discontinued. This is older than P4.4.
+- P6.1 is still waiting on the three Actions secrets and a push. Your automation files are still uncommitted, as before.
+
+**Next:** P4.30 OFF deltas apply the bad-code duplicate rule (then P4.5).
+
+---
+
 ## 2026-11-10 — P6.1 Scheduled OFF refresh: built locally, waiting on secrets (not ticked)
 
 **What changed** (D-084)
