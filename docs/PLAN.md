@@ -1468,11 +1468,12 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Budget check.
 - ✅ Done 2026-11-10: full run `83205eb0` (2,758 inserted, 1,345 updated, 0 invalid), run `5ca89bdc` 0 inserted / 0 updated, restricted GTINs 608 → 0, 35 collisions checked, products 74.1 MB (D-081).
 
-### [ ] P4.24 🟡 Coverage probe: is what the owner buys in the catalog? (added by the review)
+### [x] P4.24 Coverage probe: is what the owner buys in the catalog? (added by the review)
+✅ Done 2026-11-10 on 18 lines from 2 legacy receipts and no barcodes (D-082): 5 found, 5 missing, 5 with no barcode, 3 unidentified. 5 of 10 barcoded lines found, so P4B.6 was added. Results: `docs/catalog/gold/coverage_probe.md`.
 - **Slice:** gold-set.
 - **Goal:** measure, on real purchases, how much of a basket the catalog covers, before more is built on that assumption (review C-2).
 - **Deps:** P4.3.
-- **🟡 Owner input:** about 50 barcodes from products at home (typed digits or photos of the barcodes), and the roughly 100 receipt lines that P4.20 uses. **If the input isn't in yet, skip this task and take the next one.**
+- **Owner input (changed 2026-11-10, D-082):** the plan asked for about 50 barcodes and about 100 receipt lines. The owner has neither, and asked that the task not hold up the plan. It ran on the owner's 2 receipts in the legacy app (18 lines). The barcode steps didn't run, and the 60% rule below was applied to the barcoded receipt lines.
 - **In:**
   - Each barcode goes through `normalizeGtin` and a lookup. Record: found or not, has a brand string, brand has an owner.
   - Each receipt line gets a hand label: barcoded product in the catalog, barcoded product missing, or an item with no barcode (produce, meat, bakery, deli).
@@ -1867,12 +1868,12 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `eval` runs with the starting tiers, and the table goes in PROGRESS.
   - Every row has a label and evidence, and the balance of positives and negatives is reported.
 
-### [ ] P4.20 🟡 Product gold set: receipt lines
+### [ ] P4.20 Product gold set: receipt lines
 - **Slice:** gold-set.
-- **Goal:** ~100 real receipt lines labelled with their true product.
+- **Goal:** the owner's real receipt lines labelled with their true product (18 lines; there were meant to be ~100, D-082).
 - **Deps:** P4.18, P4.24.
 - **In:**
-  - **The owner supplies** about 100 item lines from a few of their own receipts, as photos or typed text (D-077). The task can't start before that. **The lines are now collected and hand-labelled in P4.24** (review C-2), so this task adds the true product for each line and runs the matcher on them.
+  - **The lines are in** `docs/catalog/gold/receipt_lines.csv` from P4.24: 18 lines from 2 receipts, 15 identified. The owner has no more receipts (D-082), so the task runs on these and doesn't wait. Lines added later (Phase 8 receipt scans by the owner) are appended under the same rules. This task adds the true product for each line and runs the matcher on them.
   - `docs/catalog/gold/receipt_lines.csv` holds **only the line text**, the banner name and the label. The repo is public, so each line is checked by hand for card digits, loyalty numbers, names and addresses. No store location, date, totals or images are committed.
   - A line with no true match in the catalog is labelled `none`. That's useful in itself: it measures how much of what people buy the catalog covers.
 - **Out:** receipt OCR (Phase 8). Lines are matched as typed.
@@ -1887,13 +1888,14 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Goal:** tier scores and thresholds that come from data, replacing the legacy hand-picked values.
 - **Deps:** P4.19, P4.20.
 - **In:**
-  - Tune tier scores and the auto-accept threshold on the tune half of both sets. Report catalog pairs and receipt lines separately, because receipts will be worse and need their own threshold.
+  - Tune tier scores and the auto-accept threshold on the tune half of the catalog set. Report catalog pairs and receipt lines separately, because receipts will be worse and need their own threshold.
+  - **The receipt set is too small to split** (15 identified lines, D-082). Report the matcher's result on all of it, with no tuning on it. Receipt matches need user confirmation until the set holds about 100 lines.
   - Record the thresholds in core and in DECISIONS, with a `match_method_version` bump.
   - If receipt lines can't reach 95% at a useful recall, say so. Every receipt match then needs user confirmation, which is an input to Phase 8's UX.
 - **Out:** Phase 8 wiring.
 - **Files:** `packages/core/src/match/product.ts`, tests, `docs/DECISIONS.md`.
 - **Verification:**
-  - `eval` on both test halves: auto-accept precision ≥ 95% on each, or the shortfall reported plainly.
+  - `eval` on the catalog test half: auto-accept precision ≥ 95%, or the shortfall reported plainly. `eval` on all the receipt lines, reported as a small sample.
   - Recall at that threshold, and the wrong pairs by name.
 
 ### [ ] P4.22 Price sanity bounds
@@ -1943,7 +1945,6 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | Exit criteria | P4.23 |
 
 **Open 🟡 steps in Phase 4:**
-- **P4.24:** the owner supplies about 50 barcodes and about 100 receipt lines. P4.20 and P4.21 wait on the lines.
 - **P6.1:** the owner adds three GitHub Actions secrets. P6.2 and P6.3 wait on it.
 - **P4.29, P4.12, P4.25:** the owner approves a short list each (banners, grocers' own brands, corrections to matched brands). P4.13 onward waits on P4.12 and P4.25.
 
@@ -1955,7 +1956,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 
 **Why here:** it puts the catalog in front of a person before the admin portal, scheduling and AI phases, with no AI cost and no new tables. The four screens were in Phase 8; this moves them. Phase 8 keeps home, history, receipts, stories, profile and settings, and polishes these.
 
-**Starts when:** brand links are applied (P4.16) and chains end at an organisation (P4.27). It doesn't wait for Phase 4 tasks that are still held up on owner input (the receipt gold set, P4.20 and P4.21).
+**Starts when:** brand links are applied (P4.16) and chains end at an organisation (P4.27). It doesn't wait for the matcher tasks (P4.18 to P4.21).
 
 **Feature slices** (each task touches exactly one): `auth`, `navigation`, `search`, `product`, `scan`, `company`, `release-check`.
 
@@ -2036,11 +2037,25 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Camera scanning on Android with `expo-camera` (a new dependency, recorded in DECISIONS), and typed entry on web and as a fallback.
   - The code goes through `normalizeGtin` (UPC-E arrives as 8 digits, P4.1), then a lookup by GTIN.
   - A clear "not in the catalog yet" state for a miss, and a permission-denied state.
-- **Out:** an OFF API lookup on a miss (added only if P4.24 shows it's needed). Receipt scanning (Phase 8). Saving the scan to history (Phase 8).
+- **Out:** an OFF API lookup on a miss (P4B.6, added after P4.24). Receipt scanning (Phase 8). Saving the scan to history (Phase 8).
 - **Files:** `app/src/app/(tabs)/scan.tsx`, `app/src/components/scan/**`, `app/app.json`, `app/package.json`, `e2e/scan.spec.ts`, `docs/DECISIONS.md`.
 - **Verification:**
   - Emulator: a UPC-A and its UPC-E reach the same product (mobile MCP).
   - e2e for typed entry: a hit, a miss and an invalid code.
+
+### [ ] P4B.6 OFF API lookup on a scan miss (added by P4.24)
+- **Slice:** scan.
+- **Goal:** a scanned barcode that isn't in the catalog still finds its product when OFF has it outside the Canadian set. P4.24 found 5 of 10 barcoded receipt lines (D-082).
+- **Deps:** P4B.3.
+- **In:**
+  - On a miss, one server-side call to the OFF product API (S2, approved as a lookup fallback only), within its rate limits and with the pipeline's User-Agent.
+  - A hit is shown with its source and stored through the OFF mapping (`off@` version, provenance, `review_status` as for OFF rows), so a second scan reads it from the catalog. A miss is cached so it isn't asked again soon.
+  - The app never calls OFF directly.
+- **Out:** name search against OFF. Open Beauty Facts (an owner decision, D-082).
+- **Files:** to be set when the task starts (an Edge Function or the API layer chosen in P4B.1), `docs/catalog/SOURCES.md`, `docs/DECISIONS.md`.
+- **Verification:**
+  - A code that's in OFF but not in the catalog is found and stored. A second scan makes no OFF call. A code OFF doesn't have shows "not in the catalog yet".
+  - e2e with the OFF call mocked. One live call on a real code, reported in PROGRESS.
 
 ### [ ] P4B.4 Company page
 - **Slice:** company.
@@ -2054,7 +2069,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 ### [ ] P4B.5 🟡 Owner walkthrough and exit check
 - **Slice:** release-check.
 - **Goal:** a person who knows the products judges the data, before more is built on it.
-- **Deps:** P4B.1 to P4B.4.
+- **Deps:** P4B.1 to P4B.4, P4B.6.
 - **In:**
   - **🟡 The owner looks up 30 products they know,** by search and by scan, and notes anything wrong, missing or odd.
   - Each note becomes a correction through the `manual` source, a PLAN task, or a stated "won't fix".

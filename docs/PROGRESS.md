@@ -2,6 +2,29 @@
 
 Newest entry first.
 
+## 2026-11-10 — P4.24 Coverage probe
+
+**What changed** (D-082)
+- The owner has no barcodes to send and no more receipts. On the owner's word, the probe ran on their 2 Fortinos receipts from the legacy app: 18 distinct lines, read-only. The rest of the 80 legacy lines are repeat scans and test data.
+- New `docs/catalog/gold/`: `receipt_lines.csv` (line text, banner, coverage label, catalog match), `coverage_probe.md` (method, results, misses), `README.md` (privacy rules).
+- PLAN: P4.24 ticked with its changed input. P4.20 runs on these lines and no longer waits. P4.21 reports receipt lines without tuning on them. New **P4B.6** OFF API lookup on a scan miss (before the walkthrough P4B.5).
+
+**Verification**
+- Each line was decoded and searched in the dev catalog by hand (after the P4.3 re-import).
+- **Receipt lines:** 5 `in_catalog` (28%), 5 `missing` (28%), 5 `no_barcode` (28%), 3 `unidentified` (17%). Of the 15 identified, a third each.
+- **Barcoded lines found: 5 of 10 (50%)**, food only 5 of 8. Under 60%, so P4B.6 was added. Barcode hit rate: not measured (no barcodes).
+- **Brand and owner:** 1 of 5 found products has a `brand_id` (Unico, a pending legacy owner link). The rest have only a brand string, as expected before P4.13.
+- **All misses** (fewer than 10): Starbucks Almond & Oat hazelnut creamer (plain and pumpkin spice are in), No Name basil leaves, Unico passata (77 other Unico items are in), Native body wash, Dove Men+Care deodorant stick. Unidentified: `DMC APA STAIND FN`, `PROTEIN DRINK`, `G.G. FRUIT JUICE`.
+- **Privacy scan** of `receipt_lines.csv` for digit runs of 6+ and the owner's name and email: nothing found. The file has no dates, prices, totals or store location.
+
+**For the owner**
+- **Decision when you have time:** 2 of the 5 misses are body wash and deodorant. OFF covers food only. Should Sarvis cover health and beauty items from grocery receipts? If yes, Open Beauty Facts would be the source to check (a new task).
+- 18 lines is a small sample (one line is 5.6%). The direction is clear, though. Every barcoded miss is a sibling of something the catalog has, so brand-level answers will reach them. A third of the basket is produce, bakery and deli, which P4.28 covers.
+
+**Next:** P2.24 Pipeline hardening before anything is scheduled.
+
+---
+
 ## 2026-11-10 — P4.3 OFF: re-import UPC-E and bad-check-digit codes
 
 **What changed** (`off@1.1.0`, D-081)

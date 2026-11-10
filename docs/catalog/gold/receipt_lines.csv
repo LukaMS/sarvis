@@ -1,0 +1,19 @@
+line_id,banner,line_text,coverage,catalog_match,note
+r1-01,Fortinos,CLSO BOLOGNESE CA MRJ,in_catalog,Classico Bolognese sauce,
+r1-02,Fortinos,SIGGI YOG RAS 2 MRJ,in_catalog,siggi's simple ingredient skyr Raspberry,"variant not certain (""2"" may be a fat %)"
+r1-03,Fortinos,BEANS FRENCH MRJ,no_barcode,,fresh produce
+r1-04,Fortinos,BLUEBERRIES 12OZ MRJ,no_barcode,,"fresh produce; the clamshell may carry a grower barcode, but the line doesn't name the grower"
+r1-05,Fortinos,STBU ALM OAT HZL RQ,missing,,Starbucks Almond & Oat creamer: plain and pumpkin spice are in the catalog; hazelnut isn't
+r1-06,Fortinos,NN BASIL LEAVES MRJ,missing,,No Name basil leaves: other brands' basil leaves are in the catalog
+r1-07,Fortinos,UNICO PASSATA CU MRJ,missing,,77 Unico products are in the catalog; passata isn't
+r1-08,Fortinos,SOURDOUGH LOAF MRJ,no_barcode,,in-store bakery
+r1-09,Fortinos,BANANA,no_barcode,,fresh produce (PLU)
+r1-10,Fortinos,UNICO SCOOBI DOO MRJ,in_catalog,Unico Scoobi Doo Pasta,
+r1-11,Fortinos,ZIGGY'S RST BF MRJ,no_barcode,,deli counter (sliced to weight)
+r1-12,Fortinos,GM NV PRTN GRAN MRJ,in_catalog,Nature Valley Granola Protein,flavour not on the line; the catalog has Oats 'N' Honey and one with no GTIN
+r1-13,Fortinos,PC Organic ARUGULA MRJ,in_catalog,President's Choice Organic Arugula,
+r2-01,Fortinos,DMC APA STAIND FN HMRJ,unidentified,,can't decode the abbreviation
+r2-02,Fortinos,PROTEIN DRINK HMRJ,unidentified,,no brand on the line
+r2-03,Fortinos,NATV BW CTRS HRB HMRJ,missing,,Native body wash (citrus & herbal): non-food; 2 Native hair products are in the catalog
+r2-04,Fortinos,G.G. FRUIT JUICE MRJ,unidentified,,"brand ""G.G."" not identified"
+r2-05,Fortinos,DOVE MC DS FRESH HMRJ,missing,,Dove Men+Care deodorant stick (Fresh): non-food; other Dove Men+Care items are in the catalog

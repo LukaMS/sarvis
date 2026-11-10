@@ -413,6 +413,14 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-082 Coverage probe on 18 receipt lines, no barcodes — Accepted by owner (2026-11-10, P4.24)
+- **Input:** the owner has no ~50 products at home to scan and no more receipts, and asked that the task "make do" rather than hold up the plan. Their 2 Fortinos receipts in the legacy app (`receipt_items`, read-only, the owner confirmed they're theirs) give 18 distinct lines. The other legacy lines are repeat scans of the same receipts and 2026-08-06 test data, left out.
+- **Labels:** `in_catalog`, `missing`, `no_barcode`, `unidentified`. A line that doesn't give the flavour counts as found when the catalog has the product line.
+- **The 60% rule** is applied to the barcoded receipt lines (5 of 10 found), so the on-scan OFF API lookup becomes P4B.6, before the owner walkthrough.
+- **Knock-on changes:** P4.20 runs on these 18 lines and doesn't wait. P4.21 doesn't tune or split on receipt lines, only reports them, and receipt matches need user confirmation until about 100 lines exist.
+- **Open for the owner:** 2 of the 5 misses are non-food (body wash, deodorant). OFF is food only. Covering health and beauty (Open Beauty Facts) is a product decision, not taken here.
+**Why:** a small, real basket is a better guide than none, and waiting for input that won't come would block P4.20, P4.21 and the exit check.
+
 ## D-081 OFF bad codes, and two codes for one GTIN in one source — Accepted (P4.3, `off@1.1.0`)
 - **Bad check digits:** `offGtin` gives null for them, so the row is kept on `external_id`, like a restricted code (D-077). Open Prices and the fixture source keep reporting them as `gtin_check_digit` (`gtinOrBadCode`), since a price can't be kept without a product.
 - **Duplicates of bad-code rows** are decided at fetch time, so parse stays pure: a gate holds every bad-code row until its stream ends, then drops those whose normalized name + first brand (`normalizeMatchText`) a kept row has, first one wins. Dropped rows never reach the extract and are counted as `bad_code_duplicate` in the filter event. A sample puts its bad-code rows in place of its last good rows, so it stays N rows. A delta checks against its own file only; a duplicate it lets in isn't in the next full run's extract, so that run discontinues it.
