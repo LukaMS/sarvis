@@ -11,6 +11,8 @@ Single source of truth for what comes next. Work one task per session (`/next`),
 
 **Legacy reference:** `C:/Users/lukam/Coding Projects/MobileDev/Ethical-App` (see D-001). Short name below: `LEGACY/`.
 
+**Order:** tasks run in the order they appear in this file. The 2026-11-10 review (`docs/REVIEW.md`, D-080) added tasks and moved some earlier. A few tasks with Phase 1, 2 and 6 IDs therefore sit inside Phase 4 and Phase 4B, at the point where they run. A 🟡 task that is still waiting on the owner is skipped, and `/next` takes the task after it.
+
 ---
 
 ## Free-tier risk register
@@ -21,7 +23,7 @@ Every phase must keep these in view. Phase 0 (P0.11) turns them into numbers.
 |---|---|---|
 | Supabase DB 500 MB | Open Food Facts has hundreds of thousands of products; price history grows without bound. | Import only the Canadian subset and only the columns we use. Write a price row only when the price changes, and roll up history older than 90 days to monthly. Budget: catalog ≤ 350 MB, alarm at 400 MB. The quality dashboard shows DB size. |
 | Supabase Storage 1 GB | Raw scraper responses and receipt images. | Gzip all raw data. Keep the last 3 runs per source and 30 days at most. Never store bulk dumps (OFF, Wikidata) in Supabase: process them on the Actions runner and keep only the filtered extract's hash and URL. Downscale receipt images and delete them after parsing unless the user opts in. Budget ≤ 700 MB, alarm at 800 MB. |
-| Supabase pauses after 7 idle days | Breaks the app and the jobs. | The daily scheduled pipeline run counts as activity. Add an explicit keep-alive step (P6). |
+| Supabase pauses after 7 idle days | Breaks the app and the jobs. | The daily scheduled pipeline run counts as activity. P6.1 adds it, and it runs early, inside Phase 4 (D-080). |
 | GitHub Actions (public repo, D-003) | Minutes are unlimited, but the code and logs are public. | Secrets go only in Actions secrets. Logs never print row data that contains user information. Scraped data is never committed. |
 | OpenRouter hard spend cap | Batch scoring could drain it. | Cheap default model, per-run token budget, a cost log per call, and a dry-run/mock mode. |
 | Edge Functions | 150 s wall clock; free invocation quota. | Edge functions do only user-facing request/response work (receipt parse, lookup). Batch work runs in Actions. |
@@ -481,6 +483,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M5 Theme and UI primitives | P1.6 (tokens, font default), P1.7 (rating primitives + gallery), P1.8 (buttons, chips, cards, states) |
 | M6 App shell | P1.9 (tabs and stack placeholders), P1.12 (web-only `/admin` gate) |
 | Exit criteria | P1.13 |
+| Added by the review (D-080) | P1.18 (auth hardening), P1.19 (small fixes), P1.20 (guest access). They sit in Phase 4B, where they run. |
 
 ## Phase 2 — Catalog core: schema and ingestion framework (full detail)
 
@@ -922,6 +925,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M6 Tests | Unit tests in P2.10–P2.16; run-twice e2e in P2.17 and P2.18 |
 | M7 Budget check | P2.19 |
 | Exit criteria | P2.17 (proof), P2.19 (checked together) |
+| Added by the review (D-080) | P2.24 (run lock, database retries, POST cache). It sits in Phase 4 after P4.3, where it runs. |
 
 **Open 🟡 decisions in Phase 2:** none. Every choice above follows from DATA_MODEL or an existing decision; the new ones are in D-030.
 
@@ -1367,8 +1371,9 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - A labelled gold set (~200 product pairs, ~100 brand→company pairs) measures precision and recall on data the thresholds weren't tuned on.
 - Auto-accept precision is ≥ 95%.
 - Anything below the threshold stays hidden from users. Brands on 20+ products go to the review queue, and the long tail doesn't (D-077).
+- Added by the review (D-080): the brand strings on 20+ products that were already matched are audited, ownership chains end at an organisation, banners and generic items exist, and the exit report says how much of a real basket the catalog covers.
 
-- [x] **P4.0 Refine Phase 4** → done 2026-11-05 (this section; D-077).
+- [x] **P4.0 Refine Phase 4** → done 2026-11-05 (this section; D-077). Amended 2026-11-10 after the review (`docs/REVIEW.md`, D-080): P4.24 to P4.29 added; P4.3, P4.8, P4.10, P4.13, P4.15, P4.17, P4.18, P4.20 and P4.23 changed; P2.24 and P6.1 to P6.3 run here, after P4.3.
 
 **Measured for this plan** (dev project and the 2026-10-30 OFF dump; D-077 has what each number decided):
 - 90,672 products, 11 with a `brand_id`, 0 with a category. 0 `store_listings`, 0 `match_candidates`.
@@ -1386,6 +1391,8 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **M6 Brand → company:** evidence from several sources per edge, resolver candidates, the brand gold set, calibration.
 - **M7 Product matcher:** candidate RPC plus scoring, the product gold set, calibration of the legacy tiers.
 - **M8 Price sanity:** `price_sanity_bounds` from StatCan and observed prices, wired into validation.
+- **M9 Coverage and data fixes (review, D-080):** the coverage probe, the audit of approved Wikidata matches, the lone-foreign-candidate rule, corporate top parents, generic items, the banner seed.
+- **M10 Operations pulled forward (review, D-080):** pipeline hardening, the scheduled OFF refresh and keep-alive, dev-database checks in CI, raw retention.
 
 **Not in Phase 4:**
 - Admin UI for the review queue and match decisions: Phase 5. Phase 4 writes the queue rows and `match_candidates`.
@@ -1396,7 +1403,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - Filling Corporations Canada numbers through aliases (D-077). The P5 DB editor is where an admin can set one.
 - A new source for missing sizes (D-077).
 
-**Feature slices** (each task touches exactly one): `core-gtin`, `core-units`, `pipeline-db`, `pipeline-jobs`, `source-off`, `schema`, `taxonomy`, `brand-resolver`, `gold-set`, `product-matcher`, `price-sanity`, `release-check`.
+**Feature slices** (each task touches exactly one): `core-gtin`, `core-units`, `pipeline-db`, `pipeline-jobs`, `source-off`, `schema`, `taxonomy`, `brand-resolver`, `gold-set`, `product-matcher`, `price-sanity`, `release-check`. Added by the review: `source-wikidata`, `pipeline-runs`, `ops`, `ci`.
 
 **Rules for every task in this phase:**
 - **Provenance:** a derived fact keeps the `source_id` it came from, with `method = derived` and the rule in `method_version` (`brand-resolver@1.0.0`). Match decisions record `match_method`, `match_method_version` and `reason` in `match_candidates`.
@@ -1449,6 +1456,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - **The remaining ~1,883 bad-check-digit rows** get the same treatment as restricted in-store codes: kept on `external_id` with `gtin` null, unless they duplicate a kept product on normalized name + first brand (462 of the 2,516 did), in which case they're dropped and counted in a run event. Users can find them by search but not by scanning (D-077).
   - **A code that expands to a GTIN already in the catalog** (35 found: 28 new rows, 7 stored rows) stays on the existing product through `product_sources`. Check the writer does this when both rows come from one source, since D-046 only covers another source's product.
   - Bump the `off` `method_version`. Report any Open Prices codes that now resolve, and add a task if a re-run is worthwhile.
+  - **The full run here is also the catch-up run** (review H-8): the last delta ran on 2026-10-30, and the 14-day delta window closes on 2026-11-13, so a delta alone can no longer be trusted.
 - **Out:** size parsing (P4.6).
 - **Files:** `pipeline/src/sources/off/map.ts`, its tests, `docs/catalog/BUDGET.md`.
 - **Verification:**
@@ -1458,6 +1466,70 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `select count(*) from products where gtin_is_restricted(gtin)` returns 0 (608 today).
   - The 35 collisions are looked at by hand: a different product under one GTIN means the code was an in-store code, not UPC-E.
   - Budget check.
+
+### [ ] P4.24 🟡 Coverage probe: is what the owner buys in the catalog? (added by the review)
+- **Slice:** gold-set.
+- **Goal:** measure, on real purchases, how much of a basket the catalog covers, before more is built on that assumption (review C-2).
+- **Deps:** P4.3.
+- **🟡 Owner input:** about 50 barcodes from products at home (typed digits or photos of the barcodes), and the roughly 100 receipt lines that P4.20 uses. **If the input isn't in yet, skip this task and take the next one.**
+- **In:**
+  - Each barcode goes through `normalizeGtin` and a lookup. Record: found or not, has a brand string, brand has an owner.
+  - Each receipt line gets a hand label: barcoded product in the catalog, barcoded product missing, or an item with no barcode (produce, meat, bakery, deli).
+  - The receipt lines are saved for P4.20 under its privacy rules (line text and banner only, each line checked by hand).
+- **Out:** the matcher (P4.18). Lines are labelled by hand here.
+- **Files:** `docs/catalog/gold/coverage_probe.md`, `docs/catalog/gold/receipt_lines.csv`, `docs/catalog/gold/README.md`.
+- **Verification:**
+  - PROGRESS reports the barcode hit rate, the share of receipt lines in each of the three groups, and 10 examples of misses.
+  - The P4.20 scan for long digit runs and the owner's name and email finds nothing.
+  - If fewer than 60% of barcodes are found, add a task for an on-scan lookup through the OFF API (S2, already approved as a lookup fallback).
+
+### [ ] P2.24 Pipeline hardening before anything is scheduled (added by the review; runs here)
+- **Slice:** pipeline-runs.
+- **Goal:** scheduled and manual runs can't collide, and a network blip doesn't kill a long run (review M-4, M-7).
+- **Deps:** P4.3.
+- **In:**
+  - A partial unique index on `ingestion_runs (source_id, job) where status = 'running'`. A second start is refused with a clear message. The stale sweep covers only the source being started.
+  - `withRetry` around PostgREST reads and writes, for network errors and 5xx.
+  - The HTTP cache stores POST 200 responses (the key already includes the body), so Wikidata and StatCan re-runs behave as `CLAUDE.md` says.
+  - If this runs long, split the cache change into its own task.
+- **Out:** resuming a failed run from the middle.
+- **Files:** a new migration, `pipeline/src/runs/`, `pipeline/src/db/query.ts`, `pipeline/src/http/client.ts`, tests, `packages/core/src/db/database.types.ts`, `CLAUDE.md`.
+- **Verification:**
+  - Unit tests: a second run of one source is refused; a 503 from the database is retried and succeeds; a repeated POST is served from the cache.
+  - `check:writers` and the pipeline e2e pass. Advisors are clean.
+
+### [ ] P6.1 🟡 Scheduled keep-alive and OFF refresh (pulled forward by the review; runs here)
+- **Slice:** ops.
+- **Goal:** the dev project never pauses, and OFF stays fresh without anyone remembering (review H-8).
+- **Deps:** P4.3, P2.24.
+- **🟡 Owner action:** add three GitHub Actions secrets: the dev project URL, the dev service-role key, and the pipeline contact email. If they aren't there yet, build and test the workflow locally, leave the task unticked, and take the next one.
+- **In:**
+  - A workflow on a daily cron and `workflow_dispatch`: `pipeline run off --mode delta`. If the last completed delta is more than 13 days old, it runs `--mode full` instead.
+  - It never runs on `pull_request`, so forks can't reach the secrets. One concurrency group, shared with P6.2.
+  - `actions/cache` for `.cache/`. On failure, the workflow opens a GitHub issue.
+- **Out:** other sources, the budget monitor (P6.0).
+- **Files:** `.github/workflows/pipeline-off.yml`, `pipeline/src/sources/off/`, `CLAUDE.md`.
+- **Verification:**
+  - A manual dispatch completes, and its run row shows the Actions URL.
+  - A forced failure opens an issue. The public log shows no key, email or row data.
+
+### [ ] P6.2 CI runs the dev-database checks (pulled forward by the review; runs here)
+- **Slice:** ci.
+- **Goal:** a broken writer or auth flow fails a build instead of waiting for a manual check (review M-3, M-8).
+- **Deps:** P6.1.
+- **In:** a job on pushes to `main` only: `check:gtin`, `check:writers`, the pipeline e2e, and the Playwright e2e (Chromium installed in the job). Same concurrency group as P6.1.
+- **Out:** running these on pull requests.
+- **Files:** `.github/workflows/ci.yml` or a new workflow, `CLAUDE.md`.
+- **Verification:** a green run with all four. A deliberately broken writer on a throwaway branch, run through `workflow_dispatch`, turns it red. Record both run URLs.
+
+### [ ] P6.3 Raw-retention cleanup (pulled forward by the review; runs here)
+- **Slice:** ops.
+- **Goal:** Storage stops growing without bound.
+- **Deps:** P6.1.
+- **In:** the cleanup job as the Phase 6 outline describes it (`retentionFor()`, `deleteRawFile()`, the per-subject rule for Wikipedia and EDGAR), run weekly from the P6.1 workflow. The latest OFF full extract must survive, because P4.9 re-parses it.
+- **Out:** row-retention purges and budget monitoring (P6.0).
+- **Files:** `pipeline/src/raw/`, `pipeline/src/cli.ts`, the workflow, tests, `CLAUDE.md`.
+- **Verification:** a dry run lists what would go. After a real run, Wikidata keeps its last 3 runs, and the OFF extract is still readable with `readRaw`.
 
 ### [ ] P4.4 Legacy products that hold an OFF GTIN: OFF takes over
 - **Slice:** pipeline-db.
@@ -1528,6 +1600,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Deps:** P3.19a.
 - **In:**
   - `docs/catalog/TAXONOMY.md`: 3 levels, about 200–400 nodes, with leaves narrow enough for "similar product" in Phase 9 (cheddar, not cheese or dairy). Design it from the OFF tag counts and the StatCan product list. Non-food aisles that OFF holds, such as supplements, get a node.
+  - Mark the leaves that hold items sold without a barcode (produce, meat, seafood, bakery, deli, bulk). P4.28 seeds generic items from them (review H-5).
   - A data migration seeds `categories` (reference config, like `sources`).
   - `category_mappings` rows for OFF tags, covering at least 95% of the 37,783 categorised products. Tags already include their ancestors, so a product takes its deepest mapped tag and rare tags need no row of their own. Provenance: `method = derived` and the mapping file's version. Mappings are `approved` / `auto`.
   - `products.category_rule` smallint null: which rule set the category. A `match_candidates` row per product would cost ≈ 20+ MB, so one compact code is the provenance here (D-077).
@@ -1561,10 +1634,13 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - An `edge_sources` table for `brand_ownership` and `company_ownership`, shaped like `company_sources`. RLS admin. Writers keep the edge's +prov block from the first source and upsert one evidence row per source.
   - Wikidata, SEC EDGAR and the resolver write through it. SEC's skip of existing pairs (D-074) can become an evidence row. Existing edges keep their provenance.
   - A BUDGET row with its width estimate.
+  - **Companies and brands too (review M-6):** `source_id` joins the kept columns in their writers, so a second source that names the same row can't take over its provenance, and the auto-approve guard keeps seeing the source that created it.
+  - **A blocked owner change is visible (review M-5):** when an owner pick is refused by the one-current-owner index, the writer returns it, the run writes an event with the count and 5 examples, and each blocked edge gets one `review_queue` row. Today the result is discarded.
 - **Out:** a confidence formula across sources.
 - **Files:** a new migration, `pipeline/src/db/writers/ownership.ts`, tests, `docs/catalog/DATA_MODEL.md`, `docs/catalog/BUDGET.md`, `packages/core/src/db/database.types.ts`.
 - **Verification:**
   - `check:writers`: two sources write one edge, and both are recorded with the first source's provenance intact.
+  - `check:writers`: a second source writing an existing company leaves its `source_id` alone; a new owner for a brand that already has one ends `pending` with a queue row and a run event.
   - An RLS check in `supabase/tests/`. Advisors are clean.
 
 ### [ ] P4.11 Brand keys
@@ -1582,6 +1658,36 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Tests from the real top 500 strings.
   - Report strings → keys and the 20 largest clusters, with any wrong merge listed.
 
+### [ ] P4.27 Ownership chains stop at an organisation (added by the review)
+- **Slice:** schema.
+- **Goal:** the parent shown to users, and scored later, is an organisation, not a person (review H-3).
+- **Deps:** P3.19a.
+- **In:**
+  - `company_ultimate_parent` walks up only through parents whose `kind` is not `individual`. A company whose only parent is a person is its own top parent. `product_ownership_chain` follows.
+  - The edges to individuals stay in `company_ownership`. Nothing is deleted.
+  - Family holdings that Wikidata types as a company (the "Sobey family" row): list every top parent with 100+ product mentions, and correct `kind` where it's wrong, through the `manual` source with a citation and `kind` locked.
+- **Out:** hiding individuals from the admin portal.
+- **Files:** a new migration, `supabase/tests/ownership.sql`, `packages/core/src/db/database.types.ts`, `docs/catalog/DATA_MODEL.md`.
+- **Verification:**
+  - SQL checks as `anon`: Sobeys → Empire Company, St-Hubert → its corporate parent, Hershey's → The Hershey Company.
+  - No row of `company_ultimate_parent` names an `individual` as the top parent.
+  - Advisors are clean, and the types are regenerated.
+
+### [ ] P4.29 🟡 Banner seed and store links (added by the review)
+- **Slice:** brand-resolver.
+- **Goal:** every Ontario grocery banner exists with its operator, and stores point at one (review H-6). `banners` has 0 rows today, and the matcher, the receipt gold set and the price rollups all key on a banner.
+- **Deps:** P4.7.
+- **In:**
+  - A cited list of about 25 banners: Loblaws, No Frills, Real Canadian Superstore, Fortinos, Zehrs, Valu-mart, Your Independent Grocer, Shoppers Drug Mart, T&T, Metro, Food Basics, Sobeys, FreshCo, Foodland, Farm Boy, Longo's, Walmart, Costco, Giant Tiger, Whole Foods, and any other found in `stores`.
+  - Each row: slug, name, operator company, the spellings a receipt header uses, and a citation URL.
+  - **🟡 The owner approves the list** before it's written (a table in PROGRESS). Writes use the `manual` source.
+  - Link the 100 existing stores by name through a job. Stores left unlinked are listed.
+- **Out:** store locations beyond what Open Prices gave. Retailer sites (D-013).
+- **Files:** `docs/catalog/BANNERS.md`, `pipeline/src/jobs/banner-seed.ts`, tests.
+- **Verification:**
+  - Every banner has an approved operator company. Stores linked and not linked are counted.
+  - A second run changes nothing.
+
 ### [ ] P4.12 🟡 Private-label and high-impact brand seed
 - **Slice:** brand-resolver.
 - **Goal:** the brands on the most products have the right owner before anything automatic runs.
@@ -1598,12 +1704,42 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - After the write, each seeded brand has one current approved owner, shown as `anon` through `brand_current_owner`.
   - A second run changes nothing.
 
+### [ ] P4.25 🟡 Audit the approved matches on high-volume brands (added by the review)
+- **Slice:** brand-resolver.
+- **Goal:** the brand strings on the most products point at the right brand and owner before P4.13 links products to them (review H-1; amends D-054 for these brands only, D-080).
+- **Deps:** P4.11, P4.12.
+- **In:**
+  - List every OFF brand key on 20+ products that already matches an approved brand (190 strings and 19,231 product mentions on 2026-11-10), with its brand, owner, owner country and top parent.
+  - Check each against a source (the company's site, Wikipedia, a filing). Start from the 11 flagged in `docs/REVIEW.md` H-1: Leclerc, IGA, Dairyland, Ziggy's, PVL, POM, Allmax, Ace Bakery, Que Pasa, Wonderful, Kellogg's.
+  - A string that covers two owners in Canada (Kellogg's) is split by a stated rule or left with no owner. Record the choice.
+  - **🟡 The owner approves the correction list** (a table in PROGRESS, wrong rows only). Corrections are written with the `manual` source. A wrong approved edge is rejected or closed, never deleted, and the misleading alias is removed and locked so the string stops matching.
+- **Out:** brands on fewer than 20 products.
+- **Files:** `docs/catalog/BRAND_AUDIT.md`, `pipeline/src/jobs/brand-seed.ts` (reused), tests.
+- **Verification:**
+  - Every one of the 190 rows has a verdict and a source URL.
+  - As `anon`, each corrected string resolves to the right owner through `brand_current_owner`, or to none.
+  - A second run changes nothing. A Wikidata sample re-run doesn't undo a correction.
+
+### [ ] P4.26 Wikidata: hold a lone foreign candidate (added by the review)
+- **Slice:** source-wikidata.
+- **Goal:** the class of error behind H-1 isn't approved again.
+- **Deps:** P4.25.
+- **In:**
+  - In the `single` tier, a candidate whose country is set and is neither CA nor US is written with `auto_hold` (pending, hidden) when its string is on 20+ products, and gets one `review_queue` row. Below 20 products the current rule stays.
+  - Bump the `wikidata` `method_version`, and record the rule under D-066.
+- **Out:** re-matching the whole catalog. The P4.25 corrections stand.
+- **Files:** `pipeline/src/sources/wikidata/`, tests, `docs/DECISIONS.md`.
+- **Verification:**
+  - Unit tests with the real cases: Leclerc, Dairyland and Ziggy's are held; Nestlé (CH) is held and queued; a lone CA or US candidate is approved as before.
+  - A `--dry-run --sample` reports how many picks the rule holds.
+
 ### [ ] P4.13 Brand rows and product links
 - **Slice:** brand-resolver.
 - **Goal:** OFF strings become brands, and products get `brand_id`.
-- **Deps:** P4.2, P4.7, P4.12.
+- **Deps:** P4.2, P4.7, P4.12, P4.25.
 - **In:**
   - A `link-brands` job: match keys against brand names and aliases, add new spellings as aliases, create a brand for each remaining key, and set `products.brand_id`.
+  - **Exception to "add new spellings as aliases" (review H-2):** 1,247 of the 1,759 approved brands share a Wikidata item with a company and carry the company's name ("Mondelez International", "Kraft Foods Group"). A key that reaches such a brand only through an alias becomes its own brand, named from the commonest OFF spelling, with a derived `owner` edge to that company (`brand-resolver` method version, approved because the Wikidata match already is). So Cadbury and Christie are two brands owned by Mondelez, not two aliases of a brand called "Mondelez International".
   - New brands are auto-approved (D-054): add `off` to `AUTO_APPROVE.brands`. `source_id` is OFF, `method = derived`, and `brand_text` stays on the product.
   - No per-product `match_candidates` rows. They would blow the budget, and an exact key match has no score to review.
   - Slugs from the key, with collisions handled.
@@ -1613,6 +1749,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Sample, then full, then a second run with 0 changes.
   - Counts: brands created, aliases added, products linked, and products with `brand_text` left unlinked (expected: only stoplisted strings).
   - As `anon`, a sample product returns its brand, and a legacy brand stays hidden.
+  - As `anon`, a Cadbury product and a Christie product show their own brand names and the same owner.
   - Budget check (20,000 brands estimated).
 
 ### [ ] P4.14 Brand → company candidates
@@ -1636,6 +1773,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Deps:** P4.14.
 - **In:**
   - `docs/catalog/gold/brand_company.csv`: stratified across tiers and product counts, with extra pairs near likely thresholds, and including brands with no real owner in the catalog so recall has a true denominator. A fixed 50/50 tune and test split by hash.
+  - **Chains that are already approved are sampled too (review H-1).** At least 40 of the 100 rows are OFF string → brand → owner chains that Wikidata or the seed approved, drawn in proportion to product count. Without them the set measures only the new resolver, and the links users will see most go unmeasured.
   - Labels come from evidence (the company's site, Wikipedia, a filing), with the URL per row. **Claude does the labelling, so PROGRESS lists 15 rows for the owner to spot-check.**
   - `npm run pipeline -- eval <set>`: precision and recall per tier and threshold, Wilson intervals, and the wrong pairs by name.
 - **Out:** choosing thresholds (P4.16).
@@ -1643,6 +1781,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - Unit tests on a small synthetic set with known precision and recall.
   - The script runs on the real set, and the per-tier table goes in PROGRESS.
+  - Precision on the already-approved chains is reported on its own, per string and weighted by product count.
   - Every row has a label and evidence.
 
 ### [ ] P4.16 Calibrate and apply brand links
@@ -1662,16 +1801,34 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Queue rows added (expected: at most ~525). As `anon`, a sample chain reads through `product_ownership_chain`, and a pending link doesn't.
   - A second run changes nothing.
 
+### [ ] P4.28 Generic items for products with no barcode (added by the review)
+- **Slice:** taxonomy.
+- **Goal:** a receipt line for bananas or chicken breast matches something and counts in spending (review H-5). OFF holds almost none of these, and nothing else in the plan models them.
+- **Deps:** P4.8. P4.24's no-barcode lines are used if they exist, but the task doesn't wait for them.
+- **In:**
+  - `products.is_generic` boolean, default false. A generic item has no GTIN and no brand, an `external_id` under the `sarvis-derived` source, and a leaf category.
+  - A seed of about 150 to 300 items, built from the taxonomy leaves P4.8 marked for produce, meat, seafood, bakery, deli and bulk, and from the StatCan product list.
+  - Each has an English and a French name, plus common receipt spellings as aliases for the matcher (P4.18).
+  - Generic items never show an owner or a grade. The app labels them "fresh item, no brand" (Phase 8).
+  - Provenance: `method = derived` and the seed file's version. Approved automatically, as reference data like the taxonomy.
+- **Out:** PLU code lists (check the IFPS terms first; a separate task if wanted). Prices.
+- **Files:** a new migration, `docs/catalog/GENERIC_ITEMS.md`, `pipeline/src/jobs/generic-items.ts`, tests, `packages/core/src/db/database.types.ts`, `docs/catalog/DATA_MODEL.md`.
+- **Verification:**
+  - Count by top-level category, and 10 examples.
+  - If P4.24 has run: the share of its no-barcode lines that now have a generic item.
+  - As `anon`, a generic item reads with no brand and no owner. A second run changes nothing. Advisors are clean.
+
 ### [ ] P4.17 Categories from product names
 - **Slice:** taxonomy.
 - **Goal:** cover the 58% of products OFF gives no category, without guessing.
 - **Deps:** P4.9, P4.13, P4.15.
+- **Timebox (review M-10, D-080):** one session. Apply the rules that reach 95%, report the coverage, and stop. The owner has approved a one-off AI classification for what's left (hard cap US$5), which runs in Phase 7 once the OpenRouter module exists and is measured on this task's gold sample.
 - **In:**
   - A `categorize-names` job with free rules only: keyword rules on the name in English and French, then brand majority (a brand with ≥ 80% of its categorised products in one node).
   - Each rule has its own `category_rule` code.
   - A gold sample of ~200 uncategorised products, labelled and split as in P4.15. Rules that don't reach 95% aren't applied, so those products stay uncategorised.
-  - **If coverage stays low**, report the gap. An AI classifier after P7 is an owner cost decision.
-- **Out:** AI classification.
+  - **If coverage stays low**, report the gap. The AI classifier is approved (D-080) and is a Phase 7 task.
+- **Out:** AI classification (Phase 7).
 - **Files:** `pipeline/src/jobs/categorize-names.ts`, `packages/core/src/category-rules.ts`, `docs/catalog/gold/category.csv`, tests.
 - **Verification:**
   - `eval`: precision per rule on the test half.
@@ -1686,6 +1843,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A SQL candidate RPC using `normalize_match_text` with the `%` operator on the existing trigram index. This fixes the legacy problem where no index applied (CATALOG_REVIEW §5).
   - `scoreProductMatch()` in `packages/core/src/match/`, in order: GTIN exact, listing exact (banner + normalized text, which replaces legacy `product_aliases`), name exact, brand + name, fuzzy name/brand/size. Size agreement counts through `parseSize`. The legacy tier values are the starting scores.
   - An abbreviation expander for receipt text (`BTRMLK`), table-driven and tested.
+  - Generic items (P4.28) are candidates too, through their aliases, so a no-barcode line can match at category level. A branded product outranks a generic item at the same score.
   - A helper that writes a decision to `match_candidates` (`listing_product`), for Phase 8 to call.
   - Latency target: under 200 ms per line at 95k products, because a receipt has ~30 lines.
 - **Out:** edge functions and the app. Choosing thresholds (P4.21).
@@ -1711,9 +1869,9 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 ### [ ] P4.20 🟡 Product gold set: receipt lines
 - **Slice:** gold-set.
 - **Goal:** ~100 real receipt lines labelled with their true product.
-- **Deps:** P4.18.
+- **Deps:** P4.18, P4.24.
 - **In:**
-  - **The owner supplies** about 100 item lines from a few of their own receipts, as photos or typed text (D-077). The task can't start before that.
+  - **The owner supplies** about 100 item lines from a few of their own receipts, as photos or typed text (D-077). The task can't start before that. **The lines are now collected and hand-labelled in P4.24** (review C-2), so this task adds the true product for each line and runs the matcher on them.
   - `docs/catalog/gold/receipt_lines.csv` holds **only the line text**, the banner name and the label. The repo is public, so each line is checked by hand for card digits, loyalty numbers, names and addresses. No store location, date, totals or images are committed.
   - A line with no true match in the catalog is labelled `none`. That's useful in itself: it measures how much of what people buy the catalog covers.
 - **Out:** receipt OCR (Phase 8). Lines are matched as typed.
@@ -1760,6 +1918,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **In:**
   - `eval` on every gold set, and each exit line with its number.
   - Catalog coverage: the share of products with a brand, an owner chain, a category and a size, compared with the start of the phase. Add how many have both a leaf category and a size, since Phase 9 needs both.
+  - **Basket coverage (review C-1, C-2):** the P4.24 numbers; the share of receipt gold lines the matcher gets right; the share of products with a leaf category and an owner (the pool alternatives can draw from); the count of products with any price, and of store × product pairs with one. State plainly what Phase 9 can and can't offer on this data.
   - Every job run twice, with no changes on the second run.
   - A visibility check as `anon` (nothing pending or legacy), advisors, BUDGET §1 re-added against the measured DB size, and the latest CI run.
 - **Out:** fixing what it finds. Each gap becomes a task.
@@ -1778,31 +1937,161 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 | M6 Brand → company | P4.10 (edge evidence), P4.14 (candidates), P4.15 (gold set), P4.16 (apply) |
 | M7 Product matcher | P4.18 (matcher), P4.19 (catalog gold), P4.20 (receipt gold), P4.21 (calibration) |
 | M8 Price sanity | P4.22 |
+| M9 Coverage and data fixes | P4.24 (coverage probe), P4.25 (match audit), P4.26 (lone foreign candidate), P4.27 (corporate top parent), P4.28 (generic items), P4.29 (banners) |
+| M10 Operations pulled forward | P2.24 (hardening), P6.1 (OFF refresh, keep-alive), P6.2 (dev-DB checks in CI), P6.3 (raw retention) |
 | Exit criteria | P4.23 |
 
-**Open 🟡 steps in Phase 4:** P4.12 needs the owner to approve the seed list before it's written, and P4.13 onward waits on that. P4.20 needs the owner's receipt lines, and P4.21 waits on those.
+**Open 🟡 steps in Phase 4:**
+- **P4.24:** the owner supplies about 50 barcodes and about 100 receipt lines. P4.20 and P4.21 wait on the lines.
+- **P6.1:** the owner adds three GitHub Actions secrets. P6.2 and P6.3 wait on it.
+- **P4.29, P4.12, P4.25:** the owner approves a short list each (banners, grocers' own brands, corrections to matched brands). P4.13 onward waits on P4.12 and P4.25.
+
+## Phase 4B — First user slice (full detail; added by the review, D-080)
+
+**Exit:**
+- On web and Android, anyone can search the real catalog, scan a barcode, and see a product's brand, owner and parent company with its sources, without an account.
+- The owner has looked up 30 products they know, and every wrong or missing result is logged as a task or a correction.
+
+**Why here:** it puts the catalog in front of a person before the admin portal, scheduling and AI phases, with no AI cost and no new tables. The four screens were in Phase 8; this moves them. Phase 8 keeps home, history, receipts, stories, profile and settings, and polishes these.
+
+**Starts when:** brand links are applied (P4.16) and chains end at an organisation (P4.27). It doesn't wait for Phase 4 tasks that are still held up on owner input (the receipt gold set, P4.20 and P4.21).
+
+**Feature slices** (each task touches exactly one): `auth`, `navigation`, `search`, `product`, `scan`, `company`, `release-check`.
+
+**Rules for every task in this phase:** the CLAUDE.md "Verifying your work" rules (web with Playwright, Android on the emulator, screenshots against `docs/baseline/`, 0 console errors, a `testID` on every interactive element). Attribution appears next to OFF data and images (ODbL, CC BY-SA) and Wikipedia text (D-013 D1). A company or product with no published score shows "Not yet rated", never a placeholder grade.
+
+### [ ] P1.18 Auth hardening before user data exists (added by the review; runs here)
+- **Slice:** auth.
+- **Goal:** a link can't swap the signed-in account, and an offline start doesn't sign the user out (review M-1, M-2).
+- **Deps:** P1.15.
+- **In:**
+  - Move email links to the PKCE flow (`exchangeCodeForSession`). Tokens in a URL's query or fragment are no longer accepted.
+  - A link for a different user while someone is signed in is refused with a message.
+  - Start-up: after a short timeout with no network, keep the stored session and show an offline state with retry, instead of `/auth`.
+  - On a warm start, set the recovery state before the session, so the tabs don't flash before "Set a new password".
+  - Amend D-028.
+- **Out:** encrypted session storage on Android (Phase 10).
+- **Files:** `app/src/lib/auth/**`, `app/src/lib/supabase.ts`, `app/src/app/_layout.tsx`, `e2e/auth.spec.ts`, `scripts/dev-recovery-link.ts`, `docs/DECISIONS.md`.
+- **Verification:**
+  - e2e: the reset and confirmation flows still pass; a URL carrying another user's tokens doesn't change the session.
+  - A test with the network blocked shows the offline state, not `/auth`.
+  - Android: a recovery link opens "Set a new password" (mobile MCP screenshot).
+
+### [ ] P1.19 Small app fixes from the review (added by the review; runs here)
+- **Slice:** navigation.
+- **Goal:** clear the low-severity items in one pass (review L-1, L-2, L-5, L-6, L-7).
+- **Deps:** P1.13.
+- **In:** a `+not-found` screen in the app's look; no public sitemap; dev routes left out of production builds; a root error boundary; `accessible` and a role on GradeBadge, RatingPill and ScoreRing; `aria-pressed` on filter chips; the duplicate `eslint-config-expo` entry removed.
+- **Owner action:** turn on leaked-password protection in the Supabase Auth settings (review L-3).
+- **Out:** new features.
+- **Files:** `app/src/app/**`, `app/src/components/ui/**`, `app/package.json`, `e2e/`.
+- **Verification:** a production export served locally: `/no-such-route` shows the new screen, and `/_sitemap` and `/dev/gallery` are not found. e2e passes.
+
+### [ ] P1.20 Guest access to the catalog screens (added by the review; runs here)
+- **Slice:** auth.
+- **Goal:** search, scan, product and company pages work without an account (owner decision, D-080). RLS already lets `anon` read the approved catalog.
+- **Deps:** P1.18.
+- **In:**
+  - The root guards open the tabs, `product/[id]`, `company/[id]`, about, help and privacy to signed-out users. History, receipts, profile and settings still need a session, and show a "Sign in to keep your history" state with a button to `/auth`.
+  - The profile button becomes "Sign in" when signed out. After sign-in the user returns to where they were.
+  - No write happens for a guest: nothing is logged to a user table.
+- **Out:** anonymous Supabase sign-ins (D-015: none). Saving a guest's scans on the device.
+- **Files:** `app/src/app/_layout.tsx`, `app/src/app/(tabs)/**`, `app/src/components/navigation/**`, `e2e/auth.spec.ts`, `e2e/navigation.spec.ts`, `docs/DECISIONS.md`.
+- **Verification:**
+  - e2e: signed out, `/` and `/product/<id>` open; `/settings` and `/admin` still land on `/auth`; the History tab shows the sign-in state.
+  - Web and Android screenshots of the signed-out home and History tab.
+
+### [ ] P4B.1 Search
+- **Slice:** search.
+- **Goal:** find a product, brand or company in the real catalog by typing.
+- **Deps:** P4.16, P4.27, P1.20.
+- **In:**
+  - A `search_products` RPC (security invoker, the trigram index, limit and offset) returning name, brand, size, image key and owner. Generic items are left out.
+  - The Search screen to baseline `07` to `09`: input, filter chips, results, empty and no-results states, loading and error states.
+- **Out:** search history. Barcode entry (P4B.3).
+- **Files:** a new migration, `supabase/tests/`, `packages/core/src/db/database.types.ts`, `app/src/app/(tabs)/search.tsx`, `app/src/components/search/**`, `app/src/lib/catalog/**`, `e2e/search.spec.ts`.
+- **Verification:**
+  - RLS check: the RPC returns only approved, active products as `anon`.
+  - `explain analyze` shows the index and under 200 ms. e2e finds a known product.
+  - Web and Android screenshots against the baseline.
+
+### [ ] P4B.2 Product page
+- **Slice:** product.
+- **Goal:** a product shows who makes it and who owns them.
+- **Deps:** P4B.1.
+- **In:**
+  - Baseline `13`: name, size, labels, the OFF image with its attribution, brand → owner → top parent from `product_ownership_chain`, and a link to the source page.
+  - "Not yet rated" where there's no published score. A product with no brand or no owner says so plainly.
+  - Loading, error and not-found states.
+- **Out:** prices, alternatives, features and transparency steps (Phase 8, 9).
+- **Files:** `app/src/app/product/[id].tsx`, `app/src/components/product/**`, `app/src/lib/catalog/**`, `e2e/product.spec.ts`.
+- **Verification:** e2e opens a product with a full chain, one with no owner and an unknown id. Web and Android screenshots against the baseline.
+
+### [ ] P4B.3 Barcode scan
+- **Slice:** scan.
+- **Goal:** scanning a barcode opens its product.
+- **Deps:** P4B.2.
+- **In:**
+  - Camera scanning on Android with `expo-camera` (a new dependency, recorded in DECISIONS), and typed entry on web and as a fallback.
+  - The code goes through `normalizeGtin` (UPC-E arrives as 8 digits, P4.1), then a lookup by GTIN.
+  - A clear "not in the catalog yet" state for a miss, and a permission-denied state.
+- **Out:** an OFF API lookup on a miss (added only if P4.24 shows it's needed). Receipt scanning (Phase 8). Saving the scan to history (Phase 8).
+- **Files:** `app/src/app/(tabs)/scan.tsx`, `app/src/components/scan/**`, `app/app.json`, `app/package.json`, `e2e/scan.spec.ts`, `docs/DECISIONS.md`.
+- **Verification:**
+  - Emulator: a UPC-A and its UPC-E reach the same product (mobile MCP).
+  - e2e for typed entry: a hit, a miss and an invalid code.
+
+### [ ] P4B.4 Company page
+- **Slice:** company.
+- **Goal:** a company shows what it is, what it owns and who owns it.
+- **Deps:** P4B.2.
+- **In:** baseline `16`: the Wikipedia summary with its CC BY-SA link, the brands it owns, its parent chain (ending at an organisation, P4.27), and "Not yet rated". Loading, error and not-found states.
+- **Out:** scores, articles and events (Phase 7, 8).
+- **Files:** `app/src/app/company/[id].tsx`, `app/src/components/company/**`, `app/src/lib/catalog/**`, `e2e/company.spec.ts`.
+- **Verification:** e2e opens a company with a parent and one without. Web and Android screenshots against the baseline.
+
+### [ ] P4B.5 🟡 Owner walkthrough and exit check
+- **Slice:** release-check.
+- **Goal:** a person who knows the products judges the data, before more is built on it.
+- **Deps:** P4B.1 to P4B.4.
+- **In:**
+  - **🟡 The owner looks up 30 products they know,** by search and by scan, and notes anything wrong, missing or odd.
+  - Each note becomes a correction through the `manual` source, a PLAN task, or a stated "won't fix".
+  - The exit lines above are checked, with the full e2e run and the latest CI run.
+- **Out:** fixing what it finds. Each gap becomes a task.
+- **Files:** `docs/PLAN.md`, `docs/PROGRESS.md`.
+- **Verification:** the 30 results are in PROGRESS, each with a verdict. The phase closes when the owner accepts the list.
 
 ## Phase 5 — Admin portal: catalog tools (outline)
 
-**Exit:** an admin can browse and edit every catalog entity with its provenance, bulk-import a CSV safely, review matches and ownership, and see the quality dashboard. Verified with Playwright screenshots.
+**Exit:** an admin can review matches and ownership, see the quality dashboard, and browse and edit every catalog entity with its provenance. Verified with Playwright screenshots. (Bulk CSV import left the exit when the owner deferred it, D-080.)
 
 - [ ] **P5.0 Refine Phase 5 into session-sized tasks.**
+- **Inputs from the review (D-080):**
+  - **Build the review queue and the quality dashboard first.** Phase 4 leaves several hundred open queue rows and nothing can clear them. Review one company or brand per screen, not one row at a time.
+  - **Deferred by the owner:** CSV bulk import, and triggering pipeline runs from the portal. Runs start from GitHub Actions (`workflow_dispatch`). Bring either back only if the owner asks.
+  - Supabase Studio already browses and edits every table, so the DB editor comes after the queue.
 - **Milestones:**
   - Admin layout and navigation inside the Expo app's web-only `/admin` group (D-005, P1.12), with the legacy admin look (THEME.md).
   - DB browser/editor for companies, brands, ownership, products, stores and prices: provenance panel, and edits recorded as `manual` provenance.
-  - Bulk import: CSV/JSON upload → preview → validation report → dry run → idempotent commit.
+  - Bulk import: CSV/JSON upload → preview → validation report → dry run → idempotent commit. **Deferred by the owner (D-080).**
   - Ingestion runs list and detail (rows, errors, raw object links).
   - Match and ownership review queue.
   - Manual entry forms for certifications, external ratings and company events with a required citation URL (B Corp, Fairtrade and KnowTheChain are manual-only, D-013 D6).
   - Sources page: verdict, licence, terms and the last run per source.
   - Quality dashboard: rows per source, match rate, stale prices, unscored companies, unresolved brands, DB/storage usage against budget.
-  - 🟡 Triggering pipeline runs from the admin portal needs a GitHub token held server-side (an edge function secret). The owner approves the token's scope.
+  - 🟡 Triggering pipeline runs from the admin portal needs a GitHub token held server-side (an edge function secret). The owner approves the token's scope. **Deferred by the owner (D-080).**
 
 ## Phase 6 — Scheduling and operations (outline)
 
 **Exit:** scheduled runs work on GitHub Actions for a full week with no manual steps. Failures open an issue, and budget alarms work.
 
 - [ ] **P6.0 Refine Phase 6 into session-sized tasks.**
+- **Already done early (review, D-080):** P6.1 (scheduled OFF refresh and keep-alive), P6.2 (dev-database checks in CI) and P6.3 (raw-retention cleanup) sit in Phase 4, after P4.3. P2.24 added the run lock and database retries. P6.0 numbers its tasks from P6.4.
+- **Inputs from the review (D-080):**
+  - **Production:** the dev project becomes production at launch (owner decision). Plan the cut-over: remove test users and fixture rows, rotate keys, rename the env variables, and give the pipeline an explicit target that can't be set by accident. The dev-only checks (`check:*`, the e2e users) need somewhere to run afterwards.
+  - **Backups:** the free plan has none. A weekly export of what can't be rebuilt from sources (review decisions, `manual` rows, `audit_log`) to private Storage, and a decision on user data.
+  - **Schedules for the other sources,** each with the P6.1 concurrency group.
 - **Milestones:**
   - Cron workflows per source with `workflow_dispatch`, concurrency groups, and `actions/cache` for the HTTP cache.
   - Supabase keep-alive.
@@ -1817,6 +2106,15 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 **Exit:** a batch of 10 companies is scored with citations and confidence. All scores land in the review queue, approved scores show in the app, and cost per company is logged.
 
 - [ ] **P7.0 Refine Phase 7 into session-sized tasks.**
+- **Inputs from the review (D-080, review H-4):**
+  - **Evidence first.** Before any prompt is written, research evidence sources for each of the five rubric categories, with terms checked as in SOURCES.md. Include Canadian public registers (for example the federal supply-chain reports and the lobbying registry). A score built on a Wikipedia summary alone isn't publishable.
+  - **Score in order of products covered, with a target.** On 2026-11-10, 10 top parent companies covered 50% of products with a known owner, and 69 covered 80%. The first target is those 69.
+  - **Decide which company a score attaches to.** Recommended: the top corporate parent (P4.27), inherited by its subsidiaries and brands unless one has its own score.
+  - **Review one company per screen:** five categories with their citations side by side.
+  - **Trust and legal:** a public method page, the date and sources on every rating, wording that separates cited fact from Sarvis's rating, and a contact route for a company to dispute one.
+  - **Article links:** decide whether a link from an allow-listed publisher may appear without review when it carries no good or bad tag. One reviewer can't read every article.
+  - **AI category classification (owner-approved, D-080):** a one-off job over products that P4.17 left without a category. Hard cap US$5. Measured on P4.17's gold sample, and applied only if precision is at least 95%. It gets its own `category_rule` code.
+  - If receipts are built before scoring, the module spike moves to the start of that work.
 - **Milestones:**
   - The single OpenRouter module (D-009): configurable model, zod-validated output, a token and cost log, a mock mode, a spend guard. **First task:** a spike proving the same module runs in a Deno edge function and in the Node pipeline.
   - 🟡 Rubric v1 (`docs/catalog/RUBRIC.md`): 5 categories × Good/Mixed/Poor, 0–100 and letter grade (D-004), evidence requirements, confidence levels. The owner approves the rubric before scoring runs.
@@ -1831,6 +2129,14 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 **Exit:** every baseline screen is rebuilt, matches `docs/baseline/` on web and Android, and reads the new catalog. The e2e suite covers the main flows.
 
 - [ ] **P8.0 Refine Phase 8 into session-sized tasks.**
+- **Already built in Phase 4B (review, D-080):** search, the product page, barcode scan, the company page and guest access. Phase 8 adds prices, scores, articles and history to them.
+- **Inputs from the review (D-080, review M-12, M-13, H-7):**
+  - **Receipt design questions to settle first:** how a receipt gets its store and banner (read from the header, picked by the user, or both); what a user can do with an unmatched line; whether one user's confirmed match becomes a listing other receipts match against, and how a wrong confirmation is kept from spreading; generic items shown as "fresh item, no brand" (P4.28).
+  - **Receipt edge function:** it checks the caller's own JWT (the legacy function accepted any holder of the public key), enforces a per-user daily limit, and logs the cost of every scan against the cap.
+  - **Receipt prices are shared per banner and month, not per store and week** (D-080, amending D-014). The user always sees their own prices. The floor of 2 receipts and the consent wording are still approved here.
+  - **Sign-up email:** Supabase's built-in email only reaches team addresses. Pick a mail provider with a free tier (owner decision) before real users can register.
+  - **A `client_errors` table** fed by the error boundary, so crashes are visible with no new service.
+  - **A data export** for the user's own history and receipts (PIPEDA access).
 - **Milestones:** one task per screen or flow.
   - Home.
   - Search: catalog-wide, by product, brand or company.
@@ -1850,13 +2156,16 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 
 ## Phase 9 — Ethical alternatives (outline)
 
-**Exit:** for a test set of receipts, alternatives appear at the same store, are more ethical by the rubric, and cost the same or less per unit (or are flagged when they don't). Evaluated on a labelled set.
+**Exit (changed by D-080, which amends D-011):** for a test set of receipts, each matched product with a rated owner gets alternatives of the same kind from a better-rated company. A price is shown wherever one is known, with its source and date, and an alternative that costs more is flagged. "At this store" is a filter that appears only for stores with data. Evaluated on a labelled set.
 
 - [ ] **P9.0 Refine Phase 9 into session-sized tasks.**
+- **Inputs from the review (D-080, review C-1):**
+  - **Start with a gate.** Refresh the P4.23 coverage numbers: products with a leaf category and a rated owner, and store × product pairs with a price. Build UI only for what the data supports, and report the numbers to the owner first.
+  - **The default is "same kind of product, better-rated company".** Same-store and same-or-lower price were the original default (D-011), and the catalog can't support them: 521 prices in Canada and 64 in Ontario on 2026-11-10, with every retailer source avoided (D-013).
 - **Milestones:**
   - Define "similar": same taxonomy leaf and a size band compared by unit price.
   - Define "more ethical": a minimum score gap, and only published scores.
-  - Same-store default. If the store has no data, fall back to the same chain, then other nearby chains, clearly labelled (D-011).
+  - Same-store filter (the default until D-080). Where the store has no data, show the same chain, then other chains, clearly labelled (D-011).
   - **Size gap:** 79% of OFF products have no size (D-077), so unit-price comparison reaches only part of the catalog. P4.23 reports how many products have both a leaf category and a size. Decide here how to treat a candidate with no size.
   - **Audit note:** with no retailer sources (D-013), "available at this store" is known only from receipts and Open Prices, so expect thin same-store coverage at first. Label the source of each alternative's price ("seen on a receipt at …", with its date).
   - Precomputed alternatives table refreshed by the pipeline.
@@ -1865,6 +2174,12 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 ## Phase 10 — Release hardening (outline)
 
 - [ ] **P10.0 Refine Phase 10 into session-sized tasks.**
+- **Inputs from the review (D-080, review H-7, M-13):**
+  - **Capacity:** the free database passes its warning line at about 110 to 125 active users (BUDGET §8). The owner has accepted a paid tier of about US$25 a month at that point. Flag it again before switching, as CLAUDE.md requires.
+  - **Play Store:** check the current requirements before choosing it, including the fee, the closed-test rule for new personal developer accounts, and a web page where a user can ask for deletion.
+  - **Privacy policy:** names OpenRouter as a processor of receipt images, and covers consent, access and deletion.
+  - **Encrypted session storage on Android** (D-025 stores it in plain AsyncStorage).
+  - **`npm audit`** rechecked after the next Expo SDK upgrade.
 - **Milestones:**
   - 🟡 Web hosting choice (free: EAS Hosting, Cloudflare Pages or Netlify).
   - 🟡 Android distribution (an EAS free build or a local Gradle APK; the Play Store costs $25, so flag it).

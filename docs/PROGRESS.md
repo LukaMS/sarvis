@@ -2,6 +2,56 @@
 
 Newest entry first.
 
+## 2026-11-10 — Independent review, and the plan changes it led to (no task ID)
+
+**What happened**
+- A second model reviewed the whole rebuild: health check, an audit of the 87 completed tasks, the decisions, the remaining plan. The report is `docs/REVIEW.md`.
+- The owner took the recommended answer to all eight questions and delegated the rest (D-080). The approved changes are now in `docs/PLAN.md`.
+- No application code, migration or catalog row changed.
+
+**Health check (all run on 2026-11-10)**
+- `typecheck`, `lint`, `format:check`: pass. `npm test`: 622 passed, 1 skipped. Playwright e2e: 28 passed.
+- `check:gtin` 5 of 5, `check:writers` 7 of 7, pipeline e2e 1 of 1. Row counts afterwards are unchanged (90,672 products, 1,828 brands, 521 prices, 0 fixture rows).
+- Production web export: only the public Supabase key is in the bundle. Signed-out routes redirect correctly.
+- Dev database: 18 migrations and 18 files, RLS on all 40 tables, one security advisor warning (leaked-password protection is off).
+- Not checked: Android. No emulator was running.
+
+**Audit result**
+- No completed task needs a redo, so nothing is reopened.
+- Tasks whose work stands but needs a follow-up, each covered by a new task:
+
+  | Done task | Gap | New task |
+  |---|---|---|
+  | P1.10, P1.15 | A link can replace the session; an offline start shows sign-in | P1.18 |
+  | P1.7, P1.9 | Dev routes and the stock not-found page ship in production | P1.19 |
+  | P2.13, P2.15, P2.16 | No run lock, no database retry, POST responses not cached | P2.24 |
+  | P2.16 | Writers are never tested in CI | P6.2 |
+  | P2.4 | Ownership chains end at people; `banners` is empty | P4.27, P4.29 |
+  | P3.7 | The OFF delta window closes on 2026-11-13 with nothing scheduled | P4.3 (full run), P6.1 |
+  | P3.12 to P3.13 | Wrong owners approved on high-volume brands | P4.25, P4.26 |
+  | P0.11 | No model for items without a barcode | P4.28 |
+
+**Plan changes applied**
+- **Added to Phase 4:** P4.24 (coverage probe), P4.25 (audit of matched brands), P4.26 (lone foreign candidate), P4.27 (corporate top parent), P4.28 (generic items), P4.29 (banners).
+- **Run early, inside Phase 4 after P4.3:** P2.24, P6.1, P6.2, P6.3.
+- **Changed:** P4.3, P4.8, P4.10, P4.13, P4.15, P4.17, P4.18, P4.20, P4.23.
+- **New Phase 4B, before the admin portal:** P1.18, P1.19, P1.20 (guest access), P4B.1 to P4B.5.
+- **Outlines:** review inputs added to P5.0 through P10.0. Phase 9's exit now uses the new meaning of alternatives.
+- Tasks now run in file order, and PLAN.md says so at the top.
+
+**For the owner:**
+- **Your inputs, in the order they're needed:**
+  1. About 50 barcodes from products at home and about 100 receipt lines (P4.24). Typed digits or photos are both fine. Nothing waits on these except the receipt gold set.
+  2. Three GitHub Actions secrets: the dev project URL, the dev service-role key, the pipeline contact email (P6.1).
+  3. Three short lists to approve when they're ready: banners (P4.29), grocers' own brands (P4.12), corrections to matched brands (P4.25).
+  4. One switch in the Supabase dashboard: leaked-password protection (P1.19).
+- **Calls I made under your delegation are listed in D-080,** second list. The ones most worth a glance: the 2-receipt floor stays (now per banner and month), and the AI category job must reach 95% precision or it isn't applied.
+- **P4.3 is time-sensitive.** The OFF update window closes on 2026-11-13, and P4.3 now ends with the full run that catches up.
+
+**Next:** P4.3 OFF: re-import UPC-E and bad-check-digit codes.
+
+---
+
 ## 2026-11-05 — P4.2 Product writer keeps resolved columns (done)
 
 **What changed** (D-079)

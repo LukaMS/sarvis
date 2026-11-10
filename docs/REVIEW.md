@@ -13,7 +13,7 @@ A later session resumes at the first unticked line.
 - [x] Phase 4: remaining plan reviewed
 - [x] Phase 5: will the finished app succeed?
 - [x] Phase 6: final report (top findings, plan changes, questions), committed
-- [ ] Owner approval, then PLAN / PROGRESS / DECISIONS updated
+- [x] Owner approval, then PLAN / PROGRESS / DECISIONS updated (2026-11-10: every recommended answer taken, D-080)
 
 **Evidence labels**
 - **Verified:** I ran it or saw the output in this review, or the claim is about what a document says and I cite the place.
@@ -95,7 +95,7 @@ Bets 2, 3 and 4 are the ones this review tests hardest.
 | `npm audit --omit=dev` | 18 advisories (5 high), all in Expo's build-time toolchain (e.g. `postcss` under `@expo/metro-config`). The offered fix downgrades Expo to 52. Nothing to do now; recheck in Phase 10. |
 
 **Not run, and why:**
-- `npm run e2e --workspace @sarvis/pipeline` and `check:writers`: both write rows to the dev project and delete them. The review brief says not to change the database, so I left them. Both passed on 2026-11-05 (PROGRESS, P4.2). Say the word and I'll run them.
+- `npm run e2e --workspace @sarvis/pipeline` and `check:writers` were left out of the review itself, because both write rows to the dev project and delete them. **Run after the owner's go-ahead on 2026-11-10:** `check:gtin` 5 of 5, `check:writers` 7 of 7, pipeline e2e 1 of 1. Row counts were unchanged afterwards, with 0 fixture rows left.
 - The Playwright suite does create and reset its `e2e-*` auth users in the dev project. That is unavoidable for the suite the brief asked for.
 - **Android:** no emulator was running (`adb devices` listed none), and the `mobile`, `playwright` and `chrome-devtools` MCP servers failed to connect this session. Android was skipped. Web was driven with the repo's own Playwright instead.
 
@@ -708,3 +708,9 @@ Only the ones whose answer changes the plan. My recommendation is first in each.
 8. **Your inputs.** P4.24 needs about 50 barcodes and 100 receipt lines from you. P6.1 needs three GitHub Actions secrets added. P4.25 and P4.29 each need you to approve a short list. This amends D-054 ("no review for Wikidata") for the biggest brands only.
 
 One offer: I skipped the two test suites that write to the dev database and clean up after themselves (`check:writers`, the pipeline e2e). Say so if you want them run.
+
+---
+
+## Outcome (2026-11-10)
+
+The owner took the recommended answer to all eight questions and delegated the remaining judgment calls. The answers and those calls are recorded in D-080. The plan changes above are applied in `docs/PLAN.md`, with one addition that follows from Question 5: P1.20, guest access to the catalog screens. This file is now a record of the review and is not updated further.

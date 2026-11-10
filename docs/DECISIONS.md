@@ -1,6 +1,6 @@
 # Decisions
 
-Short records of architecture and data decisions. Newest at the bottom. Status is **Accepted** (owner-confirmed or final), **Proposed** (my default; confirm or amend in the named task), or **Open** (owner must decide).
+Short records of architecture and data decisions. D-001 to D-045 run oldest first. From D-046 on, the newest entry comes first, directly below D-045. Status is **Accepted** (owner-confirmed or final), **Proposed** (my default; confirm or amend in the named task), or **Open** (owner must decide).
 
 ---
 
@@ -63,6 +63,7 @@ Legacy split products into an "ethical" `products` table and a grocery `catalog_
 ## D-011 Alternatives default to the same store — Accepted (owner brief), fallback Proposed
 Alternatives are products at the store the user shopped at. If that store has no data for the category, fall back to the same chain, then other nearby chains, clearly labelled as "at another store".
 **Why:** a swap is only realistic where the user already shops; the fallback avoids empty results while store coverage is thin.
+**Amended by D-080 (2026-11-10):** same-store is now a filter, not the default. The default is the same kind of product from a better-rated company.
 
 ## D-012 Screenshots and fixtures carry no personal data — Accepted (P0.6)
 The repo is public (D-003). Screenshots in `docs/baseline/` and `.screenshots/`, test fixtures, and logs must not show real names, emails or account data. Real-account captures replace them in the page DOM before capture (name → "Alex", email → `you@example.com`), with a leak check. Tool working folders that can hold typed input (`.playwright-mcp/`) are gitignored and deleted after use. Credentials are never written to files.
@@ -88,7 +89,7 @@ The repo is public (D-003). Screenshots in `docs/baseline/` and `.screenshots/`,
 - **Product identity:** the primary GTIN (normalized to GTIN-14) lives on `products`. `product_identifiers` holds only secondary codes.
 - **Ownership:** a product links to a brand only. The company comes from `brand_ownership` → `company_ownership` (CLAUDE.md ownership rule). There's no company column on products.
 - **Chains:** the operating chain is a `companies` row referenced by `banners`, so there's no separate chains table. Banner-specific names and receipt abbreviations are `store_listings`, replacing legacy `product_aliases`.
-- **Receipt prices:** they reach the shared catalog only as weekly aggregates (`price_points_weekly`, with a k-anonymity floor) of consenting users' lines. They're never copied per line.
+- **Receipt prices:** they reach the shared catalog only as weekly aggregates (`price_points_weekly`, with a k-anonymity floor) of consenting users' lines. They're never copied per line. **Amended by D-080 (2026-11-10):** the aggregates are per banner and month.
 - **Review:** reviewable facts carry `review_status`, and RLS shows `approved` only. `review_queue` tracks the work.
 - **Evidence:** citations and articles share one `documents` table. Full text is never stored.
 
@@ -412,6 +413,34 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-080 Review outcomes: what "alternatives" means, plan order, and eight owner answers — Accepted by owner (2026-11-10)
+
+The independent review (`docs/REVIEW.md`) ended with eight questions. The owner took the recommended answer to each and delegated the remaining judgment calls. The first list is the owner's answers. The second is what I decided under that delegation, so it can be overruled.
+
+**Owner answers**
+- **Alternatives (amends D-011).** The default is "same kind of product, from a better-rated company". A price is shown wherever one is known, with its source and date, and an alternative that costs more is flagged. "At this store" becomes a filter that appears only for stores with data. The old default (same store, same price or less) can't be met: the catalog held 521 prices for Canada and 64 for Ontario on 2026-11-10, and every retailer source is avoided (D-013).
+- **Receipt prices (amends D-014 and DATA_MODEL §9).** Consenting users' prices are shared as aggregates per banner and month, not per store and week. A user always sees their own receipt prices. The schema change is made when Phase 8 builds receipts; no receipt table or row exists yet.
+- **Plan order.** A first user slice (Phase 4B: search, product page, barcode scan, company page) is built after the brand work in Phase 4 and before the admin portal. Three operations tasks (P6.1 to P6.3) and pipeline hardening (P2.24) run right after P4.3.
+- **Capacity.** The free tiers stay the rule (CLAUDE.md). When active users near the database warning line (about 110 to 125, BUDGET §8), a paid Supabase tier of about US$25 a month is acceptable. It is flagged again before any switch.
+- **Production project (amends D-042).** The dev project is promoted to production at launch. No third project is created. P6.0 plans the cut-over.
+- **Guest access (amends D-025).** Search, scan, product and company pages work without an account. History, receipts, profile and settings need sign-in. There are still no anonymous Supabase sign-ins (D-015). Built in P1.20.
+- **Categories by AI (amends D-077).** A one-off AI classification of products that the P4.17 rules leave without a category is approved, with a hard cap of US$5. It runs in Phase 7, once the OpenRouter module exists.
+- **Admin scope.** CSV bulk import and starting pipeline runs from the portal are deferred. Phase 5 builds the review queue and the quality dashboard first.
+- **Review of the biggest brands (amends D-054 and D-066).** D-054 stands for the long tail. For brand strings on 20+ products, the matches Wikidata already made are audited once and the owner approves the corrections (P4.25). A lone candidate whose country is set and isn't CA or US is held for review at that size (P4.26). The review found at least 11 wrong matches among the 190 such strings, for example IGA → Metcash (Australia) and Leclerc → E.Leclerc (France).
+
+**Decided under delegation** (mine; say so to change any of them)
+- **The floor of 2 receipts stays,** applied at banner × month. At that level it is easy to reach with few users, and it still stops one person's basket being read from the shared data. The consent wording is approved in Phase 8, as before.
+- **A brand reached only through a company-named brand's alias becomes its own brand** with a derived owner edge (P4.13). 1,247 of 1,759 approved brands share a Wikidata item with a company and carry its name.
+- **The top parent shown to users is an organisation.** `company_ultimate_parent` stops before an `individual` (P4.27). The edges to people stay in the data.
+- **Items with no barcode get generic products** (`products.is_generic`, P4.28), with no brand, owner or grade.
+- **The AI classification is applied only if it reaches 95% precision** on P4.17's gold sample, the same bar as the rules.
+- **Scoring order (input to P7.0):** top parent companies first, by products covered. On 2026-11-10, 69 parents covered 80% of products with a known owner.
+- **File order is task order.** New tasks sit in PLAN.md where they run, so a few carry a Phase 1, 2 or 6 ID inside Phase 4 or Phase 4B.
+- **SEC EDGAR and Corporations Canada get no further work** until the review UI exists (D-074, D-075: low yield).
+- **I ran the two dev-database suites the review had skipped** (`check:writers`, the pipeline e2e) once the owner delegated. Both pass, and the row counts are unchanged afterwards.
+
+**Why:** the build is healthy, but the plan promised a feature its data can't support and would not have met a real user for about 100 sessions. These changes test the catalog against real purchases early, fix ownership errors before products are linked to them, and define alternatives by what the data holds.
+
 ## D-079 No slug means no opinion on a product's brand and category — Accepted (P4.2)
 - **Rule:** a product record with no `brand_slug` or `category_slug`, a null one, or one we don't know leaves `brand_id` or `category_id` out of the payload, so the stored value stays. A slug we know still writes. This narrows D-046's "an explicit null clears it" for these two columns: an import can no longer clear them. Clearing a link is an admin or job action.
 - **No re-hash:** null fields never enter the content hash, so leaving a column out hashes the same as the old explicit null. All 90,672 stored hashes stay valid, and no mass update follows.
@@ -642,6 +671,7 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Brands built from OFF brand strings (Phase 4)** are auto-approved too. The Phase 4 resolver's own low-confidence guesses (fuzzy brand → company links) are the matcher's output, not OFF or Wikidata data, so P4.0 decides how they're handled.
 - **The P3.12 50-edge precision check still runs** and goes in PROGRESS for information. It doesn't block P3.13. It's raised with the owner only if it shows a systematic error (for example, a whole class of wrong matches).
 **Why:** the owner trusts Wikidata and OFF and wants no manual review step for them. Coverage matters, and approved OFF products would otherwise show no brand or owner.
+**Amended by D-080 (2026-11-10):** brand strings on 20+ products are audited once, and a lone foreign candidate at that size is held (P4.25, P4.26).
 
 ## D-053 Phase 3 task plan choices — Accepted (P3.0)
 - **Shared groundwork first:** the contact email (P3.1), the schema additions (P3.2), streaming dump downloads (P3.3) and the missing writers (P3.4) come before any source, so each source task stays one slice.
