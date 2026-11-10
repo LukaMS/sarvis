@@ -416,9 +416,9 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 ## D-082 Coverage probe on 18 receipt lines, no barcodes — Accepted by owner (2026-11-10, P4.24)
 - **Input:** the owner has no ~50 products at home to scan and no more receipts, and asked that the task "make do" rather than hold up the plan. Their 2 Fortinos receipts in the legacy app (`receipt_items`, read-only, the owner confirmed they're theirs) give 18 distinct lines. The other legacy lines are repeat scans of the same receipts and 2026-08-06 test data, left out.
 - **Labels:** `in_catalog`, `missing`, `no_barcode`, `unidentified`. A line that doesn't give the flavour counts as found when the catalog has the product line.
-- **The 60% rule** is applied to the barcoded receipt lines (5 of 10 found), so the on-scan OFF API lookup becomes P4B.6, before the owner walkthrough.
+- **The 60% rule** is applied to the barcoded receipt lines. The first count was 5 of 10 found, so the on-scan OFF API lookup became P4B.6, before the owner walkthrough. Food only it's 5 of 8 (63%), just over the line. P4B.6 stays, because on 8 lines one item moves the rate by 12 points, and S2 is already approved.
 - **Knock-on changes:** P4.20 runs on these 18 lines and doesn't wait. P4.21 doesn't tune or split on receipt lines, only reports them, and receipt matches need user confirmation until about 100 lines exist.
-- **Open for the owner:** 2 of the 5 misses are non-food (body wash, deodorant). OFF is food only. Covering health and beauty (Open Beauty Facts) is a product decision, not taken here.
+- **Non-food is out of scope (owner, 2026-11-10):** 2 of the 5 misses are non-food (body wash, deodorant). The owner decided the catalog covers food only for now, so there's no Open Beauty Facts task. Non-food receipt lines count as out of scope, not as misses.
 **Why:** a small, real basket is a better guide than none, and waiting for input that won't come would block P4.20, P4.21 and the exit check.
 
 ## D-081 OFF bad codes, and two codes for one GTIN in one source — Accepted (P4.3, `off@1.1.0`)

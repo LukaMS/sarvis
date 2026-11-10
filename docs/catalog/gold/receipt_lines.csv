@@ -14,6 +14,6 @@ r1-12,Fortinos,GM NV PRTN GRAN MRJ,in_catalog,Nature Valley Granola Protein,flav
 r1-13,Fortinos,PC Organic ARUGULA MRJ,in_catalog,President's Choice Organic Arugula,
 r2-01,Fortinos,DMC APA STAIND FN HMRJ,unidentified,,can't decode the abbreviation
 r2-02,Fortinos,PROTEIN DRINK HMRJ,unidentified,,no brand on the line
-r2-03,Fortinos,NATV BW CTRS HRB HMRJ,missing,,Native body wash (citrus & herbal): non-food; 2 Native hair products are in the catalog
+r2-03,Fortinos,NATV BW CTRS HRB HMRJ,out_of_scope,,Native body wash (citrus & herbal): non-food (D-082); 2 Native hair products are in the catalog
 r2-04,Fortinos,G.G. FRUIT JUICE MRJ,unidentified,,"brand ""G.G."" not identified"
-r2-05,Fortinos,DOVE MC DS FRESH HMRJ,missing,,Dove Men+Care deodorant stick (Fresh): non-food; other Dove Men+Care items are in the catalog
+r2-05,Fortinos,DOVE MC DS FRESH HMRJ,out_of_scope,,Dove Men+Care deodorant stick (Fresh): non-food (D-082); other Dove Men+Care items are in the catalog

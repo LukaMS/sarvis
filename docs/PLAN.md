@@ -1469,7 +1469,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - ✅ Done 2026-11-10: full run `83205eb0` (2,758 inserted, 1,345 updated, 0 invalid), run `5ca89bdc` 0 inserted / 0 updated, restricted GTINs 608 → 0, 35 collisions checked, products 74.1 MB (D-081).
 
 ### [x] P4.24 Coverage probe: is what the owner buys in the catalog? (added by the review)
-✅ Done 2026-11-10 on 18 lines from 2 legacy receipts and no barcodes (D-082): 5 found, 5 missing, 5 with no barcode, 3 unidentified. 5 of 10 barcoded lines found, so P4B.6 was added. Results: `docs/catalog/gold/coverage_probe.md`.
+✅ Done 2026-11-10 on 18 lines from 2 legacy receipts and no barcodes (D-082): 5 found, 3 missing, 5 with no barcode, 3 unidentified, 2 non-food (out of scope). 5 of 8 barcoded food lines found (63%). The first count, 5 of 10 with non-food, was under 60%, so P4B.6 was added. Results: `docs/catalog/gold/coverage_probe.md`.
 - **Slice:** gold-set.
 - **Goal:** measure, on real purchases, how much of a basket the catalog covers, before more is built on that assumption (review C-2).
 - **Deps:** P4.3.
@@ -2045,13 +2045,13 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 
 ### [ ] P4B.6 OFF API lookup on a scan miss (added by P4.24)
 - **Slice:** scan.
-- **Goal:** a scanned barcode that isn't in the catalog still finds its product when OFF has it outside the Canadian set. P4.24 found 5 of 10 barcoded receipt lines (D-082).
+- **Goal:** a scanned barcode that isn't in the catalog still finds its product when OFF has it outside the Canadian set. P4.24 found 5 of 8 barcoded food lines (D-082).
 - **Deps:** P4B.3.
 - **In:**
   - On a miss, one server-side call to the OFF product API (S2, approved as a lookup fallback only), within its rate limits and with the pipeline's User-Agent.
   - A hit is shown with its source and stored through the OFF mapping (`off@` version, provenance, `review_status` as for OFF rows), so a second scan reads it from the catalog. A miss is cached so it isn't asked again soon.
   - The app never calls OFF directly.
-- **Out:** name search against OFF. Open Beauty Facts (an owner decision, D-082).
+- **Out:** name search against OFF. Non-food products (food only for now, D-082).
 - **Files:** to be set when the task starts (an Edge Function or the API layer chosen in P4B.1), `docs/catalog/SOURCES.md`, `docs/DECISIONS.md`.
 - **Verification:**
   - A code that's in OFF but not in the catalog is found and stored. A second scan makes no OFF call. A code OFF doesn't have shows "not in the catalog yet".
