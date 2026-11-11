@@ -1607,7 +1607,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A second run updates 0 rows. Budget check, including dead tuples.
 - ✅ Done 2026-11-10: full run `5a9ea4ac` updated 2,881 rows (ok 19,879 → 20,287, ambiguous 27 → 66), run `7179a9c8` updated 0, 30 spread rows plus all 73 changed values checked by hand (1 doubtful, 0 wrong), 91 sizes from names, 3.3% dead tuples (D-088).
 
-### [ ] P4.7 Pipeline: derived-job runner
+### [x] P4.7 Pipeline: derived-job runner
 - **Slice:** pipeline-jobs.
 - **Goal:** one way to run work that reads our own tables, with the same bookkeeping as a source.
 - **Deps:** P3.19a.
@@ -1622,6 +1622,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - Unit tests: a dry run writes nothing, a sample stops at N, a cancelled job resumes, exit codes.
   - The fixture job run twice against dev updates nothing the second time.
+- ✅ Done 2026-11-11: 14 runner tests (dry run, sample, cancel and resume, locks, batch errors, event cap, exit codes); dev e2e on 12 seeded rows: dry 0 updated, sample 4 → 4, full → 6, full again → 0 (D-089).
 
 ### [ ] P4.8 Taxonomy and OFF tag mappings
 - **Slice:** taxonomy.

@@ -2,6 +2,23 @@
 
 Newest entry first.
 
+## 2026-11-11 — P4.7 Pipeline: derived-job runner
+
+**What changed** (D-089)
+- **`pipeline/src/jobs/`:** `job.ts` (the `Job` interface: `prepare`, `read(after, limit)`, `idOf`, `work`, `write`, `finish`), `runner.ts` (`runJob`: counts, capped events, cancellation, batch errors, final status), `index.ts` (registry), `fixture.ts` (the `fixture` job: sizes the `fixture` source's `unparsed` products with `parseSize`).
+- **`runs/start.ts`:** the start of a run (source check, stale sweep, run row under the lock, capped event writer), split out of `driver.ts` so sources and jobs share it. `driver.ts` re-exports the moved names; behaviour unchanged.
+- **CLI:** `npm run pipeline -- job <name> [--sample N] [--dry-run]`, same exit codes as `run`; `--help` lists jobs. CLAUDE.md updated.
+- **Source row:** `sarvis-derived` (migration `20261111131930`, applied last session). Jobs run under it; `derived` stays the SQL rollups' source. SOURCES.md lists the internal sources.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,089 passed, 2 skipped. 14 runner tests: dry run writes nothing, sample stops at N (and a full run picks up after it), a cancelled job resumes with only the rows left, locked rows counted, a failed batch → `completed_with_errors` (exit 2), fatal → `failed` (exit 1), cancelled → 130, out-of-order reads fail, the run lock and a disabled source refuse before a run row, events capped at 50.
+- **Dev e2e** (`npm run e2e --workspace @sarvis/pipeline`, both files pass): 12 seeded fixture products (10 readable). Dry run: fetched 12, valid 10, updated 0, rows untouched. `--sample 4`: fetched 4, updated 4. Full: fetched 8, updated 6, unchanged 2. **Full again: fetched 2, updated 0.** `12 x 355 ml` → 4,260 ml, pack 12; `per slice 19 g` and `1` stay unparsed. All 4 runs under `sarvis-derived`, job `fixture@1.0.0`. Cleanup left 0 products and 0 runs.
+- By hand: `npm run pipeline -- job fixture` → completed, 0 rows, exit 0 (run `5fde6e19`, kept). `job nope` → refused, exit 1. The existing fixture source e2e still passes after the `driver.ts` split.
+
+**Next:** P4.8 Taxonomy and OFF tag mappings.
+
+---
+
 ## 2026-11-11 — P6.1 Scheduled OFF refresh: verified on GitHub (interactive session)
 
 **What changed**

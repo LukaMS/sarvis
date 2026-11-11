@@ -66,6 +66,11 @@ In **Key fields**, the fields marked **(key)** are the ones the P0.11 data model
 
 This table is mirrored in the `public.sources` table (one row per S-id, joined on `sources_md_id`; seed migration `20261028221731_seed_sources`, D-032). When a verdict or terms check changes here, change the table too, in a new migration.
 
+**Internal sources** (rows in `public.sources` with `access_method = internal` and no S-id; nothing is fetched, so no terms apply):
+- `fixture`: the synthetic test source (P2.17).
+- `derived`: SQL price rollups computed from other facts (P2.2).
+- `sarvis-derived`: derived jobs, `npm run pipeline -- job <name>` (P4.7, D-089). Each job reads our own tables; its runs are `ingestion_runs` rows under this source, one running run per job. Seed migration `20261111131930_seed_sarvis_derived_source`.
+
 **What this means for the catalog:**
 - **Products and ownership are well covered** by open sources: S1, S5, S17, S19 and S20.
 - **Store prices are the gap.**

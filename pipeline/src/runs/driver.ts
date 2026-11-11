@@ -28,14 +28,13 @@ import {
   CancelledError,
   ConfigurationError,
   DatabaseError,
-  RunLockedError,
   SourceBlockedError,
   classifyError,
 } from '../errors.ts';
 import { type HttpClient, createHttpClient } from '../http/client.ts';
 import { jitteredDelayMs, sleep } from '../http/retry.ts';
 import { userAgent } from '../index.ts';
-import { type LogLevel, type Logger, logger as rootLogger } from '../log.ts';
+import type { Logger } from '../log.ts';
 import { type RawInput, envelopeOf, storeRaw } from '../raw/store.ts';
 import type {
   FetchResult,
@@ -47,14 +46,13 @@ import type {
   SourceRunContext,
 } from '../sources/source.ts';
 import { type UpsertCounts, addCounts, computeFinalStatus } from './progress.ts';
+import { SourceRefusedError, checkSource, startRun } from './start.ts';
 import type { RunStore } from './store.ts';
 
-/** At most this many `ingestion_run_events` rows per run; the last slot is kept for the final event. */
-export const MAX_RUN_EVENTS = 50;
+export { DEFAULT_RUN_TIMEOUT_MS, MAX_RUN_EVENTS, SourceRefusedError } from './start.ts';
+
 /** At most this many `validation_failures` rows per run; `counts.invalid` holds the full number. */
 export const MAX_VALIDATION_FAILURES = 50;
-/** A `running` run older than this is dead: GitHub Actions stops a job at 6 hours. */
-export const DEFAULT_RUN_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 /** Pause between fetches, on top of the HTTP client's per-host limit, jittered up to 1.5×. */
 export const DEFAULT_POLITENESS_DELAY_MS = 500;
 
@@ -154,14 +152,6 @@ export interface RunResult {
   sweptStaleRuns: number;
 }
 
-/** A source this run must not touch. Thrown before any run row is created. */
-export class SourceRefusedError extends ConfigurationError {
-  constructor(message: string) {
-    super(message);
-    this.name = 'SourceRefusedError';
-  }
-}
-
 function checkOptions(source: Source, opts: RunOptions): number | null {
   const sampleSize = opts.sampleSize ?? null;
   if (sampleSize !== null && (!Number.isInteger(sampleSize) || sampleSize < 1)) {
@@ -191,17 +181,8 @@ function contactFor(source: Source, contactEmail: string | null | undefined): st
   return contactEmail;
 }
 
-function checkSource(key: string, row: SourceRow | null): SourceRow {
-  if (!row) throw new SourceRefusedError(`Source ${key} has no row in sources.`);
-  if (row.verdict !== 'use') {
-    throw new SourceRefusedError(`Source ${key} has verdict ${row.verdict}; only 'use' can run.`);
-  }
-  if (!row.enabled) throw new SourceRefusedError(`Source ${key} is disabled.`);
-  return row;
-}
-
 /** Errors that end the whole run rather than one step. */
-function isFatal(err: unknown): boolean {
+export function isFatal(err: unknown): boolean {
   return (
     err instanceof CancelledError ||
     err instanceof SourceBlockedError ||
@@ -225,17 +206,17 @@ export async function runSource<K extends RecordKind>(
 
   const signal = opts.signal ?? new AbortController().signal;
   const dryRun = isDryRun(opts.mode);
-  const started = now();
-  // Only this source's stale runs: another source's run is its own driver's business (P2.24).
-  const sweptStaleRuns = await store.sweepStaleRuns(
-    row.id,
-    new Date(started.getTime() - (opts.runTimeoutMs ?? DEFAULT_RUN_TIMEOUT_MS)),
-    started,
-  );
-  let runId: string;
-  try {
-    runId = await store.createRun({
-      source_id: row.id,
+  const {
+    runId,
+    sweptStaleRuns,
+    startedAt: started,
+    log,
+    event,
+    eventsDropped,
+  } = await startRun(
+    store,
+    row,
+    {
       job: source.job,
       job_version: source.version,
       mode: opts.mode,
@@ -243,44 +224,9 @@ export async function runSource<K extends RecordKind>(
       triggered_by: opts.trigger,
       git_sha: opts.gitSha ?? null,
       actions_run_url: opts.actionsRunUrl ?? null,
-    });
-  } catch (err) {
-    // The run lock: refused before a row exists, so the running run is left alone.
-    if (err instanceof RunLockedError) {
-      throw new RunLockedError({
-        sourceKey: row.key,
-        job: err.job,
-        runningRunId: err.runningRunId,
-        runningSince: err.runningSince,
-      });
-    }
-    throw err;
-  }
-  const log = (deps.log ?? rootLogger).child({ sourceKey: row.key, runId });
-
-  let eventsWritten = 0;
-  let eventsDropped = 0;
-  const event = async (
-    severity: LogLevel,
-    eventType: string,
-    message: string,
-    details?: Record<string, unknown>,
-    final = false,
-  ) => {
-    log[severity](message, { eventType, ...details });
-    if (!final && eventsWritten >= MAX_RUN_EVENTS - 1) {
-      eventsDropped++;
-      return;
-    }
-    eventsWritten++;
-    await store.addEvent({ run_id: runId, severity, event_type: eventType, message, details });
-  };
-
-  if (sweptStaleRuns > 0) {
-    await event('warn', 'stale_runs_swept', `Marked ${sweptStaleRuns} stale run(s) failed.`, {
-      count: sweptStaleRuns,
-    });
-  }
+    },
+    { now, runTimeoutMs: opts.runTimeoutMs, log: deps.log },
+  );
 
   const ctx: SourceRunContext = {
     runId,
@@ -572,7 +518,7 @@ export async function runSource<K extends RecordKind>(
       counts,
       expectedTotal,
       deactivated,
-      eventsDropped,
+      eventsDropped: eventsDropped(),
       validationFailuresStored: failuresStored,
       ...(Object.keys(skipped).length > 0 ? { skipped } : {}),
     },

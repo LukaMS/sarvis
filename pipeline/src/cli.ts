@@ -1,13 +1,15 @@
 // The pipeline command line (PLAN P2.17). From the repo root:
 //
 //   npm run pipeline -- run <source> [--sample N] [--dry-run] [--mode full|delta]
+//   npm run pipeline -- job <name> [--sample N] [--dry-run]
 //   npm run pipeline -- export odbl
 //
 // `--sample N` runs the first N records; `--dry-run` fetches, parses and validates but writes no
 // catalog rows or raw files (the run row and its events are still recorded). Without either, the
 // run is `--mode` (default full; `auto` picks delta or full, P6.1). Exit codes: 0 completed, 2
 // completed with errors, 1 failed or a bad command, 130 cancelled. `export odbl` publishes the
-// ODbL extract (P3.8): exit 0 or 1.
+// ODbL extract (P3.8): exit 0 or 1. `job` runs a derived job over our own tables (P4.7), with the
+// same exit codes as `run`.
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
@@ -18,6 +20,8 @@ import { writerFor } from './db/writers/index.ts';
 import { parseContactEmail } from './env.ts';
 import { exportOdbl } from './exports/odbl.ts';
 import { ConfigurationError, classifyError } from './errors.ts';
+import { type Job, createJob, listJobNames } from './jobs/index.ts';
+import { type JobMode, runJob } from './jobs/runner.ts';
 import { type Logger, logger as rootLogger } from './log.ts';
 import { chooseAutoMode } from './runs/auto-mode.ts';
 import { type RunResult, runSource, storageRawWriter } from './runs/driver.ts';
@@ -26,6 +30,7 @@ import { createShutdownController } from './shutdown.ts';
 import { type Source, createSource, listSourceKeys, registerAllSources } from './sources/index.ts';
 
 export const USAGE = `Usage: npm run pipeline -- run <source> [--sample N] [--dry-run] [--mode full|delta]
+       npm run pipeline -- job <name> [--sample N] [--dry-run]
        npm run pipeline -- export odbl
 
   --sample N   Run the first N records only (mode sample).
@@ -36,13 +41,17 @@ export const USAGE = `Usage: npm run pipeline -- run <source> [--sample N] [--dr
                completed full or delta run, else full (sources without deltas: full).
   --help       Show this help.
 
+  job <name>   Run a derived job over our own tables (only the rows that need work).
+               Takes --sample and --dry-run, not --mode.
+
   export odbl  Publish the ODbL extract (OFF products, Open Prices stores and prices) to the
                public-exports bucket, keeping the latest 2 exports.`;
 
 export type CliCommand =
   | { command: 'help' }
   | { command: 'export'; target: 'odbl' }
-  | { command: 'run'; sourceKey: string; mode: RunMode | 'auto'; sampleSize: number | null };
+  | { command: 'run'; sourceKey: string; mode: RunMode | 'auto'; sampleSize: number | null }
+  | { command: 'job'; name: string; mode: JobMode; sampleSize: number | null };
 
 /** Parses argv (without node and the script). Throws ConfigurationError on a bad command. */
 export function parseCliArgs(argv: string[]): CliCommand {
@@ -76,8 +85,13 @@ export function parseCliArgs(argv: string[]): CliCommand {
     }
     return { command: 'export', target: 'odbl' };
   }
-  if (command !== 'run') throw new ConfigurationError(`Unknown command: ${command}\n\n${USAGE}`);
-  if (!sourceKey) throw new ConfigurationError(`Missing the source key.\n\n${USAGE}`);
+  if (command !== 'run' && command !== 'job') {
+    throw new ConfigurationError(`Unknown command: ${command}\n\n${USAGE}`);
+  }
+  if (!sourceKey) {
+    const what = command === 'job' ? 'job name' : 'source key';
+    throw new ConfigurationError(`Missing the ${what}.\n\n${USAGE}`);
+  }
   if (extra.length > 0) throw new ConfigurationError(`Unexpected arguments: ${extra.join(' ')}`);
 
   let sampleSize: number | null = null;
@@ -90,6 +104,13 @@ export function parseCliArgs(argv: string[]): CliCommand {
     }
   }
   const dryRun = values['dry-run'] === true;
+  if (command === 'job') {
+    if (values.mode !== undefined) {
+      throw new ConfigurationError('A job takes --sample and --dry-run, not --mode.');
+    }
+    const jobMode: JobMode = dryRun ? 'dry_run' : sampleSize !== null ? 'sample' : 'full';
+    return { command: 'job', name: sourceKey, mode: jobMode, sampleSize };
+  }
   if (values.mode !== undefined) {
     if (values.mode !== 'full' && values.mode !== 'delta' && values.mode !== 'auto') {
       throw new ConfigurationError(`--mode must be full, delta or auto, got "${values.mode}".`);
@@ -175,7 +196,39 @@ export async function runCommand(
   return { ...result, mode };
 }
 
-const EXIT_CODES: Record<RunResult['status'], number> = {
+export interface JobCommandDeps {
+  db?: ServiceClient;
+  /** Overrides the registry (tests pass their own job). */
+  job?: Job;
+  signal?: AbortSignal;
+  log?: Logger;
+  /** Overrides `process.env` for the trigger, git SHA and Actions URL. */
+  env?: NodeJS.ProcessEnv;
+}
+
+/** One `job` command against the dev project, with the real run store. */
+export async function jobCommand(
+  cmd: Extract<CliCommand, { command: 'job' }>,
+  deps: JobCommandDeps = {},
+): Promise<RunResult> {
+  const db = deps.db ?? getServiceClient();
+  const env = deps.env ?? process.env;
+  const job = deps.job ?? createJob(cmd.name, db);
+  return runJob(
+    job,
+    {
+      mode: cmd.mode,
+      sampleSize: cmd.sampleSize,
+      trigger: runTrigger(env),
+      gitSha: env.GITHUB_SHA ?? null,
+      actionsRunUrl: actionsRunUrl(env),
+      signal: deps.signal,
+    },
+    { store: createSupabaseRunStore(db), log: deps.log },
+  );
+}
+
+export const EXIT_CODES: Record<RunResult['status'], number> = {
   completed: 0,
   completed_with_errors: 2,
   failed: 1,
@@ -193,7 +246,9 @@ export async function main(argv: string[], log: Logger = rootLogger): Promise<nu
   }
   if (cmd.command === 'help') {
     registerAllSources();
-    process.stdout.write(`${USAGE}\n\nSources: ${listSourceKeys().join(', ')}\n`);
+    process.stdout.write(
+      `${USAGE}\n\nSources: ${listSourceKeys().join(', ')}\nJobs: ${listJobNames().join(', ')}\n`,
+    );
     return 0;
   }
 
@@ -223,6 +278,37 @@ export async function main(argv: string[], log: Logger = rootLogger): Promise<nu
   }
 
   const shutdown = createShutdownController({ log });
+  if (cmd.command === 'job') {
+    try {
+      const { runId, status, counts, errorSummary } = await jobCommand(cmd, {
+        signal: shutdown.signal,
+        log,
+      });
+      log.info('pipeline job finished', {
+        job: cmd.name,
+        mode: cmd.mode,
+        runId,
+        runStatus: status,
+        counts,
+        errorSummary,
+      });
+      process.stdout.write(
+        `\njob ${cmd.name} ${cmd.mode}${cmd.sampleSize ? ` (sample ${cmd.sampleSize})` : ''}: ${status}\n` +
+          Object.entries(counts)
+            .map(([k, v]) => `  ${k.padEnd(15)} ${v}`)
+            .join('\n') +
+          `\n  run ${runId}\n`,
+      );
+      return EXIT_CODES[status];
+    } catch (err) {
+      // Refused before a run row existed: unknown job, the job already running, bad options.
+      const c = classifyError(err);
+      log.error('pipeline job refused', { job: cmd.name, errorType: c.type, err });
+      return 1;
+    } finally {
+      shutdown.dispose();
+    }
+  }
   try {
     const result = await runCommand(cmd, { signal: shutdown.signal, log });
     const { runId, status, counts, expectedTotal, errorSummary, mode } = result;
