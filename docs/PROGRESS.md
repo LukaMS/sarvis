@@ -2,6 +2,33 @@
 
 Newest entry first.
 
+## 2026-11-10 — P4.6 OFF: apply the size parser
+
+**What changed** (D-088)
+- **`pipeline/src/sources/off/map.ts`:** `offSize()` replaces the D-057 `sizeOf`. `parseSize(quantity)` sets the status, unit and `pack_count`. For g/ml, OFF's `product_quantity` is kept when it agrees with ours within 2%, and ours wins when it doesn't. A blank `quantity` falls back to one strict size at the end of the name (or in parentheses), marked `off@1.2.0+size-from-name`. Names with "protein", a nutrient word just before the size, or a size under 25 g/ml are skipped.
+- **`index.ts`:** one `off_size` run event per run (counts by status, origin and reason, plus the first 10 disagreements). `off` is `off@1.2.0`.
+- Tests: the mapping cases, 10 names read and 15 left alone, the tally, and one `off_size` event per full and per delta run. DECISIONS D-088, SOURCES S1 and BUDGET updated.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,064 passed, 1 skipped. `check:off-delta` passes.
+- `--dry-run --sample 2000`: 1,585 ok, 4 disagreements, 2 from names.
+- Full run `5a9ea4ac` (same dump as the last full run, so every write comes from the parser): 93,411 valid, 0 invalid, **2,881 updated**, 0 inserted, 0 deactivated. Second run `7179a9c8`: **0 updated**, 93,411 unchanged.
+- **Active OFF `unit_parse_status`, before → after:** ok 19,879 → **20,287** (g 14,692 → 14,701, ml 5,187 → 5,223, ct 0 → 363), ambiguous 27 → 66, unparsed 73,470 → 73,023. 2,259 multipacks gained a `pack_count` with no size change.
+- `off_size` event: of the 20,304 ok, 19,774 use OFF's number, 388 the text only, 51 the text where OFF's number disagrees, and 91 the name.
+- 5 `ok`: `2 x 808 g` → 1,616 g, pack 2; `18-325ml` → 5,850 ml, pack 18; `12 pcs` → 12 ct; `1 kilo` → 1,000 g; name "Jus d'orange sans pulpe 1.65L" → 1,650 ml.
+- 5 `ambiguous`: `1 400 g`, `250 g, 365 g`, `705g (3x325g)`, `12 x 355 Cans`, `1 dry pint`.
+- 5 `unparsed`: `300 mg` (dose), `per slice 19 g`, `24g/bar`, `560 g poids net égoutté` (drained only), `1` (bare number).
+- **Hand check:** 30 changed rows spread across the 2,881, plus all 73 where the number changed. **0 wrong, 1 doubtful:** `24 tablettes -35g` → 35 g, pack 24 (the 24 may be squares of one bar, not 24 bars). The 73 are corrections, for example `12 FL OZ, 355 mL` 12 → 355 ml, `3 lb` 3,000 → 1,360.8 g, `120 g Drained Wt. / 170 g Net Wt.` 120 → 170 g, `40×25 g` 25 → 1,000 g.
+- 66 rows lost an `ok` size (37 now ambiguous, 29 unparsed): these are the D-087 rules working (doses, drained weights, `1 400 g`, `705g (3x325g)`). One that cost a usable size: `226gm/bottle` (read as a per-item size with no count).
+- Budget: `products` 71 MB, 3,039 dead tuples (3.3%, no vacuum needed), DB 116 MB.
+
+**For the owner**
+- Nothing to decide. The name fallback found 91, not the ~216 the plan guessed: many sizes in names are grams of protein or sugar (`18g Protein Milk`), and those are skipped on purpose.
+
+**Next:** P4.7 Pipeline: derived-job runner.
+
+---
+
 ## 2026-11-10 — P4.5 Size and unit parser
 
 **What changed** (D-087)

@@ -1580,7 +1580,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Every result satisfies the product schema's rules.
 - ✅ Done 2026-11-10: 373 unit tests (328 real strings), `check:units` on dev: 4,478 distinct strings, 91.3% `ok` (95.8% of rows; D-057 87.3%), every result passes the product schema (D-087).
 
-### [ ] P4.6 OFF: apply the size parser
+### [x] P4.6 OFF: apply the size parser
 - **Slice:** source-off.
 - **Goal:** products get normalized sizes from the new parser.
 - **Deps:** P4.3, P4.5.
@@ -1594,6 +1594,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Before-and-after `unit_parse_status` counts, with 5 examples each of `ok`, `ambiguous` and `unparsed`.
   - A hand check of 30 changed rows against their source text, with errors reported.
   - A second run updates 0 rows. Budget check, including dead tuples.
+- ✅ Done 2026-11-10: full run `5a9ea4ac` updated 2,881 rows (ok 19,879 → 20,287, ambiguous 27 → 66), run `7179a9c8` updated 0, 30 spread rows plus all 73 changed values checked by hand (1 doubtful, 0 wrong), 91 sizes from names, 3.3% dead tuples (D-088).
 
 ### [ ] P4.7 Pipeline: derived-job runner
 - **Slice:** pipeline-jobs.

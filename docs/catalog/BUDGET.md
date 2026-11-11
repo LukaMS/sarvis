@@ -174,6 +174,18 @@ Full run `83205eb0` on the 2026-11-10 dump (1.53 GB gz, 4,904,675 rows), then `5
 | `product_sources` | 96 KB, 38 OFF rows | 3.5 MB | ✅ |
 | Whole DB | 115.5 MB | alarm 400 MB | ✅ (+2.5 MB since the review) |
 
+### Actuals: OFF sizes from the parser (P4.6, 2026-11-10, dev project)
+
+Full run `5a9ea4ac` on the unchanged 2026-11-10 dump (so every write is from the parser), then `7179a9c8` on the same dump (0 inserted, 0 updated).
+
+| Measure | Actual | Estimate | Note |
+|---|---:|---:|---|
+| Rows updated | 2,881 of 93,411 (3.1%) | "one large update run" | Rows whose size columns don't change keep their hash: provenance alone isn't an update (D-046) |
+| `products` (with trigram) | 71 MB, 93,410 live rows | 74.1 MB (P4.3) | ✅ no growth: the columns already existed |
+| `products` dead tuples | 3,039 (3.3%) | — | below the autovacuum trigger (20%), no vacuum needed |
+| Run time | ~5 min per full run | — | download revalidated (304) |
+| Whole DB | 116 MB | alarm 400 MB | ✅ (+0.5 MB) |
+
 ### Actuals: OFF daily deltas (P3.7, 2026-10-30, dev project)
 
 First delta run over the 13 files listed (2026-10-17 → 2026-10-30): 104,412 changed products scanned worldwide, 2,584 Canadian ones kept (~200 a day), 2,444 valid.

@@ -208,7 +208,7 @@ describe('OFF delta records', () => {
       unit_parse_status: 'ok',
       image_key: '007/680/801/1159/front_en.8.400.jpg',
       source_url: null,
-      method_version: 'off@1.1.0',
+      method_version: 'off@1.2.0',
     });
   });
 
@@ -325,6 +325,10 @@ describe('OFF delta runs through the driver', () => {
       kept: 4,
       index: { listed: 2, alreadyImported: 0, new: 2 },
     });
+    // One size event for the whole delta, after the last file's last extract.
+    const size = store.events.filter((e) => e.event_type === 'off_size');
+    expect(size).toHaveLength(1);
+    expect(size[0]?.details).toMatchObject({ rows: 8 });
     // A stored extract re-parses to the records that were written.
     const reparsed = first.source.parse({
       rawObjectId: 'x',

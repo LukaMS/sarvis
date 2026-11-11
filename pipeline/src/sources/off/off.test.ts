@@ -28,7 +28,16 @@ import {
   toExtract,
 } from './csv.ts';
 import { createOffSource } from './index.ts';
-import { hasBadCheckDigit, imageKeyOf, offGtin, sizeOf, toProductRecord } from './map.ts';
+import {
+  emptySizeTally,
+  hasBadCheckDigit,
+  imageKeyOf,
+  offGtin,
+  offSize,
+  sizeFromName,
+  tallySizes,
+  toProductRecord,
+} from './map.ts';
 
 const FIXTURE = fileURLToPath(new URL('./fixture.products.tsv', import.meta.url));
 const FETCHED_AT = '2026-10-30T12:00:00.000Z';
@@ -151,39 +160,116 @@ describe('OFF codes', () => {
 });
 
 describe('OFF mapping', () => {
+  const ok = (net: number, unit: string, pack: number | null = null) => ({
+    net_quantity: net,
+    net_unit: unit,
+    pack_count: pack,
+    unit_parse_status: 'ok',
+  });
+
   it.each([
-    ['946 ml', '946.0', 946, 'ml'],
-    ['52 g (1.8 OZ)', '52.0', 52, 'g'],
-    ['11.5 FL OZ (340ml)', '340.09525', 340.09525, 'ml'],
-    ['1 lb 1.88 oz (506 g)', '453.59237', 453.59237, 'g'],
-    ['1,89 L / 64 oz liq', '1890.0', 1890, 'ml'],
-    ['0.8899999856948853 l.', '889.999985694885', 889.999985694885, 'ml'],
-    ['650g', '650', 650, 'g'],
-    ['1 litre', '1000', 1000, 'ml'],
-    ['226gm/bottle', '226', 226, 'g'],
-  ])('%s → %s %s', (text, quantity, net, unit) => {
-    expect(sizeOf(text, quantity)).toEqual({
-      net_quantity: net,
-      net_unit: unit,
-      unit_parse_status: 'ok',
+    // OFF's number agrees with the text (within 2%), so it's kept.
+    ['946 ml', '946.0', ok(946, 'ml'), 'off_number'],
+    ['52 g (1.8 OZ)', '52.0', ok(52, 'g'), 'off_number'],
+    ['11.5 FL OZ (340ml)', '340.09525', ok(340.09525, 'ml'), 'off_number'],
+    ['1,89 L / 64 oz liq', '1890.0', ok(1890, 'ml'), 'off_number'],
+    ['12 oz', '340', ok(340, 'g'), 'off_number'],
+    ['4 x 100 g', '400', ok(400, 'g', 4), 'off_number'],
+    // OFF has no number, or a count: the text alone.
+    ['500 g', '', ok(500, 'g'), 'text'],
+    ['12 eggs', '12', ok(12, 'ct'), 'text'],
+    ['2 x 6 x 355 mL', '', ok(4260, 'ml', 12), 'text'],
+    // They disagree: ours wins (OFF read only one item of the pack, or a different unit).
+    ['4 x 100 g', '100', ok(400, 'g', 4), 'disagrees'],
+    ['1 lb 1.88 oz (506 g)', '453.59237', ok(506, 'g'), 'disagrees'],
+  ])('%s with product_quantity %j → %o (%s)', (text, quantity, fields, origin) => {
+    const size = offSize(text, quantity, 'Anything 999 g');
+    expect(size.fields).toEqual(fields);
+    expect(size.origin).toBe(origin);
+    expect(size.reason).toBeNull();
+  });
+
+  it.each([
+    ['Unknown Quantity', '', 'unparsed', 'no_size'],
+    ['100 tablets', '0', 'ok', null],
+    ['1', '1000', 'unparsed', 'bare_number'],
+    ['1 L (1 kg)', '1000', 'ambiguous', 'mass_and_volume'],
+    ['300 mg', '0.3', 'unparsed', 'dose_only'],
+  ])('%s with product_quantity %j is %s', (text, quantity, status, reason) => {
+    const size = offSize(text, quantity, null);
+    expect(size.fields.unit_parse_status).toBe(status);
+    expect(size.reason).toBe(reason);
+    if (status !== 'ok') {
+      // OFF's number never stands in for a size the text doesn't give.
+      expect(size.fields).toMatchObject({ net_quantity: null, net_unit: null, pack_count: null });
+      expect(size.origin).toBe('none');
+    }
+  });
+
+  it.each([
+    ['Ruccola Salat 75g', ok(75, 'g')],
+    ['Ristorante spinach pizza 390g pack', ok(390, 'g')],
+    ['Iams healthy kitten 1.59kg', ok(1590, 'g')],
+    ['Tropicana Orange Juice Homestyle 1.89L', ok(1890, 'ml')],
+    ['White Baguette (360g)', ok(360, 'g')],
+    ['Life smart fat free chicken broth 250 ml', ok(250, 'ml')],
+    ['Unsweetened Applesauce 620ml Can', ok(620, 'ml')],
+    ['Riviera lactose free white cheddar 375gr.', ok(375, 'g')],
+    ['Cape Cod Chips 28g Bags', ok(28, 'g')],
+    ['Fromage Romano râpé très fin 140 g', ok(140, 'g')],
+  ])('a blank quantity reads the size at the end of %j', (name, fields) => {
+    expect(offSize(null, '', name)).toEqual({ fields, origin: 'name', reason: null });
+  });
+
+  it.each([
+    '18g Protein Milk',
+    'Silk Protein 18g',
+    'Greek Yogourt Pro 19g',
+    'Boost Mega 20g',
+    "Siggi's Creamy Skyr 12g No Sugar Pain Yogurt",
+    "Dempster's 14g/2slices Protein Bread",
+    'Cheerios 1g de sucre',
+    'Oat Beverage, 0g Sugar Vanilla',
+    'Selection 2L Grape Flavored Soda',
+    'comp evapirated milk 354ml 2%',
+    'Coca-Cola zero 450ml fl oz',
+    'Chips 200g or 400g',
+    'Mixed nuts sugar 30 g',
+    'Lemonade',
+    '',
+  ])('a blank quantity leaves %j without a size', (name) => {
+    expect(sizeFromName(name)).toBeNull();
+    expect(offSize(null, '500', name)).toMatchObject({ origin: 'none', reason: 'empty' });
+  });
+
+  it('marks a size read from the name in the method version', () => {
+    const { rows } = fixtureRows();
+    const row = { ...rows[0]!, quantity: '', product_name: 'Maple Syrup 540 ml' };
+    expect(toProductRecord(row, FETCHED_AT)).toMatchObject({
+      quantity_text: null,
+      ...ok(540, 'ml'),
+      method_version: 'off@1.2.0+size-from-name',
     });
   });
 
-  it.each([
-    ['1 can', ''],
-    ['100 tablets', '0'],
-    ['12 eggs', '12'],
-    [null, '500'],
-    ['500 g', ''],
-  ])('%s with product_quantity %j is unparsed', (text, quantity) => {
-    expect(sizeOf(text, quantity).unit_parse_status).toBe('unparsed');
-  });
-
-  it('a quantity naming both a volume and a mass is ambiguous', () => {
-    expect(sizeOf('1 L (1 kg)', '1000')).toEqual({
-      net_quantity: null,
-      net_unit: null,
-      unit_parse_status: 'ambiguous',
+  it('tallies where sizes came from, with examples of disagreements', () => {
+    const { rows } = fixtureRows();
+    const base = rows[0]!;
+    const tally = emptySizeTally();
+    tallySizes(tally, [
+      { ...base, quantity: '946 ml', product_quantity: '946' },
+      { ...base, code: '1', quantity: '4 x 100 g', product_quantity: '100' },
+      { ...base, quantity: '', product_name: 'Soup 540 ml' },
+      { ...base, quantity: '1', product_quantity: '1' },
+    ]);
+    expect(tally).toMatchObject({
+      rows: 4,
+      byOrigin: { off_number: 1, text: 0, disagrees: 1, name: 1, none: 1 },
+      byStatus: { ok: 3, unparsed: 1, ambiguous: 0 },
+      byReason: { bare_number: 1 },
+      disagreements: [
+        { code: '1', quantity: '4 x 100 g', product_quantity: '100', ours: '400 g (pack 4)' },
+      ],
     });
   });
 
@@ -207,6 +293,7 @@ describe('OFF mapping', () => {
       quantity_text: '946 ml',
       net_quantity: 946,
       net_unit: 'ml',
+      pack_count: null,
       unit_parse_status: 'ok',
       label_codes: ['organic', 'no-gmos', 'non-gmo-project'],
       image_key: '000/857/700/2786/front_en.9.400.jpg',
@@ -215,7 +302,7 @@ describe('OFF mapping', () => {
       source_url: null,
       fetched_at: FETCHED_AT,
       method: 'import',
-      method_version: 'off@1.1.0',
+      method_version: 'off@1.2.0',
     });
   });
 
@@ -301,6 +388,10 @@ describe('OFF source through the driver', () => {
       },
     });
     expect(store.runs[0]?.dump_url).toBe(FIXTURE);
+    // One size event, after the last part, over every kept row.
+    const size = store.events.filter((e) => e.event_type === 'off_size');
+    expect(size).toHaveLength(1);
+    expect(size[0]?.details).toMatchObject({ rows: 6 });
   });
 
   it('writes bad-code rows last, without a GTIN, and drops the duplicates', async () => {

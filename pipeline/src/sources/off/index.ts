@@ -24,7 +24,15 @@ import {
   toExtract,
 } from './csv.ts';
 import { type DeltaFile, OFF_DELTA_BASE, createDeltaFilter, parseDeltaIndex } from './delta.ts';
-import { OFF_JOB, OFF_KEY, OFF_VERSION, toProductRecord } from './map.ts';
+import {
+  OFF_JOB,
+  OFF_KEY,
+  OFF_VERSION,
+  type SizeTally,
+  emptySizeTally,
+  tallySizes,
+  toProductRecord,
+} from './map.ts';
 import { type FindStoredProducts, storedDuplicateKeys, supabaseStoredProducts } from './stored.ts';
 
 export { OFF_JOB, OFF_KEY, OFF_VERSION } from './map.ts';
@@ -127,6 +135,27 @@ function filterEvent(counts: FilterCounts) {
   };
 }
 
+/** Where the run's sizes came from, and examples where OFF's number disagrees with ours (P4.6). */
+function sizeEvent(t: SizeTally) {
+  const o = t.byOrigin;
+  return {
+    severity: 'info' as const,
+    eventType: 'off_size',
+    message:
+      `Sizes of ${t.rows} kept rows: ${t.byStatus.ok} ok, ${t.byStatus.ambiguous} ambiguous, ` +
+      `${t.byStatus.unparsed} unparsed. Of the ok: ${o.off_number} OFF's number (agrees), ` +
+      `${o.text} from the text only, ${o.disagrees} from the text where OFF's number disagrees, ` +
+      `${o.name} from the name.`,
+    details: {
+      rows: t.rows,
+      by_status: { ...t.byStatus },
+      by_origin: { ...o },
+      by_reason: { ...t.byReason },
+      disagreements: t.disagreements,
+    },
+  };
+}
+
 interface DeltaIndexSummary {
   listed: number;
   alreadyImported: number;
@@ -177,6 +206,7 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
   // Delta runs: the keys of every row kept so far and the codes of every row read, across files.
   let runSeen = new Set<string>();
   let runCodes = new Set<string>();
+  let sizes = emptySizeTally();
 
   /**
    * A sample reads only as far as it needs; the stream is closed before anything is written. The
@@ -265,6 +295,7 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
     }
     if (!held) throw new Error('off: delta extract read out of order');
     const rows = held.rows.slice(chunk * extractSize, (chunk + 1) * extractSize);
+    tallySizes(sizes, rows);
     const more = (chunk + 1) * extractSize < held.rows.length;
     const next: OffStep[] = more
       ? [{ part: step.part + 1, delta: { file: at, chunk: chunk + 1 } }]
@@ -280,10 +311,12 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
         contentType: EXTRACT_CONTENT_TYPE,
       },
       next,
-      events:
-        chunk === 0
+      events: [
+        ...(chunk === 0
           ? [deltaEvent(file, held.counts, held.ofStored, step.part === 1 ? deltaIndex : null)]
-          : [],
+          : []),
+        ...(next.length === 0 ? [sizeEvent(sizes)] : []),
+      ],
     };
   }
 
@@ -314,6 +347,7 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
       counts = emptyFilterCounts();
       runSeen = new Set();
       runCodes = new Set();
+      sizes = emptySizeTally();
       if (ctx.mode === 'delta') return planDelta(ctx);
       feed = ctx.sampleSize !== null ? await openSample(ctx, ctx.sampleSize) : await openFull(ctx);
       return [{ part: 1 }];
@@ -323,6 +357,7 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
       if (step.delta) return fetchDelta({ ...step, delta: step.delta }, ctx);
       if (!feed || !dump) throw new Error('off: fetch before plan');
       const { rows, done } = await feed.take(extractSize);
+      tallySizes(sizes, rows);
       return {
         response: {
           body: toExtract(rows),
@@ -333,7 +368,7 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
         },
         next: done ? [] : [{ part: step.part + 1 }],
         dump: step.part === 1 ? dump : undefined,
-        events: [filterEvent(counts)],
+        events: [filterEvent(counts), ...(done ? [sizeEvent(sizes)] : [])],
       };
     },
 
