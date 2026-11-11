@@ -197,5 +197,6 @@ describe.skipIf(!enabled)('e2e: fixture job run twice against dev', () => {
       .select('run_id, event_type')
       .in('run_id', runIds);
     expect(events.data?.filter((e) => e.event_type === 'run_finished')).toHaveLength(4);
-  });
+    // Four job runs against dev; the 5 s default timed out from GitHub Actions (P6.2).
+  }, 180_000);
 });
