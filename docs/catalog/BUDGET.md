@@ -10,13 +10,13 @@ Estimated 2026-10-26.
 
 | Budget | Limit | Estimate (target coverage, 12 months) | Status |
 |---|---|---|---|
-| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 329 MB** (299 MB plus 10%) | ✅ within budget, ~21 MB headroom (levers 2–4 adopted, P3.13c; P3.15a added `company_sources` and the Wikipedia width; P3.19a re-baselined the run bookkeeping; Phase 6 warns at 320 MB) |
+| Catalog tables (incl. indexes, plus 10% bloat) | ≤ 350 MB | **≈ 331 MB** (301 MB plus 10%) | ✅ within budget, ~19 MB headroom (levers 2–4 adopted, P3.13c; P3.15a added `company_sources` and the Wikipedia width; P3.19a re-baselined the run bookkeeping; P4.10 added `edge_sources`; Phase 6 warns at 320 MB) |
 | User data (100 active users, 12 months, plus 10%) | — | ≈ 49 MB | — |
 | Platform overhead (system catalogs, auth, storage metadata, extensions) | — | ≈ 42 MB (P3.13c: 26.7 MB measured today, plus Storage metadata for the files §3 and §5 allow) | — |
-| **Whole database** | 500 MB, alarm 400 MB | **≈ 420 MB** (≈ 393–404 MB with the reserve lever 1) | ⚠️ ~20 MB over the 400 MB warning, under the 450 MB critical line. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB (D-070) |
+| **Whole database** | 500 MB, alarm 400 MB | **≈ 422 MB** (≈ 395–406 MB with the reserve lever 1) | ⚠️ ~22 MB over the 400 MB warning, under the 450 MB critical line. Lever 1 is held in reserve, applied when the measured DB reaches 330 MB (D-070) |
 | **Storage** | ≤ 700 MB, alarm 800 MB | **≈ 285 MB** (248 MB plus 15%) | ✅ within budget |
 
-A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), P3.13c adopted §7 levers 2–4 plus the rollup and document trims (−45.2 MB), P3.15a measured the Wikipedia documents and added the missing `company_sources` (+3.9 MB), and P3.19a re-baselined the run bookkeeping tables (+3.6 MB), so the subtotal is now 299 MB.
+A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The design choices in §4 bring it to 267 MB, and they are already reflected in DATA_MODEL.md. P3.11a re-baselined `reference_prices` from measurement (+5.6 MB), P3.13a `brands` and both ownership tables (+11.4 MB), and P3.13b re-projected every table's index bytes from the indexes the schema actually has (+52.9 MB), P3.13c adopted §7 levers 2–4 plus the rollup and document trims (−45.2 MB), P3.15a measured the Wikipedia documents and added the missing `company_sources` (+3.9 MB), and P3.19a re-baselined the run bookkeeping tables (+3.6 MB), and P4.10 added `edge_sources` (+2.2 MB), so the subtotal is now 301 MB.
 
 **Target coverage** means:
 - every OFF product sold in Canada that passes the import filter;
@@ -47,6 +47,7 @@ A first pass with no cuts came to **≈ 425 MB of catalog** (over budget). The d
 | `companies` | 5,000 | 478 | 323 | 4.4 | brand owners + parents. Index projected (P3.13b) |
 | `company_sources` | 4,100 | 357 | 164 | 2.4 | fields a second source fills in on a company: Wikipedia 3,300, Corporations Canada ≈ 460 (9% of companies are `CA`), SEC ≈ 340 (7% have a CIK). Width **measured** (P3.15a); index projected (P3.13b) |
 | `company_ownership` | 10,000 | 262 | 261 | 5.6 | parent ↔ child edges with dates. **Measured** (P3.13a); index re-projected in P3.13b |
+| `edge_sources` | 5,000 | 296 | 145 | 2.2 | evidence from a second source on an edge (P4.10, D-095): ≈ 15% of the 32,000 edges get one (SEC confirmations, the P4.16 resolver). Width from `pg_column_size` of a typical SEC row (P4.10); index projected: one partial unique (uuid, uuid) 74, pkey 30, source 10, ingestion_run 14, raw_object 17 |
 | `categories` | 2,000 | 148 | 99 | 0.5 | Sarvis taxonomy. Index projected (P3.13b) |
 | `category_mappings` | 15,000 | 158 | 175 | 5.4 | OFF category tags → taxonomy. Index projected (P3.13b) |
 | `banners` | 60 | 228 | 140 | 0.0 | Ontario grocery banners. Index projected (P3.13b) |

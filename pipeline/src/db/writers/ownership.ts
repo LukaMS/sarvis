@@ -8,6 +8,10 @@
 // A second source (Wikipedia, SEC EDGAR, Corporations Canada) fills in fields on a company it
 // didn't create with company_enrichment records. The company keeps its own +prov block, and the
 // enriching source's provenance goes to company_sources (P3.4).
+//
+// The source that creates a row owns its +prov block (D-095). A company or brand record from
+// another source still updates unlocked fields but never the +prov columns. An edge record from
+// another source leaves the edge alone and becomes an edge_sources evidence row (P4.10).
 import type { CompanyEnrichmentRecord, TablesInsert } from '@sarvis/core';
 import { uniqueSlug } from '@sarvis/core';
 
@@ -24,7 +28,16 @@ import {
   unknownRef,
   writeRecords,
 } from './common.ts';
-import { OWNER_LIMITS, ReviewNotes, approveEdges, autoSourceIds, queueNotes } from './review.ts';
+import type { RefResolver } from '../refs.ts';
+import {
+  OWNER_BLOCKED_REASON,
+  OWNER_LIMITS,
+  type ReviewItem,
+  ReviewNotes,
+  approveEdges,
+  autoSourceIds,
+  queueForReview,
+} from './review.ts';
 
 /** Statuses only an admin sets. A row in one of them is frozen against imports. */
 const ADMIN_STATUSES = new Set(['merged', 'rejected']);
@@ -58,7 +71,10 @@ function entitySpec<P extends AnyRow & { slug: string; wikidata_qid?: string | n
       `slug:${r.slug as string}`,
     ],
     label: (p) => p.slug,
-    keep: ['slug'],
+    // The source that created the row keeps its +prov block (review M-6, D-095), so the
+    // auto-approve guard keeps seeing it. Another source's field changes are still written.
+    keep: ['slug', 'source_id'],
+    creator: 'keep_prov',
     frozen: (stored) => ADMIN_STATUSES.has(stored.status as string),
     conflict: (stored, p) =>
       stored.slug === p.slug &&
@@ -218,6 +234,144 @@ const edgeKey = <P extends AnyRow>(spec: KeyedSpec<P>, p: P) => String(spec.keys
 export const reviewed = (stored: AnyRow) =>
   stored.review_status !== 'pending' && stored.decision_method !== 'auto';
 
+type EdgeTable = 'brand_ownership' | 'company_ownership';
+type EdgeSourcePayload = TablesInsert<'edge_sources'>;
+
+/** The edge_sources column that names an edge of each table. */
+const EVIDENCE_COLUMN = {
+  brand_ownership: 'brand_ownership_id',
+  company_ownership: 'company_ownership_id',
+} as const;
+
+const EDGE_SOURCE_COLUMNS =
+  'id, brand_ownership_id, company_ownership_id, source_id, source_url, last_seen_at, ' +
+  'content_hash, method, confidence, ai_call_id';
+
+/**
+ * One evidence row per (edge, source) for a source that confirms an edge another source created
+ * (P4.10, D-095). Hashed like company_sources: a re-sighting only bumps `last_seen_at`.
+ */
+export function edgeSourceSpec(table: EdgeTable): KeyedSpec<EdgeSourcePayload> {
+  const column = EVIDENCE_COLUMN[table];
+  return {
+    table: 'edge_sources',
+    columns: EDGE_SOURCE_COLUMNS,
+    load: (db, payloads) =>
+      selectIn(
+        db,
+        'edge_sources',
+        EDGE_SOURCE_COLUMNS,
+        column,
+        payloads.map((p) => p[column]),
+      ),
+    keys: (r) => [r[column] ? `${r[column] as string}:${r.source_id as string}` : null],
+    label: (p) => `${table}:${p[column] ?? ''}:${p.source_id}`,
+    hashed: true,
+    keep: [column, 'source_id'],
+    touch: ['last_seen_at'],
+  };
+}
+
+/** The evidence row a foreign source's edge payload becomes. */
+export function evidenceOf(
+  table: EdgeTable,
+  edgeId: string | number,
+  p: AnyRow,
+): EdgeSourcePayload {
+  return {
+    [EVIDENCE_COLUMN[table]]: String(edgeId),
+    source_id: p.source_id as string,
+    source_url: (p.source_url as string | null) ?? null,
+    fetched_at: p.fetched_at as string,
+    last_seen_at: p.fetched_at as string,
+    method: p.method as string,
+    method_version: p.method_version as string,
+    confidence: (p.confidence as number | null | undefined) ?? null,
+    ai_call_id: (p.ai_call_id as number | null | undefined) ?? null,
+    ingestion_run_id: (p.ingestion_run_id as string | null | undefined) ?? null,
+    raw_object_id: (p.raw_object_id as string | null | undefined) ?? null,
+  };
+}
+
+/**
+ * The rest of an edge batch after its payloads are built: upsert the edges (an edge another
+ * source created is left alone, `keep_row`), approve by rule, record each confirming source in
+ * edge_sources, and queue the review reasons plus every owner pick the one-current-owner index
+ * refused, which is also reported as a run event (review M-5). A confirming record counts
+ * `updated` when its evidence row is new or changed, else `unchanged`.
+ */
+async function finishEdges<P extends AnyRow>(
+  db: ServiceClient,
+  refs: RefResolver,
+  spec: KeyedSpec<P>,
+  payloads: P[],
+  notes: ReviewNotes,
+  held: ReadonlySet<string>,
+  /** The record key of each payload, by edgeKey, for the event's examples. */
+  labels: ReadonlyMap<string, string>,
+): Promise<WriteResult> {
+  const table = spec.table as EdgeTable;
+  const key = (p: P) => edgeKey(spec, p);
+  const out = await upsertKeyed(db, spec, payloads);
+  const result: WriteResult = { ...out.result, rejected: [...out.result.rejected] };
+
+  const { blocked } = await approveEdges(
+    db,
+    OWNER_LIMITS[table],
+    out.rows.filter((r) => !r.foreign),
+    autoSourceIds(refs, table),
+    held,
+    key,
+    spec.frozen,
+  );
+
+  const evidence = new Map<string, EdgeSourcePayload>();
+  const evSpec = edgeSourceSpec(table);
+  for (const r of out.rows) {
+    if (!r.foreign) continue;
+    const row = evidenceOf(table, r.id, r.payload);
+    evidence.set(evSpec.label(row), row);
+  }
+  if (evidence.size > 0) {
+    const ev = await upsertKeyed(db, evSpec, [...evidence.values()]);
+    // upsertKeyed counted every confirming record `unchanged`; move the ones whose evidence changed.
+    const changed = ev.result.inserted + ev.result.updated;
+    result.unchanged -= changed + ev.result.rejected.length;
+    result.updated += changed;
+    result.rejected.push(...ev.result.rejected);
+  }
+
+  const blockedItems: ReviewItem[] = blocked.map((r) => ({
+    item_type: table,
+    item_table: table,
+    item_id: String(r.id),
+    reason: OWNER_BLOCKED_REASON,
+  }));
+  // The blocked reason comes first, so it wins over a record's own reason for the same edge.
+  await queueForReview(db, [...blockedItems, ...notes.items(spec, out.rows)]);
+  if (blocked.length > 0) {
+    const child = OWNER_LIMITS[table].child;
+    result.events = [
+      {
+        severity: 'warn',
+        eventType: 'owner_change_blocked',
+        message:
+          `${blocked.length} ${table} owner pick(s) left pending: the ${child} already has, or ` +
+          'shares this batch with, another current owner. Queued for review.',
+        details: {
+          table,
+          count: blocked.length,
+          examples: blocked.slice(0, 5).map((r) => ({
+            key: labels.get(key(r.payload)) ?? spec.label(r.payload),
+            edge_id: r.id,
+          })),
+        },
+      },
+    ];
+  }
+  return result;
+}
+
 const BRAND_EDGE_COLUMNS = `id, brand_id, company_id, relation, valid_from, valid_to, confidence, ai_call_id, review_status, decision_method, ${EDGE_PROV}`;
 
 const brandEdgeSpec: KeyedSpec<TablesInsert<'brand_ownership'>> = {
@@ -237,6 +391,7 @@ const brandEdgeSpec: KeyedSpec<TablesInsert<'brand_ownership'>> = {
   label: (p) => `${p.brand_id}>${p.company_id}:${p.relation}`,
   keep: ['brand_id', 'company_id', 'relation', 'valid_from'],
   frozen: reviewed,
+  creator: 'keep_row',
 };
 
 export function brandOwnershipWriter(db: ServiceClient): DomainWriter<'brand_ownership'> {
@@ -263,6 +418,7 @@ export function brandOwnershipWriter(db: ServiceClient): DomainWriter<'brand_own
       const result: WriteResult = emptyWriteResult();
       const notes = new ReviewNotes();
       const held = new Set<string>();
+      const labels = new Map<string, string>();
       const payloads = records.flatMap((r): TablesInsert<'brand_ownership'>[] => {
         const key = keyOf('brand_ownership', r);
         const prov = provOf(r, refs, ctx);
@@ -290,21 +446,12 @@ export function brandOwnershipWriter(db: ServiceClient): DomainWriter<'brand_own
           ...prov,
         };
         notes.add(brandEdgeSpec.label(payload), r);
+        labels.set(edgeKey(brandEdgeSpec, payload), key);
         if (r.auto_hold) held.add(edgeKey(brandEdgeSpec, payload));
         return [payload];
       });
-      const out = await upsertKeyed(db, brandEdgeSpec, payloads);
-      await approveEdges(
-        db,
-        OWNER_LIMITS.brand_ownership,
-        out.rows,
-        autoSourceIds(refs, 'brand_ownership'),
-        held,
-        (p) => edgeKey(brandEdgeSpec, p),
-        brandEdgeSpec.frozen,
-      );
-      await queueNotes(db, brandEdgeSpec, notes, out);
-      return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
+      const out = await finishEdges(db, refs, brandEdgeSpec, payloads, notes, held, labels);
+      return { ...out, rejected: [...result.rejected, ...out.rejected] };
     },
   };
 }
@@ -328,6 +475,7 @@ const companyEdgeSpec: KeyedSpec<TablesInsert<'company_ownership'>> = {
   label: (p) => `${p.parent_company_id}>${p.child_company_id}:${p.relation}`,
   keep: ['parent_company_id', 'child_company_id', 'relation', 'valid_from'],
   frozen: reviewed,
+  creator: 'keep_row',
 };
 
 export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company_ownership'> {
@@ -346,6 +494,7 @@ export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company
       const result: WriteResult = emptyWriteResult();
       const notes = new ReviewNotes();
       const held = new Set<string>();
+      const labels = new Map<string, string>();
       const payloads = records.flatMap((r): TablesInsert<'company_ownership'>[] => {
         const key = keyOf('company_ownership', r);
         const prov = provOf(r, refs, ctx);
@@ -380,21 +529,12 @@ export function companyOwnershipWriter(db: ServiceClient): DomainWriter<'company
           ...prov,
         };
         notes.add(companyEdgeSpec.label(payload), r);
+        labels.set(edgeKey(companyEdgeSpec, payload), key);
         if (r.auto_hold) held.add(edgeKey(companyEdgeSpec, payload));
         return [payload];
       });
-      const out = await upsertKeyed(db, companyEdgeSpec, payloads);
-      await approveEdges(
-        db,
-        OWNER_LIMITS.company_ownership,
-        out.rows,
-        autoSourceIds(refs, 'company_ownership'),
-        held,
-        (p) => edgeKey(companyEdgeSpec, p),
-        companyEdgeSpec.frozen,
-      );
-      await queueNotes(db, companyEdgeSpec, notes, out);
-      return { ...out.result, rejected: [...result.rejected, ...out.result.rejected] };
+      const out = await finishEdges(db, refs, companyEdgeSpec, payloads, notes, held, labels);
+      return { ...out, rejected: [...result.rejected, ...out.rejected] };
     },
   };
 }

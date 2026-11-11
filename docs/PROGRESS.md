@@ -2,6 +2,30 @@
 
 Newest entry first.
 
+## 2026-11-11 — P4.10 Edges keep evidence from several sources
+
+**What changed** (D-095)
+- **Migration `20261111224629_edge_sources`** (applied on dev by the previous session, committed now): `edge_sources` holds one evidence row per (edge, source) for a source that confirms an edge another source created. Admin-only RLS, cascades with the edge. Types: I added the table's block to `database.types.ts` by hand in the generator's format (no other table changed), because the full 140 KB output can't be pasted through an unattended session.
+- **`upsertKeyed` gets a creator rule** (`KeyedSpec.creator`). Under `keep_prov` (companies, brands, with `source_id` also kept), another source's field changes are written but never the +prov columns. Under `keep_row` (edges), another source's record leaves the edge alone and becomes an `edge_sources` row.
+- **Blocked owner changes are visible.** An owner pick the one-current-owner index refuses stays `pending`, gets a `review_queue` row, and the run logs an `owner_change_blocked` warn event (count plus 5 examples). Writers can now return `events`, and the driver writes them.
+- **Tests:** a new `keyed.test.ts` (5), evidence tests in `ownership.test.ts`, a driver test for writer events, and `review.test.ts` updated for the returned ids.
+- **`check:writers`** has a new P4.10 case, plus an RLS probe through PostgREST that uses two throwaway dev users (deleted afterwards; 0 left). `supabase/tests/edge_sources.sql` holds the SQL constraint and RLS checks.
+- DATA_MODEL §3.2, the BUDGET row (296 B + 145 B index, 5,000 rows, 2.2 MB; catalog ≈ 331 MB, whole DB ≈ 422 MB) and the supabase README row are updated.
+
+**Verification**
+- `typecheck`, `lint` and `format:check` pass. `npm test`: 1,146 passed, 2 skipped. The pipeline e2e passes (2/2).
+- **`check:writers` passes (9/9) on dev.** Fixture creates an edge, then SEC writes it twice: `updated 1`, then `unchanged 1`. The edge keeps fixture's `source_id`, URL and `p216-check@1.0.0`. One `edge_sources` row holds SEC's URL, method and run. SEC naming the company with a new website updates `website`, and its +prov stays fixture's. Wikidata owner A is approved, then owner B lands `pending` with one open queue row (`OWNER_BLOCKED_REASON`) and an `owner_change_blocked` event naming that edge. A re-run adds no queue row. RLS: anon is denied, a user reads 0 rows and can't insert, an admin reads 1. Cleanup left 0 rows.
+- Advisors: nothing new. Only leaked-password protection and unused indexes, including the 3 new `edge_sources` ones on an empty table.
+
+**For the owner**
+- **The SQL RLS script didn't run.** The `supabase-dev` MCP auto-cancels `execute_sql` on writes in unattended sessions ("client cancelled this confirmation"), even though the script rolls back. I ran the same RLS checks through PostgREST in `check:writers` instead. To run the SQL constraint checks, paste `supabase/tests/edge_sources.sql` into the MCP in an interactive session; every row should read `ok = true`.
+- I left SEC's known-pair skip (D-074) as it is. Its edges' keys often differ from Wikidata's, so emitting them would add duplicate edges rather than evidence (D-095).
+- `run-tasks.ps1` (your edits) and the line-ending-only change to `pipeline/src/raw/retention.ts` are still uncommitted. I left both out.
+
+**Next:** P4.11 Brand keys.
+
+---
+
 ## 2026-11-11 — P4.32 Supplements beat cooking-helper tags
 
 **What changed** (D-094)

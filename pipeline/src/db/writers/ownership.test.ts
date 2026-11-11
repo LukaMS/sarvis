@@ -4,11 +4,57 @@ import { describe, expect, it } from 'vitest';
 import type { ServiceClient } from '../client.ts';
 import {
   assignEntitySlugs,
+  edgeSourceSpec,
+  evidenceOf,
   matchCompany,
   planEnrichment,
   reviewed,
   withoutTakenCiks,
 } from './ownership.ts';
+
+describe('edge evidence (P4.10)', () => {
+  const payload = {
+    brand_id: 'b1',
+    company_id: 'c1',
+    relation: 'owner',
+    source_id: 'sec',
+    source_url: 'https://www.sec.gov/x.htm',
+    fetched_at: '2026-11-11T12:00:00Z',
+    method: 'api',
+    method_version: 'sec-edgar@1.0.0',
+    confidence: null,
+    ingestion_run_id: 'run-1',
+    raw_object_id: null,
+  };
+
+  it("names the edge in its table's column and copies the confirming source's provenance", () => {
+    expect(evidenceOf('brand_ownership', 'e1', payload)).toEqual({
+      brand_ownership_id: 'e1',
+      source_id: 'sec',
+      source_url: 'https://www.sec.gov/x.htm',
+      fetched_at: '2026-11-11T12:00:00Z',
+      last_seen_at: '2026-11-11T12:00:00Z',
+      method: 'api',
+      method_version: 'sec-edgar@1.0.0',
+      confidence: null,
+      ai_call_id: null,
+      ingestion_run_id: 'run-1',
+      raw_object_id: null,
+    });
+    expect(evidenceOf('company_ownership', 'e2', payload)).toMatchObject({
+      company_ownership_id: 'e2',
+    });
+  });
+
+  it('keys one row per edge and source, per edge table', () => {
+    const brand = edgeSourceSpec('brand_ownership');
+    const row = evidenceOf('brand_ownership', 'e1', payload);
+    expect(brand.keys(row)).toEqual(['e1:sec']);
+    // A company-edge evidence row never matches under the brand spec.
+    expect(brand.keys(evidenceOf('company_ownership', 'e1', payload))).toEqual([null]);
+    expect(brand.keep).toEqual(['brand_ownership_id', 'source_id']);
+  });
+});
 
 describe('planEnrichment', () => {
   const stored = {

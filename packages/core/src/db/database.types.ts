@@ -1845,6 +1845,106 @@ export type Database = {
           },
         ]
       }
+      edge_sources: {
+        Row: {
+          ai_call_id: number | null
+          brand_ownership_id: string | null
+          company_ownership_id: string | null
+          confidence: number | null
+          content_hash: string | null
+          created_at: string
+          fetched_at: string
+          id: number
+          ingestion_run_id: string | null
+          last_seen_at: string
+          method: string
+          method_version: string
+          raw_object_id: string | null
+          source_id: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_call_id?: number | null
+          brand_ownership_id?: string | null
+          company_ownership_id?: string | null
+          confidence?: number | null
+          content_hash?: string | null
+          created_at?: string
+          fetched_at: string
+          id?: never
+          ingestion_run_id?: string | null
+          last_seen_at: string
+          method: string
+          method_version: string
+          raw_object_id?: string | null
+          source_id: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_call_id?: number | null
+          brand_ownership_id?: string | null
+          company_ownership_id?: string | null
+          confidence?: number | null
+          content_hash?: string | null
+          created_at?: string
+          fetched_at?: string
+          id?: never
+          ingestion_run_id?: string | null
+          last_seen_at?: string
+          method?: string
+          method_version?: string
+          raw_object_id?: string | null
+          source_id?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edge_sources_ai_call_id_fkey"
+            columns: ["ai_call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edge_sources_brand_ownership_id_fkey"
+            columns: ["brand_ownership_id"]
+            isOneToOne: false
+            referencedRelation: "brand_ownership"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edge_sources_company_ownership_id_fkey"
+            columns: ["company_ownership_id"]
+            isOneToOne: false
+            referencedRelation: "company_ownership"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edge_sources_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edge_sources_raw_object_id_fkey"
+            columns: ["raw_object_id"]
+            isOneToOne: false
+            referencedRelation: "raw_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edge_sources_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_ratings: {
         Row: {
           company_id: string

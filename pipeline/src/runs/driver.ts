@@ -42,6 +42,7 @@ import type {
   RawPayload,
   RecordBatch,
   Source,
+  SourceEvent,
   SourceRow,
   SourceRunContext,
 } from '../sources/source.ts';
@@ -92,7 +93,7 @@ export interface RecordWriter<K extends RecordKind> {
   upsert(
     records: RecordOf<K>[],
     ctx: WriteContext,
-  ): Promise<UpsertCounts & { rejected?: RejectedRecord[] }>;
+  ): Promise<UpsertCounts & { rejected?: RejectedRecord[]; events?: SourceEvent[] }>;
   /**
    * Marks the source's rows that this run did not see as inactive. Only called after a clean,
    * full, uncancelled run of a source that supports it. Returns how many rows changed.
@@ -398,6 +399,14 @@ export async function runSource<K extends RecordKind>(
           if (!writer) throw new ConfigurationError(`No writer for ${kind} records.`);
           const written = await writer.upsert(batch.valid, { runId, source: row, rawObjectId });
           counts = addCounts(counts, written);
+          for (const e of written.events ?? []) {
+            await event(e.severity, e.eventType, e.message, {
+              seq,
+              kind,
+              rawObjectId,
+              ...e.details,
+            });
+          }
           const all = written.rejected ?? [];
           const rejected = all.filter((r) => !r.reason || !expectedReasons.has(r.reason));
           const expected = new Map<string, RejectedRecord[]>();

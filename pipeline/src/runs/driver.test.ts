@@ -462,6 +462,29 @@ describe('runSource: lifecycle', () => {
     expect(event?.details).toMatchObject({ examples: [{ key: 'b' }] });
   });
 
+  it("writes a writer's events to the run log without failing the run (P4.10)", async () => {
+    const { store, deps } = setup();
+    deps.writer.upsert = async (records) => ({
+      inserted: records.length,
+      updated: 0,
+      unchanged: 0,
+      skipped_locked: 0,
+      events: [
+        {
+          severity: 'warn',
+          eventType: 'owner_change_blocked',
+          message: '1 owner pick left pending.',
+          details: { count: 1, examples: [{ key: 'a' }] },
+        },
+      ],
+    });
+    const result = await runSource(fakeSource({ pages: [[good('a')]] }), full, deps);
+    expect(result.status).toBe('completed');
+    const event = store.events.find((e) => e.event_type === 'owner_change_blocked');
+    expect(event).toMatchObject({ severity: 'warn', message: '1 owner pick left pending.' });
+    expect(event?.details).toMatchObject({ seq: 1, kind: 'product', count: 1 });
+  });
+
   it('a dry run parses everything but writes no raw files and no records', async () => {
     const { store, deps, rawStored, upserted, deactivations } = setup();
     const src = fakeSource({ pages: [[good('a')], [good('b')]] });

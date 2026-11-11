@@ -168,7 +168,7 @@ describe('Wikidata edge approval (D-054)', () => {
       key,
       reviewed,
     );
-    expect(out).toEqual({ approved: 3, blocked: 0 });
+    expect(out).toEqual({ approved: 3, blocked: [] });
     // Only rows in the batch: a stale pending row from an earlier run is never named.
     expect(updates).toEqual([{ table: 'brand_ownership', ids: ['pick', 'history', 'confirmed'] }]);
   });
@@ -184,7 +184,9 @@ describe('Wikidata edge approval (D-054)', () => {
       key,
       reviewed,
     );
-    expect(out).toEqual({ approved: 1, blocked: 1 });
+    // The refused pick comes back, so the writer can queue and report it (P4.10).
+    expect(out.approved).toBe(1);
+    expect(out.blocked.map((r) => r.id)).toEqual(['pick']);
     expect(updates).toEqual([{ table: 'brand_ownership', ids: ['history'] }]);
     expect(
       await approveEdges(
@@ -195,7 +197,7 @@ describe('Wikidata edge approval (D-054)', () => {
         new Set(),
         key,
       ),
-    ).toEqual({ approved: 0, blocked: 0 });
+    ).toEqual({ approved: 0, blocked: [] });
   });
 
   it('counts only controlling current parents against a company', () => {
@@ -215,6 +217,6 @@ describe('Wikidata edge approval (D-054)', () => {
       [],
     );
     // Two current controlling candidates for one child: neither is approved.
-    expect(out).toEqual({ ids: ['m', 'h'], blocked: 2 });
+    expect(out).toEqual({ ids: ['m', 'h'], blocked: ['a', 'b'] });
   });
 });

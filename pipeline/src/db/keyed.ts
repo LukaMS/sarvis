@@ -5,6 +5,7 @@ import { CONTENT_HASH_IGNORED } from '@sarvis/core';
 
 import type { RejectedRecord } from '../runs/driver.ts';
 import type { UpsertCounts } from '../runs/progress.ts';
+import type { SourceEvent } from '../sources/source.ts';
 import { byteaHash, changedColumns } from './change.ts';
 import type { ServiceClient } from './client.ts';
 import { type AnyRow, type TableName, insertChunked, updateById, updateMany } from './query.ts';
@@ -15,6 +16,8 @@ export type RecordProblem = RejectedRecord;
 /** What a writer reports for one batch: the run counts plus the records it couldn't write. */
 export interface WriteResult extends UpsertCounts {
   rejected: RecordProblem[];
+  /** Written to the run's event log by the driver (e.g. blocked owner changes, P4.10). */
+  events?: SourceEvent[];
 }
 
 export function emptyWriteResult(): WriteResult {
@@ -28,6 +31,7 @@ export function mergeWriteResults(a: WriteResult, b: WriteResult): WriteResult {
     unchanged: a.unchanged + b.unchanged,
     skipped_locked: a.skipped_locked + b.skipped_locked,
     rejected: [...a.rejected, ...b.rejected],
+    ...(a.events || b.events ? { events: [...(a.events ?? []), ...(b.events ?? [])] } : {}),
   };
 }
 
@@ -59,12 +63,41 @@ export interface KeyedSpec<P extends AnyRow> {
   stale?(stored: AnyRow, payload: P): boolean;
   /** Stored row and payload that share a key but are different things (a slug collision). */
   conflict?(stored: AnyRow, payload: P): string | null;
+  /**
+   * The +prov block belongs to the source that created the row (P4.10, D-095). A payload whose
+   * `source_id` differs from the stored row's is "foreign":
+   * - `keep_prov`: its field changes are written, but every +prov column keeps the stored value,
+   *   and a +prov difference alone is no change (companies, brands).
+   * - `keep_row`: the row isn't touched at all; it's counted `unchanged` and returned in `rows`
+   *   with `foreign: true`, so the writer can record the source as evidence (ownership edges).
+   */
+  creator?: 'keep_prov' | 'keep_row';
 }
+
+/** The +prov columns (DATA_MODEL §1.2) a foreign source never rewrites under `creator`. */
+export const PROV_COLUMNS = [
+  'source_id',
+  'source_url',
+  'fetched_at',
+  'method',
+  'method_version',
+  'ingestion_run_id',
+  'raw_object_id',
+] as const;
+
+/** Whether the payload comes from another source than the one that created the stored row. */
+export const isForeign = (stored: AnyRow, payload: AnyRow): boolean =>
+  stored.source_id !== undefined &&
+  payload.source_id !== undefined &&
+  stored.source_id !== payload.source_id;
 
 export interface KeyedOutcome<P extends AnyRow> {
   result: WriteResult;
-  /** Every written-or-matched payload with its row id (rejected ones are left out). */
-  rows: { payload: P; id: string | number; stored: AnyRow | null }[];
+  /**
+   * Every written-or-matched payload with its row id (rejected ones are left out). `foreign`
+   * marks a `keep_row` match from another source, which wasn't written.
+   */
+  rows: { payload: P; id: string | number; stored: AnyRow | null; foreign?: boolean }[];
 }
 
 function indexByKeys(spec: KeyedSpec<AnyRow>, rows: AnyRow[]): Map<string, AnyRow> {
@@ -122,6 +155,12 @@ export async function upsertKeyed<P extends AnyRow>(
       result.rejected.push({ key: spec.label(payload), message: clash });
       continue;
     }
+    const foreign = spec.creator !== undefined && isForeign(stored, payload);
+    if (foreign && spec.creator === 'keep_row') {
+      rows.push({ payload, id, stored, foreign: true });
+      result.unchanged++;
+      continue;
+    }
     rows.push({ payload, id, stored });
     if (spec.frozen?.(stored)) {
       result.skipped_locked++;
@@ -146,8 +185,11 @@ export async function upsertKeyed<P extends AnyRow>(
       continue;
     }
 
+    // A foreign `keep_prov` payload keeps the stored +prov block: it's neither diffed nor written.
+    const rowKeep = foreign ? new Set([...keep, ...PROV_COLUMNS]) : keep;
+    const rowIgnore = foreign ? new Set([...ignore, ...PROV_COLUMNS]) : ignore;
     const locked = new Set((stored.locked_fields as string[] | undefined) ?? []);
-    const changed = changedColumns(stored, payload, ignore);
+    const changed = changedColumns(stored, payload, rowIgnore);
     const free = changed.filter((c) => !locked.has(c));
     if (free.length === 0) {
       if (changed.length > 0) result.skipped_locked++;
@@ -159,10 +201,11 @@ export async function upsertKeyed<P extends AnyRow>(
     // The written row keeps the stored value of every locked and kept column, and its hash is
     // over what is actually stored, so a locked difference keeps showing as skipped_locked.
     const written: AnyRow = { ...payload };
-    for (const c of [...locked, ...keep]) if (c in payload && c in stored) written[c] = stored[c];
+    for (const c of [...locked, ...rowKeep])
+      if (c in payload && c in stored) written[c] = stored[c];
     const patch: AnyRow = {};
     for (const c of free) patch[c] = payload[c];
-    for (const c of PROVENANCE_ONLY) if (c in payload) patch[c] = payload[c];
+    if (!foreign) for (const c of PROVENANCE_ONLY) if (c in payload) patch[c] = payload[c];
     if (spec.hashed) patch.content_hash = byteaHash(written, hashOmit);
     Object.assign(patch, bump);
     updates.push({ id, patch, payload, stored });

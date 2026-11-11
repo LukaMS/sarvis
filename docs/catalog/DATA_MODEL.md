@@ -250,6 +250,12 @@ Trigram GIN expression index on `normalize_match_text(name)`.
 
 Unique on `(brand_id, company_id, relation, coalesce(valid_from,'-infinity'))`. At most one current (`valid_to is null`, `approved`) `owner` row per brand, enforced by a partial unique index.
 
+**`edge_sources`** (P4.10, D-095): evidence for a `brand_ownership` or `company_ownership` edge from a source other than the one that created it. Shaped like `company_sources`. RLS **admin**. The creating source stays in the edge's own +prov block, so a single-source edge has no row here.
+
+bigint id · `brand_ownership_id` null · `company_ownership_id` null (exactly one is set; both cascade with the edge) · `source_id` · `source_url` null · `fetched_at` · `last_seen_at` (≥ `fetched_at`) · `content_hash` null · `method` · `method_version` · `confidence` null (this source's own, required for `ai`) · `ai_call_id` null · `ingestion_run_id` null · `raw_object_id` null. Unique on `(brand_ownership_id, source_id)` and on `(company_ownership_id, source_id)`, as two partial indexes.
+
+**Who writes what (D-095):** the source that creates a company, brand or edge owns its +prov block. A later record from another source never rewrites it. On a company or brand, that record's unlocked field changes are still written. On an edge, it changes nothing on the edge and upserts its `edge_sources` row instead. A current owner the one-current-owner index would refuse stays `pending`, gets a `review_queue` row, and the run logs an `owner_change_blocked` event with the count and 5 examples.
+
 ### 3.3 Products
 
 **`products`**: the one product table (D-008). RLS **public** (`review_status = 'approved'` and `status = 'active'`).

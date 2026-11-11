@@ -164,7 +164,7 @@ export function withinOwnerLimit<P extends AnyRow>(
   limit: OwnerLimit,
   candidates: { payload: P; id: string | number }[],
   approved: readonly AnyRow[],
-): { ids: (string | number)[]; blocked: number } {
+): { ids: (string | number)[]; blocked: (string | number)[] } {
   const owners = new Map<string, Set<string>>();
   const add = (child: string, id: string | number) => {
     const set = owners.get(child) ?? new Set();
@@ -176,16 +176,20 @@ export function withinOwnerLimit<P extends AnyRow>(
     if (countsAsOwner(limit, c.payload)) add(c.payload[limit.child] as string, c.id);
   }
   const ids: (string | number)[] = [];
-  let blocked = 0;
+  const blocked: (string | number)[] = [];
   for (const c of candidates) {
     const set = countsAsOwner(limit, c.payload)
       ? owners.get(c.payload[limit.child] as string)
       : null;
-    if (set && set.size > 1) blocked++;
+    if (set && set.size > 1) blocked.push(c.id);
     else ids.push(c.id);
   }
   return { ids, blocked };
 }
+
+/** The review reason of an owner pick the one-current-owner index refused (P4.10, review M-5). */
+export const OWNER_BLOCKED_REASON =
+  'Another approved current owner exists, so this owner was not approved. Pick one in review.';
 
 /** The stored approved current owner edges of these children. */
 export async function approvedOwners(
@@ -203,7 +207,8 @@ export async function approvedOwners(
 
 /**
  * The D-054 approval for one batch of edges: the auto-approved source's rows, minus the ones
- * the record held back (`auto_hold`) and the ones the owner index would refuse.
+ * the record held back (`auto_hold`) and the ones the owner index would refuse. Those last ones
+ * are returned as `blocked`: they stay `pending`, and the writer queues and reports them.
  */
 export async function approveEdges<P extends AnyRow>(
   db: ServiceClient,
@@ -214,8 +219,8 @@ export async function approveEdges<P extends AnyRow>(
   held: ReadonlySet<string>,
   key: (p: P) => string,
   frozen?: (stored: AnyRow) => boolean,
-): Promise<{ approved: number; blocked: number }> {
-  if (sources.size === 0) return { approved: 0, blocked: 0 };
+): Promise<{ approved: number; blocked: KeyedOutcome<P>['rows'] }> {
+  if (sources.size === 0) return { approved: 0, blocked: [] };
   const open = rows.filter((r) => !held.has(key(r.payload)));
   const wanted = new Set(autoApproveIds(open, sources, frozen).map(String));
   const candidates = open.filter((r) => wanted.has(String(r.id)));
@@ -227,7 +232,8 @@ export async function approveEdges<P extends AnyRow>(
   );
   const { ids, blocked } = withinOwnerLimit(limit, candidates, stored);
   await approveAuto(db, limit.table, ids);
-  return { approved: ids.length, blocked };
+  const refused = new Set(blocked.map(String));
+  return { approved: ids.length, blocked: candidates.filter((c) => refused.has(String(c.id))) };
 }
 
 /** Approves the rows by rule. The `pending` guard keeps a concurrent admin decision. */

@@ -12,7 +12,10 @@
 //   npm run check:writers --workspace @sarvis/pipeline
 //
 // It runs under Vitest, not plain Node, because the writers load @sarvis/core at runtime (P2.20).
-import type { RecordInputOf, RecordKind, RecordOf } from '@sarvis/core';
+import { randomUUID } from 'node:crypto';
+
+import type { Database, RecordInputOf, RecordKind, RecordOf } from '@sarvis/core';
+import { createClient } from '@supabase/supabase-js';
 import { RECORD_SCHEMAS } from '@sarvis/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -24,6 +27,7 @@ import { getServiceClient } from './client.ts';
 import type { WriteResult } from './keyed.ts';
 import { writerFor } from './writers/index.ts';
 import { deactivateUnseenProducts } from './writers/products.ts';
+import { OWNER_BLOCKED_REASON } from './writers/review.ts';
 
 const enabled = !!process.env.SUPABASE_DEV_SERVICE_ROLE_KEY;
 const TAG = 'p216-check';
@@ -39,6 +43,10 @@ const ENRICHED = `${TAG}-enriched-company`;
 const WIKI_URL = `https://en.wikipedia.org/wiki/${TAG}-company`;
 const NEWS_URL = `https://example.test/news/${TAG}`;
 const VECTORS = ['v999000001', 'v999000002'];
+/** P4.10: a company two sources name, and a brand whose Wikidata owner changes. */
+const EDGE_COMPANY = `${TAG}-edge-company`;
+const OWNERS = [`${TAG}-owner-a`, `${TAG}-owner-b`];
+const BLOCK_BRAND = `${TAG}-block-brand`;
 
 /** GTIN-14 with a GS1 mod-10 check digit, under an unrestricted 06 prefix. */
 function gtin(n: number): string {
@@ -110,6 +118,73 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
     const result = await writerFor(db, kind).upsert(records, ctx);
     if (result.rejected.length > 0) logger.warn('rejected', { kind, rejected: result.rejected });
     return result;
+  }
+
+  /**
+   * edge_sources through PostgREST as anon, a plain user and an admin (P4.10). The two users are
+   * throwaway dev accounts, deleted afterwards. supabase/tests/edge_sources.sql has the same
+   * checks in SQL, plus the constraints.
+   */
+  async function edgeSourcesRls(edgeId: string) {
+    const client = () =>
+      createClient<Database>(
+        process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
+        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+    const password = `p410-${randomUUID()}`;
+    const ids: string[] = [];
+    const signedIn = async (role: 'user' | 'admin') => {
+      const email = `${TAG}-${role}-${randomUUID().slice(0, 8)}@test.invalid`;
+      const created = await db.auth.admin.createUser({ email, password, email_confirm: true });
+      if (created.error || !created.data.user)
+        throw new Error(`createUser: ${created.error?.message}`);
+      ids.push(created.data.user.id);
+      if (role === 'admin') {
+        const r = await db
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', created.data.user.id);
+        if (r.error) throw new Error(`profiles: ${r.error.message}`);
+      }
+      const c = client();
+      const s = await c.auth.signInWithPassword({ email, password });
+      if (s.error) throw new Error(`signIn: ${s.error.message}`);
+      return c;
+    };
+    try {
+      const anon = await client()
+        .from('edge_sources')
+        .select('id')
+        .eq('brand_ownership_id', edgeId);
+      const user = await signedIn('user');
+      const userRead = await user
+        .from('edge_sources')
+        .select('id')
+        .eq('brand_ownership_id', edgeId);
+      const now = new Date().toISOString();
+      const userInsert = await user.from('edge_sources').insert({
+        brand_ownership_id: edgeId,
+        source_id: ctx.source.id,
+        fetched_at: now,
+        last_seen_at: now,
+        method: 'manual',
+        method_version: 'p410-rls',
+      });
+      const admin = await signedIn('admin');
+      const adminRead = await admin
+        .from('edge_sources')
+        .select('id')
+        .eq('brand_ownership_id', edgeId);
+      return {
+        anon: anon.error ? 'denied' : `${anon.data?.length} rows`,
+        user: userRead.error ? userRead.error.message : userRead.data?.length,
+        userInsert: userInsert.error ? 'denied' : 'allowed',
+        admin: adminRead.error ? adminRead.error.message : adminRead.data?.length,
+      };
+    } finally {
+      for (const id of ids) await db.auth.admin.deleteUser(id);
+    }
   }
 
   async function round(
@@ -186,7 +261,31 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       ...((await db.from('companies').select('id').eq('slug', QUEUED_COMPANY)).data ?? []),
       ...((await db.from('brands').select('id').eq('slug', QUEUED_BRAND)).data ?? []),
     ].map((r) => r.id);
+    // P4.10: the blocked edges' queue rows, then the brands and companies (edges and
+    // edge_sources cascade).
+    const p410Brands = (
+      await db
+        .from('brands')
+        .select('id')
+        .in('slug', [BLOCK_BRAND, BRANDS[1] as string])
+    ).data?.map((r) => r.id);
+    const p410Edges =
+      (
+        await db
+          .from('brand_ownership')
+          .select('id')
+          .in('brand_id', p410Brands ?? [])
+      ).data?.map((r) => r.id) ?? [];
+    const p410 = [
+      await db.from('review_queue').delete().in('item_id', p410Edges),
+      await db.from('brands').delete().eq('slug', BLOCK_BRAND),
+      await db
+        .from('companies')
+        .delete()
+        .in('slug', [EDGE_COMPANY, ...OWNERS]),
+    ];
     const steps = [
+      ...p410,
       // The enriched company first: it points at its Wikipedia document. company_sources cascades.
       await db.from('companies').delete().eq('slug', ENRICHED),
       await db.from('documents').delete().in('url_normalized', [WIKI_URL, NEWS_URL]),
@@ -261,8 +360,27 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
         await db
           .from('review_queue')
           .select('id', { count: 'exact', head: true })
-          .in('item_id', queued)
+          .in('item_id', [...queued, ...p410Edges])
       ).count,
+      p410: (
+        await db
+          .from('edge_sources')
+          .select('id', { count: 'exact', head: true })
+          .eq('ingestion_run_id', ctx.runId)
+      ).count,
+      p410Entities:
+        ((
+          await db
+            .from('companies')
+            .select('id', { count: 'exact', head: true })
+            .in('slug', [EDGE_COMPANY, ...OWNERS])
+        ).count ?? 0) +
+        ((
+          await db
+            .from('brands')
+            .select('id', { count: 'exact', head: true })
+            .eq('slug', BLOCK_BRAND)
+        ).count ?? 0),
     };
     logger.info('cleaned up', {
       errors: [...collision, ...steps].filter((s) => s.error).map((s) => s.error?.message),
@@ -488,6 +606,171 @@ describe.skipIf(!enabled)('writers against the dev project', () => {
       { item_type: 'company', item_table: 'companies', item_id: company, reason, status: 'open' },
     ]);
   });
+  it('keeps the creating source on edges, companies and owner changes (P4.10)', async () => {
+    type Prov = Omit<ReturnType<typeof prov>, 'method'> & { method: 'import' | 'api' };
+    const as = (source_key: string, version: string): Prov => ({
+      ...prov(version),
+      source_key,
+      source_url: `https://example.test/${source_key}/${TAG}`,
+      method: 'api',
+    });
+    const sec = as('sec-edgar', 'sec-edgar@0.0.0-check');
+    const wd = as('wikidata', 'wikidata@0.0.0-check');
+    const company = (src: Prov, over = {}) =>
+      parse('company', { slug: EDGE_COMPANY, name: 'P410 Company', ...src, ...over });
+    const edge = (src: Prov) =>
+      parse('brand_ownership', {
+        brand_slug: BRANDS[1] as string,
+        company_slug: EDGE_COMPANY,
+        relation: 'owner',
+        ...src,
+      });
+
+    // 1. Fixture creates the company and the edge; SEC then names both, twice.
+    expect(await write('company', [company(prov())])).toMatchObject({ inserted: 1 });
+    expect(await write('brand_ownership', [edge(prov())])).toMatchObject({ inserted: 1 });
+    const confirm1 = counts(await write('brand_ownership', [edge(sec)]));
+    const confirm2 = counts(await write('brand_ownership', [edge(sec)]));
+    logger.info('second source on an edge', { confirm1, confirm2 });
+    expect(confirm1).toMatchObject({ inserted: 0, updated: 1, unchanged: 0, rejected: 0 });
+    expect(confirm2).toMatchObject({ inserted: 0, updated: 0, unchanged: 1, rejected: 0 });
+
+    const companyId = (await db.from('companies').select('id').eq('slug', EDGE_COMPANY).single())
+      .data?.id as string;
+    const edgeRow = (
+      await db
+        .from('brand_ownership')
+        .select('id, source_id, source_url, method, method_version')
+        .eq('company_id', companyId)
+        .single()
+    ).data;
+    const evidence = (
+      await db
+        .from('edge_sources')
+        .select(
+          'brand_ownership_id, company_ownership_id, source_id, source_url, method, method_version, ingestion_run_id',
+        )
+        .eq('brand_ownership_id', edgeRow?.id as string)
+    ).data;
+    const secId = (await db.from('sources').select('id').eq('key', 'sec-edgar').single()).data
+      ?.id as string;
+    logger.info('edge and its evidence', { edge: edgeRow, evidence });
+    expect(edgeRow).toMatchObject({
+      source_id: ctx.source.id,
+      source_url: 'https://example.test/fixture',
+      method: 'import',
+      method_version: 'p216-check@1.0.0',
+    });
+    expect(evidence).toEqual([
+      {
+        brand_ownership_id: edgeRow?.id,
+        company_ownership_id: null,
+        source_id: secId,
+        source_url: `https://example.test/sec-edgar/${TAG}`,
+        method: 'api',
+        method_version: 'sec-edgar@0.0.0-check',
+        ingestion_run_id: ctx.runId,
+      },
+    ]);
+    const rls = await edgeSourcesRls(edgeRow?.id as string);
+    logger.info('edge_sources RLS', rls);
+    expect(rls).toEqual({ anon: 'denied', user: 0, userInsert: 'denied', admin: 1 });
+
+    // 2. SEC names the company with a new website: the field changes, the +prov block stays.
+    const enriched = counts(
+      await write('company', [company(sec, { website: 'https://p410.example.test/' })]),
+    );
+    expect(enriched).toMatchObject({ updated: 1, rejected: 0 });
+    const companyRow = (
+      await db
+        .from('companies')
+        .select('website, source_id, source_url, method, method_version')
+        .eq('id', companyId)
+        .single()
+    ).data;
+    logger.info('company after a second source', { companyRow });
+    expect(companyRow).toEqual({
+      website: 'https://p410.example.test/',
+      source_id: ctx.source.id,
+      source_url: 'https://example.test/fixture',
+      method: 'import',
+      method_version: 'p216-check@1.0.0',
+    });
+
+    // 3. Wikidata gives a brand owner A (approved by rule), then a new current owner B.
+    for (const slug of OWNERS)
+      await write('company', [parse('company', { slug, name: slug, ...prov() })]);
+    await write('brand', [parse('brand', { slug: BLOCK_BRAND, name: 'P410 Block', ...prov() })]);
+    const owner = (company_slug: string) =>
+      parse('brand_ownership', {
+        brand_slug: BLOCK_BRAND,
+        company_slug,
+        relation: 'owner',
+        ...wd,
+      });
+    const first = await write('brand_ownership', [owner(OWNERS[0] as string)]);
+    expect(first.events ?? []).toEqual([]);
+    const second = await write('brand_ownership', [owner(OWNERS[1] as string)]);
+    logger.info('blocked owner change', { counts: counts(second), events: second.events });
+    expect(second).toMatchObject({ inserted: 1, rejected: [] });
+    expect(second.events).toHaveLength(1);
+    expect(second.events?.[0]).toMatchObject({
+      severity: 'warn',
+      eventType: 'owner_change_blocked',
+      details: { table: 'brand_ownership', count: 1 },
+    });
+
+    const brandId = (await db.from('brands').select('id').eq('slug', BLOCK_BRAND).single()).data
+      ?.id as string;
+    const edges = (
+      await db
+        .from('brand_ownership')
+        .select('id, company_id, review_status')
+        .eq('brand_id', brandId)
+    ).data;
+    const slugOf = new Map(
+      ((await db.from('companies').select('id, slug').in('slug', OWNERS)).data ?? []).map((c) => [
+        c.id,
+        c.slug,
+      ]),
+    );
+    const status = Object.fromEntries(
+      (edges ?? []).map((e) => [slugOf.get(e.company_id), e.review_status]),
+    );
+    expect(status).toEqual({ [OWNERS[0] as string]: 'approved', [OWNERS[1] as string]: 'pending' });
+    const pendingId = edges?.find((e) => e.review_status === 'pending')?.id as string;
+    const queue = (
+      await db
+        .from('review_queue')
+        .select('item_type, item_table, item_id, reason, status')
+        .in('item_id', edges?.map((e) => e.id) ?? [])
+    ).data;
+    logger.info('blocked edge queue rows', { queue });
+    expect(queue).toEqual([
+      {
+        item_type: 'brand_ownership',
+        item_table: 'brand_ownership',
+        item_id: pendingId,
+        reason: OWNER_BLOCKED_REASON,
+        status: 'open',
+      },
+    ]);
+    expect(second.events?.[0]?.details).toMatchObject({ examples: [{ edge_id: pendingId }] });
+
+    // A re-run queues nothing new and reports the still-blocked pick again.
+    const again = await write('brand_ownership', [owner(OWNERS[1] as string)]);
+    expect(again).toMatchObject({ inserted: 0, updated: 0, unchanged: 1 });
+    expect(again.events?.[0]?.details).toMatchObject({ count: 1 });
+    expect(
+      (
+        await db
+          .from('review_queue')
+          .select('id', { count: 'exact', head: true })
+          .eq('item_id', pendingId)
+      ).count,
+    ).toBe(1);
+  });
+
   it('writes reference prices, documents and a company enrichment idempotently (P3.4)', async () => {
     const wiki = (version = 'wikipedia@0.0.0-check') => ({
       ...prov(version),

@@ -1671,7 +1671,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** `check:taxonomy` still ≥ 95%. A list of every product that changes category, checked by hand. A second job run updates 0.
 - ✅ Done 2026-11-11: taxonomy 1.1.0 maps `en:psyllium` and `en:flavoured-dietary-supplements` to health nodes (migration `20261111223435`). `check:taxonomy` 96.31%. 8 products change, all checked by hand (5 psyllium out of `pantry/baking`, 3 supplements from the `health` aisle to `health/vitamins`). Job run `d7b15607` updated 8, `0c24d888` updated 0. The pick-rule alternative was measured and rejected (60 moves, many worse) (D-094).
 
-### [ ] P4.10 Edges keep evidence from several sources
+### [x] P4.10 Edges keep evidence from several sources
 - **Slice:** schema.
 - **Goal:** a second source confirming an ownership edge adds evidence instead of overwriting the first.
 - **Deps:** P3.19a.
@@ -1687,6 +1687,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `check:writers`: two sources write one edge, and both are recorded with the first source's provenance intact.
   - `check:writers`: a second source writing an existing company leaves its `source_id` alone; a new owner for a brand that already has one ends `pending` with a queue row and a run event.
   - An RLS check in `supabase/tests/`. Advisors are clean.
+- ✅ Done 2026-11-11 (D-095): `check:writers` covers all three cases, plus edge_sources RLS through PostgREST as anon, a user and an admin. `supabase/tests/edge_sources.sql` holds the SQL version, but the MCP wouldn't run it unattended (see PROGRESS). Advisors show nothing new. SEC's known-pair skip stays (D-095).
 
 ### [ ] P4.11 Brand keys
 - **Slice:** brand-resolver.
