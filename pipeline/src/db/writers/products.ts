@@ -331,6 +331,8 @@ export function takeoverPatch(payload: ProductPayload): AnyRow {
     brand_id: null,
     brand_text: null,
     category_id: null,
+    // Cleared with the category it explains (a rule needs a category, P4.8).
+    category_rule: null,
     quantity_text: null,
     net_quantity: null,
     net_unit: null,

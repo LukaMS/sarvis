@@ -263,6 +263,7 @@ Unique on `(brand_id, company_id, relation, coalesce(valid_from,'-infinity'))`. 
 | `brand_id` | uuid null → `brands` | The product → brand link. The company comes from `brand_ownership`. |
 | `brand_text` | text null | The raw brand string from the source, kept for the resolver and for review. |
 | `category_id` | uuid null → `categories` | |
+| `category_rule` | smallint null | Which rule set `category_id` (TAXONOMY.md §4): 1 = OFF tags, 10–49 = name rules, 50–59 = AI, 90 = manual. Null when there is no category; a check requires a category when it is set (D-090). |
 | `quantity_text` | text null | Source string, e.g. "12 x 355 mL". |
 | `net_quantity` | numeric(12,3) null | Normalized pack total in the base unit ("12 x 355 mL" → 4260). |
 | `net_unit` | text null | `g`, `ml` or `ct` (P4 parser, D-087). |
@@ -289,11 +290,11 @@ bigint id · `product_id` · `scheme` (`gtin_alt`, `store_sku`, `store_internal`
 
 bigint id · `product_id` · `source_id` · `external_id` · `source_url` · `fetched_at` · `last_seen_at` · `content_hash` · `method` · `method_version`. Unique on `(source_id, external_id)`.
 
-**`categories`**: the Sarvis taxonomy (Phase 4). RLS **public**.
+**`categories`**: the Sarvis taxonomy (`docs/catalog/TAXONOMY.md`, D-090): 3 levels (aisle 0, group 1, leaf 2), 421 nodes, seeded from `pipeline/src/taxonomy/tree.ts`. RLS **public**.
 
-`id` uuid · `slug` unique (path-like) · `name` · `parent_id` · `level` smallint · `sort_order`.
+`id` uuid · `slug` unique (path-like) · `name` · `parent_id` · `level` smallint · `sort_order` · `sold_loose` boolean (a leaf whose items are often sold without a barcode; P4.28 seeds generic items from these).
 
-**`category_mappings`**: source category → taxonomy. RLS **public** read, admin write.
+**`category_mappings`**: source category → taxonomy. RLS **public** read, admin write. Seeded as `approved` / `auto` reference data (`method = derived`, `method_version = taxonomy@<version>`): 1,350 OFF tags (confidence 0.90, or 0.60 for a weak tag) and 105 StatCan product labels (`source_category_key` = the label). A product takes its deepest mapped tag (TAXONOMY.md §3).
 
 bigint id · `source_id` · `source_category_key` (e.g. OFF `en:plant-based-milks`) · `category_id` · `confidence` · +review · +prov. Unique on `(source_id, source_category_key)`.
 

@@ -2,6 +2,33 @@
 
 Newest entry first.
 
+## 2026-11-11 — P4.8 Taxonomy and OFF tag mappings
+
+**What changed** (D-090)
+- **`docs/catalog/TAXONOMY.md`:** 3 levels (17 aisles, 79 groups, 325 leaves = 421 nodes), the pick rule, the `category_rule` codes, the StatCan mappings, coverage, how to change it, and the full tree. 84 leaves are marked sold loose for P4.28.
+- **`pipeline/src/taxonomy/`:** `tree.ts` (the tree, OFF tags and StatCan labels per node; the source of truth), `assign.ts` (`pickCategory`: deepest node, then confidence, then the later tag; P4.9 uses it), `sql.ts` (prints the seed migration; `npm run taxonomy:sql`), unit tests, and `taxonomy.devdb.ts` (`npm run check:taxonomy`).
+- **Migrations on dev:** `20261111135214_taxonomy_columns` (`categories.sold_loose`; `products.category_rule smallint`, with checks for 1–99 and that a rule needs a category), `20261111135803_taxonomy_v1` (generated seed: 421 categories, 1,350 OFF tags, 105 StatCan labels, all `approved` / `auto`, `derived`, `taxonomy@1.0.0`), and `20261111135841_taxonomy_v1_statcan_yogurt` (the one label the first apply missed; the v1 file already has it).
+- **Writer:** the legacy takeover patch clears `category_rule` along with `category_id`.
+- **Types:** the two columns were added to `database.types.ts` by hand (the file is 139 KB; regenerating it through the MCP would have cost ~40k tokens). The next regeneration should show no diff. CLAUDE.md, DATA_MODEL updated.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,098 passed, 2 skipped (9 new: tree shape, slugs and chains, sold-loose leaves, unique mappings, the pick rule and its tie-breaks, real OFF tag lists, and the checked-in migration equal to the generator).
+- **`check:taxonomy`** (5 of 5): dev holds the tree row for row (421 categories, 1,350 + 105 mappings, every chain reaches an aisle, no mapping without a node), anon reads 421 categories and 1,455 mappings, and all 105 StatCan labels map.
+- **Coverage, run `7179a9c8` (93,411 rows, 38,680 with tags, 7,092 distinct tags):** mapped **37,252 (96.31%)**: leaf 26,203 (67.74%), group 8,750 (22.62%), aisle 2,299 (5.94%). Unmapped: 1,428, carrying only uninformative tags (`en:plant-based-foods` 385, `en:cereals-and-potatoes` 141, `en:cereals-and-their-products` 125). All 1,350 mapped tags occur in the dump.
+- **By aisle:** snacks 5,961, pantry 5,751, beverages 4,092, dairy-eggs 3,472, breakfast 2,858, candy-chocolate 2,718, bakery 2,386, condiments 2,359, meat-seafood 2,143, deli 1,363, prepared-meals 1,147, produce 1,027, frozen 911, health 877, personal-care 101, baby 70, household 16.
+- **5 examples:** Cheese Pleesers → `snacks/chips`; Nutella & GO! → `breakfast/spreads/chocolate-spreads`; Oikos Yogourt Grec Nature → `dairy-eggs/yogurt/greek-yogurt`; Whole Plum Tomatoes → `pantry/canned/canned-tomatoes`; The Good Veggie Burger → `meat-seafood/plant-protein/meatless-burgers`.
+- **Hand check of 70 random products:** 4 wrong (muffin mix → cakes, tzatziki → yogurt, a yogurt starter → creamers, dried basil → the condiments aisle), about 10 at a vague but right node. About 35 same-level conflicts were fixed by making the misleading tag weak.
+- `check:writers` 8 of 8 and `check:takeover` 3 of 3 still pass after the takeover change. Security advisors: only the existing leaked-password warning. Performance: only the existing unused-index notices. RLS was already on for both tables.
+- **Budget:** 421 + 1,455 small reference rows, a few hundred KB. `category_rule` is null on every product until P4.9.
+
+**For the owner**
+- 421 nodes is a little over the plan's "about 200–400". The extra leaves are the ones StatCan prices separately (frozen peas, chicken thighs).
+- There is no pet-food node. OFF holds about 20 pet products, and the plan doesn't cover pet food.
+
+**Next:** P6.2 CI runs the dev-database checks (the first unticked task in file order; P4.9 follows the P6.2, P6.3 and P4.31 block).
+
+---
+
 ## 2026-11-11 — P4.7 Pipeline: derived-job runner
 
 **What changed** (D-089)

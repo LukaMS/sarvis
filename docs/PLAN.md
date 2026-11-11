@@ -1624,7 +1624,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - The fixture job run twice against dev updates nothing the second time.
 - ✅ Done 2026-11-11: 14 runner tests (dry run, sample, cancel and resume, locks, batch errors, event cap, exit codes); dev e2e on 12 seeded rows: dry 0 updated, sample 4 → 4, full → 6, full again → 0 (D-089).
 
-### [ ] P4.8 Taxonomy and OFF tag mappings
+### [x] P4.8 Taxonomy and OFF tag mappings
 - **Slice:** taxonomy.
 - **Goal:** a Sarvis grocery taxonomy that alternatives and price bounds can use, mapped from OFF tags.
 - **Deps:** P3.19a.
@@ -1640,6 +1640,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Mapped share of categorised products, by level, against the dump's tag counts.
   - Every leaf has a parent chain, and no mapping points at a missing node.
   - Advisors are clean and RLS is on. Every StatCan product maps to a node.
+- ✅ Done 2026-11-11: 421 nodes (17 / 79 / 325, 84 sold loose), 1,350 OFF and 105 StatCan mappings; `check:taxonomy` on run `7179a9c8`: 96.31% of 38,680 categorised products mapped (leaf 67.7%, group 22.6%, aisle 5.9%), every chain reaches an aisle, every StatCan label maps, anon reads both tables, advisors unchanged (D-090).
 
 ### [ ] P4.9 Categories from OFF tags
 - **Slice:** taxonomy.

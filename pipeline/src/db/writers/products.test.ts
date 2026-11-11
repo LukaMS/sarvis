@@ -114,6 +114,7 @@ describe('legacy takeover (P4.4)', () => {
     brand_id: 'patch',
     brand_text: 'patch',
     category_id: 'patch',
+    category_rule: 'patch',
     quantity_text: 'patch',
     net_quantity: 'patch',
     net_unit: 'patch',

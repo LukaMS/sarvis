@@ -530,6 +530,7 @@ export type Database = {
           name: string
           parent_id: string | null
           slug: string
+          sold_loose: boolean
           sort_order: number
           updated_at: string
         }
@@ -540,6 +541,7 @@ export type Database = {
           name: string
           parent_id?: string | null
           slug: string
+          sold_loose?: boolean
           sort_order?: number
           updated_at?: string
         }
@@ -550,6 +552,7 @@ export type Database = {
           name?: string
           parent_id?: string | null
           slug?: string
+          sold_loose?: boolean
           sort_order?: number
           updated_at?: string
         }
@@ -2844,6 +2847,7 @@ export type Database = {
           brand_id: string | null
           brand_text: string | null
           category_id: string | null
+          category_rule: number | null
           content_hash: string | null
           created_at: string
           decision_method: string | null
@@ -2879,6 +2883,7 @@ export type Database = {
           brand_id?: string | null
           brand_text?: string | null
           category_id?: string | null
+          category_rule?: number | null
           content_hash?: string | null
           created_at?: string
           decision_method?: string | null
@@ -2914,6 +2919,7 @@ export type Database = {
           brand_id?: string | null
           brand_text?: string | null
           category_id?: string | null
+          category_rule?: number | null
           content_hash?: string | null
           created_at?: string
           decision_method?: string | null
