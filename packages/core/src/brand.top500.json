@@ -1,0 +1,2005 @@
+{
+  "about": "Top 500 rows of public.off_brand_strings() on the dev project, 2026-11-11 (Open Food Facts brand strings, ODbL). Fixture for brand.test.ts (P4.11).",
+  "rows": [
+    {
+      "brand": "Compliments",
+      "products": 2101
+    },
+    {
+      "brand": "President's Choice",
+      "products": 1839
+    },
+    {
+      "brand": "Great Value",
+      "products": 1685
+    },
+    {
+      "brand": "Western Family",
+      "products": 1240
+    },
+    {
+      "brand": "Farm Boy",
+      "products": 1185
+    },
+    {
+      "brand": "Selection",
+      "products": 1047
+    },
+    {
+      "brand": "No Name",
+      "products": 899
+    },
+    {
+      "brand": "Kirkland",
+      "products": 773
+    },
+    {
+      "brand": "Sobeys",
+      "products": 608
+    },
+    {
+      "brand": "Safeway",
+      "products": 509
+    },
+    {
+      "brand": "Irrésistibles",
+      "products": 454
+    },
+    {
+      "brand": "Kirkland Signature",
+      "products": 445
+    },
+    {
+      "brand": "Metro",
+      "products": 396
+    },
+    {
+      "brand": "Nestlé",
+      "products": 363
+    },
+    {
+      "brand": "Longos",
+      "products": 311
+    },
+    {
+      "brand": "Sans nom",
+      "products": 289
+    },
+    {
+      "brand": "Kraft",
+      "products": 284
+    },
+    {
+      "brand": "Le Choix du Président",
+      "products": 283
+    },
+    {
+      "brand": "Kellogg's",
+      "products": 262
+    },
+    {
+      "brand": "T&T",
+      "products": 257
+    },
+    {
+      "brand": "Dare",
+      "products": 247
+    },
+    {
+      "brand": "Irresistibles",
+      "products": 239
+    },
+    {
+      "brand": "Leclerc",
+      "products": 228
+    },
+    {
+      "brand": "Lindt",
+      "products": 224
+    },
+    {
+      "brand": "Your Fresh Market",
+      "products": 221
+    },
+    {
+      "brand": "PC",
+      "products": 211
+    },
+    {
+      "brand": "Save On Foods",
+      "products": 201
+    },
+    {
+      "brand": "Lay's",
+      "products": 200
+    },
+    {
+      "brand": "Heinz",
+      "products": 199
+    },
+    {
+      "brand": "Quaker",
+      "products": 197
+    },
+    {
+      "brand": "Christie",
+      "products": 188
+    },
+    {
+      "brand": "Club house",
+      "products": 185
+    },
+    {
+      "brand": "IGA",
+      "products": 185
+    },
+    {
+      "brand": "Whole Foods",
+      "products": 170
+    },
+    {
+      "brand": "Co-op Gold",
+      "products": 167
+    },
+    {
+      "brand": "Cedar",
+      "products": 165
+    },
+    {
+      "brand": "Cadbury",
+      "products": 162
+    },
+    {
+      "brand": "Presidents Choice",
+      "products": 160
+    },
+    {
+      "brand": "Irresistible",
+      "products": 158
+    },
+    {
+      "brand": "Freshprep",
+      "products": 156
+    },
+    {
+      "brand": "Knorr",
+      "products": 155
+    },
+    {
+      "brand": "Shop Santé",
+      "products": 154
+    },
+    {
+      "brand": "Farmboy",
+      "products": 152
+    },
+    {
+      "brand": "Yupik",
+      "products": 152
+    },
+    {
+      "brand": "Aurora",
+      "products": 151
+    },
+    {
+      "brand": "Maple Leaf",
+      "products": 149
+    },
+    {
+      "brand": "Starbucks",
+      "products": 148
+    },
+    {
+      "brand": "General Mills",
+      "products": 146
+    },
+    {
+      "brand": "Saputo",
+      "products": 144
+    },
+    {
+      "brand": "Longo's",
+      "products": 142
+    },
+    {
+      "brand": "Loblaws",
+      "products": 137
+    },
+    {
+      "brand": "Hershey's",
+      "products": 135
+    },
+    {
+      "brand": "Life Smart",
+      "products": 134
+    },
+    {
+      "brand": "Panache",
+      "products": 134
+    },
+    {
+      "brand": "Ilios",
+      "products": 132
+    },
+    {
+      "brand": "Liberté",
+      "products": 130
+    },
+    {
+      "brand": "Tim Hortons",
+      "products": 129
+    },
+    {
+      "brand": "Schneiders",
+      "products": 127
+    },
+    {
+      "brand": "Costco",
+      "products": 126
+    },
+    {
+      "brand": "Prana",
+      "products": 125
+    },
+    {
+      "brand": "Del Monte",
+      "products": 123
+    },
+    {
+      "brand": "Old Dutch",
+      "products": 121
+    },
+    {
+      "brand": "Bob's Red Mill",
+      "products": 120
+    },
+    {
+      "brand": "Naturalia",
+      "products": 119
+    },
+    {
+      "brand": "Lactantia",
+      "products": 116
+    },
+    {
+      "brand": "Foodland",
+      "products": 115
+    },
+    {
+      "brand": "M&M",
+      "products": 114
+    },
+    {
+      "brand": "Doritos",
+      "products": 113
+    },
+    {
+      "brand": "PC Organics",
+      "products": 112
+    },
+    {
+      "brand": "Whole Foods Market",
+      "products": 112
+    },
+    {
+      "brand": "Silk",
+      "products": 111
+    },
+    {
+      "brand": "Summer Fresh",
+      "products": 111
+    },
+    {
+      "brand": "President’s Choice",
+      "products": 110
+    },
+    {
+      "brand": "null",
+      "products": 109
+    },
+    {
+      "brand": "Nature Valley",
+      "products": 108
+    },
+    {
+      "brand": "Riviera",
+      "products": 107
+    },
+    {
+      "brand": "Cracker Barrel",
+      "products": 106
+    },
+    {
+      "brand": "PC Biologique",
+      "products": 106
+    },
+    {
+      "brand": "Wild Fork",
+      "products": 106
+    },
+    {
+      "brand": "Made Good",
+      "products": 105
+    },
+    {
+      "brand": "Natrel",
+      "products": 105
+    },
+    {
+      "brand": "Primo",
+      "products": 105
+    },
+    {
+      "brand": "Catelli",
+      "products": 104
+    },
+    {
+      "brand": "Superstore",
+      "products": 104
+    },
+    {
+      "brand": "Co-op",
+      "products": 103
+    },
+    {
+      "brand": "McCain",
+      "products": 103
+    },
+    {
+      "brand": "Canadian Protein",
+      "products": 101
+    },
+    {
+      "brand": "Campbell's",
+      "products": 100
+    },
+    {
+      "brand": "St-Hubert",
+      "products": 100
+    },
+    {
+      "brand": "Only Goodness",
+      "products": 99
+    },
+    {
+      "brand": "Planters",
+      "products": 99
+    },
+    {
+      "brand": "Gatorade",
+      "products": 98
+    },
+    {
+      "brand": "Jamieson",
+      "products": 98
+    },
+    {
+      "brand": "Pillsbury",
+      "products": 98
+    },
+    {
+      "brand": "Organika",
+      "products": 97
+    },
+    {
+      "brand": "Revolution Nutrition",
+      "products": 97
+    },
+    {
+      "brand": "Betty Crocker",
+      "products": 96
+    },
+    {
+      "brand": "Thrifty Foods",
+      "products": 96
+    },
+    {
+      "brand": "Danone",
+      "products": 95
+    },
+    {
+      "brand": "Dole",
+      "products": 94
+    },
+    {
+      "brand": "Marc Angelo",
+      "products": 94
+    },
+    {
+      "brand": "Coca-Cola",
+      "products": 93
+    },
+    {
+      "brand": "Dairyland",
+      "products": 93
+    },
+    {
+      "brand": "Nature's Path",
+      "products": 92
+    },
+    {
+      "brand": "Oasis",
+      "products": 92
+    },
+    {
+      "brand": "Dempster's",
+      "products": 91
+    },
+    {
+      "brand": "Irrésistible",
+      "products": 91
+    },
+    {
+      "brand": "Quest",
+      "products": 91
+    },
+    {
+      "brand": "Reese's",
+      "products": 91
+    },
+    {
+      "brand": "Sunrype",
+      "products": 91
+    },
+    {
+      "brand": "Clover leaf",
+      "products": 90
+    },
+    {
+      "brand": "Häagen-Dazs",
+      "products": 90
+    },
+    {
+      "brand": "Laura Secord",
+      "products": 89
+    },
+    {
+      "brand": "Our Finest",
+      "products": 89
+    },
+    {
+      "brand": "Chapman's",
+      "products": 88
+    },
+    {
+      "brand": "Giant Value",
+      "products": 86
+    },
+    {
+      "brand": "Waterbridge",
+      "products": 86
+    },
+    {
+      "brand": "Best Buy",
+      "products": 85
+    },
+    {
+      "brand": "Nespresso",
+      "products": 85
+    },
+    {
+      "brand": "Black Diamond",
+      "products": 84
+    },
+    {
+      "brand": "Ricardo",
+      "products": 84
+    },
+    {
+      "brand": "Summerhill Market",
+      "products": 84
+    },
+    {
+      "brand": "Cheetos",
+      "products": 83
+    },
+    {
+      "brand": "Kind",
+      "products": 83
+    },
+    {
+      "brand": "Macro Foods",
+      "products": 83
+    },
+    {
+      "brand": "Ruffles",
+      "products": 82
+    },
+    {
+      "brand": "Walmart",
+      "products": 82
+    },
+    {
+      "brand": "Canada Dry",
+      "products": 80
+    },
+    {
+      "brand": "Fontaine Santé",
+      "products": 80
+    },
+    {
+      "brand": "M&M Food Market",
+      "products": 79
+    },
+    {
+      "brand": "Pringles",
+      "products": 79
+    },
+    {
+      "brand": "Krinos",
+      "products": 78
+    },
+    {
+      "brand": "Farmer's Market",
+      "products": 77
+    },
+    {
+      "brand": "Oreo",
+      "products": 77
+    },
+    {
+      "brand": "Grace",
+      "products": 76
+    },
+    {
+      "brand": "Unico",
+      "products": 76
+    },
+    {
+      "brand": "Longo’s",
+      "products": 74
+    },
+    {
+      "brand": "Activia",
+      "products": 73
+    },
+    {
+      "brand": "goodfood",
+      "products": 72
+    },
+    {
+      "brand": "Pure Protein",
+      "products": 71
+    },
+    {
+      "brand": "Vega",
+      "products": 71
+    },
+    {
+      "brand": "Yoplait",
+      "products": 71
+    },
+    {
+      "brand": "Daiya",
+      "products": 70
+    },
+    {
+      "brand": "Litehouse",
+      "products": 68
+    },
+    {
+      "brand": "Nestle",
+      "products": 68
+    },
+    {
+      "brand": "Post",
+      "products": 67
+    },
+    {
+      "brand": "Beatrice",
+      "products": 66
+    },
+    {
+      "brand": "Green Giant",
+      "products": 66
+    },
+    {
+      "brand": "Oikos",
+      "products": 66
+    },
+    {
+      "brand": "Tropicana",
+      "products": 66
+    },
+    {
+      "brand": "Bravodeli",
+      "products": 65
+    },
+    {
+      "brand": "IKEA",
+      "products": 65
+    },
+    {
+      "brand": "Kashi",
+      "products": 65
+    },
+    {
+      "brand": "Old El Paso",
+      "products": 65
+    },
+    {
+      "brand": "Tostitos",
+      "products": 65
+    },
+    {
+      "brand": "Minçavi",
+      "products": 64
+    },
+    {
+      "brand": "Ocean Spray",
+      "products": 64
+    },
+    {
+      "brand": "Olymel",
+      "products": 64
+    },
+    {
+      "brand": "Body Energy Club",
+      "products": 63
+    },
+    {
+      "brand": "Canadian Beef",
+      "products": 63
+    },
+    {
+      "brand": "Coop",
+      "products": 63
+    },
+    {
+      "brand": "Kinder",
+      "products": 63
+    },
+    {
+      "brand": "Abbott",
+      "products": 62
+    },
+    {
+      "brand": "Armstrong",
+      "products": 62
+    },
+    {
+      "brand": "Minute Maid",
+      "products": 62
+    },
+    {
+      "brand": "Myprotein",
+      "products": 62
+    },
+    {
+      "brand": "Food Basics",
+      "products": 61
+    },
+    {
+      "brand": "Founders & Farmers",
+      "products": 61
+    },
+    {
+      "brand": "Hellmann's",
+      "products": 61
+    },
+    {
+      "brand": "Italpasta",
+      "products": 61
+    },
+    {
+      "brand": "Avril",
+      "products": 60
+    },
+    {
+      "brand": "Dr. Oetker",
+      "products": 60
+    },
+    {
+      "brand": "Fresh Prep",
+      "products": 60
+    },
+    {
+      "brand": "Mott's",
+      "products": 60
+    },
+    {
+      "brand": "Taylor Farms",
+      "products": 60
+    },
+    {
+      "brand": "Coop Gold",
+      "products": 59
+    },
+    {
+      "brand": "Neilson",
+      "products": 59
+    },
+    {
+      "brand": "Real Canadian Superstore",
+      "products": 59
+    },
+    {
+      "brand": "Breyers",
+      "products": 58
+    },
+    {
+      "brand": "Gerber",
+      "products": 58
+    },
+    {
+      "brand": "Pepsi",
+      "products": 57
+    },
+    {
+      "brand": "Yum Yum",
+      "products": 57
+    },
+    {
+      "brand": "Bioitalia",
+      "products": 56
+    },
+    {
+      "brand": "Clif",
+      "products": 56
+    },
+    {
+      "brand": "Healthy Crunch",
+      "products": 56
+    },
+    {
+      "brand": "Huer",
+      "products": 55
+    },
+    {
+      "brand": "Philadelphia",
+      "products": 55
+    },
+    {
+      "brand": "Sardo",
+      "products": 55
+    },
+    {
+      "brand": "Sélection",
+      "products": 55
+    },
+    {
+      "brand": "Tetley",
+      "products": 55
+    },
+    {
+      "brand": "Becel",
+      "products": 54
+    },
+    {
+      "brand": "Blue Menu",
+      "products": 54
+    },
+    {
+      "brand": "Pastene",
+      "products": 54
+    },
+    {
+      "brand": "Super C",
+      "products": 54
+    },
+    {
+      "brand": "Campbells",
+      "products": 53
+    },
+    {
+      "brand": "Nongshim",
+      "products": 53
+    },
+    {
+      "brand": "Olympic",
+      "products": 53
+    },
+    {
+      "brand": "Astro",
+      "products": 52
+    },
+    {
+      "brand": "Flamingo",
+      "products": 52
+    },
+    {
+      "brand": "Mars",
+      "products": 52
+    },
+    {
+      "brand": "Earth's Own",
+      "products": 51
+    },
+    {
+      "brand": "Barilla",
+      "products": 50
+    },
+    {
+      "brand": "Castello",
+      "products": 50
+    },
+    {
+      "brand": "Circle K",
+      "products": 50
+    },
+    {
+      "brand": "PVL",
+      "products": 50
+    },
+    {
+      "brand": "Welch's",
+      "products": 50
+    },
+    {
+      "brand": "Cottage Country",
+      "products": 49
+    },
+    {
+      "brand": "French's",
+      "products": 49
+    },
+    {
+      "brand": "Hardbite",
+      "products": 49
+    },
+    {
+      "brand": "Iögo",
+      "products": 49
+    },
+    {
+      "brand": "Nutty Club",
+      "products": 49
+    },
+    {
+      "brand": "Ben & Jerry's",
+      "products": 48
+    },
+    {
+      "brand": "Classico",
+      "products": 47
+    },
+    {
+      "brand": "Première Moisson",
+      "products": 47
+    },
+    {
+      "brand": "Val Nature",
+      "products": 47
+    },
+    {
+      "brand": "Dunya Harvest",
+      "products": 46
+    },
+    {
+      "brand": "Front Street Bakery",
+      "products": 46
+    },
+    {
+      "brand": "Magnum",
+      "products": 46
+    },
+    {
+      "brand": "Mccormick",
+      "products": 46
+    },
+    {
+      "brand": "Jack Link's",
+      "products": 45
+    },
+    {
+      "brand": "Piller's",
+      "products": 45
+    },
+    {
+      "brand": "Prime",
+      "products": 45
+    },
+    {
+      "brand": "Sweet Shoppe",
+      "products": 45
+    },
+    {
+      "brand": "Favuzzi",
+      "products": 44
+    },
+    {
+      "brand": "PC Blue Menu",
+      "products": 44
+    },
+    {
+      "brand": "Smirnoff",
+      "products": 44
+    },
+    {
+      "brand": "7-Select",
+      "products": 43
+    },
+    {
+      "brand": "Atkins",
+      "products": 43
+    },
+    {
+      "brand": "Ben's Original",
+      "products": 43
+    },
+    {
+      "brand": "Eden",
+      "products": 43
+    },
+    {
+      "brand": "Miss Vickie's",
+      "products": 43
+    },
+    {
+      "brand": "Pepperidge Farm",
+      "products": 43
+    },
+    {
+      "brand": "Gardein",
+      "products": 42
+    },
+    {
+      "brand": "Gogo Quinoa",
+      "products": 42
+    },
+    {
+      "brand": "goodprotein",
+      "products": 42
+    },
+    {
+      "brand": "Haribo",
+      "products": 42
+    },
+    {
+      "brand": "Healthy Choice",
+      "products": 42
+    },
+    {
+      "brand": "Hershey",
+      "products": 42
+    },
+    {
+      "brand": "Janes",
+      "products": 42
+    },
+    {
+      "brand": "Oatbox",
+      "products": 42
+    },
+    {
+      "brand": "POM",
+      "products": 42
+    },
+    {
+      "brand": "Ziggy's",
+      "products": 42
+    },
+    {
+      "brand": "D",
+      "products": 41
+    },
+    {
+      "brand": "Fresh Market",
+      "products": 41
+    },
+    {
+      "brand": "Freybe",
+      "products": 41
+    },
+    {
+      "brand": "Greenhouse",
+      "products": 41
+    },
+    {
+      "brand": "Harvest",
+      "products": 41
+    },
+    {
+      "brand": "Lipton",
+      "products": 41
+    },
+    {
+      "brand": "Zevia",
+      "products": 41
+    },
+    {
+      "brand": "Allmax",
+      "products": 40
+    },
+    {
+      "brand": "MadeGood",
+      "products": 40
+    },
+    {
+      "brand": "Plaisirs Gastronomiques",
+      "products": 40
+    },
+    {
+      "brand": "Québon",
+      "products": 40
+    },
+    {
+      "brand": "Aylmer",
+      "products": 39
+    },
+    {
+      "brand": "Bonne Maman",
+      "products": 39
+    },
+    {
+      "brand": "Fairlife",
+      "products": 39
+    },
+    {
+      "brand": "Kikkoman",
+      "products": 39
+    },
+    {
+      "brand": "Maison Orphée",
+      "products": 39
+    },
+    {
+      "brand": "Storck",
+      "products": 39
+    },
+    {
+      "brand": "Summerhill",
+      "products": 39
+    },
+    {
+      "brand": "Suraj",
+      "products": 39
+    },
+    {
+      "brand": "Annie's",
+      "products": 38
+    },
+    {
+      "brand": "Au Pain Doré",
+      "products": 38
+    },
+    {
+      "brand": "Diesel",
+      "products": 38
+    },
+    {
+      "brand": "Ferrero",
+      "products": 38
+    },
+    {
+      "brand": "Hostess",
+      "products": 38
+    },
+    {
+      "brand": "Italissima",
+      "products": 38
+    },
+    {
+      "brand": "Kim Phat",
+      "products": 38
+    },
+    {
+      "brand": "Natura",
+      "products": 38
+    },
+    {
+      "brand": "Quaker Oats",
+      "products": 38
+    },
+    {
+      "brand": "Ritz",
+      "products": 38
+    },
+    {
+      "brand": "Simply Protein",
+      "products": 38
+    },
+    {
+      "brand": "XPN",
+      "products": 38
+    },
+    {
+      "brand": "Ace Bakery",
+      "products": 37
+    },
+    {
+      "brand": "Barebells",
+      "products": 37
+    },
+    {
+      "brand": "Country Grocer",
+      "products": 37
+    },
+    {
+      "brand": "Everland",
+      "products": 37
+    },
+    {
+      "brand": "Jell-O",
+      "products": 37
+    },
+    {
+      "brand": "Johnvince Foods",
+      "products": 37
+    },
+    {
+      "brand": "Premier Protein",
+      "products": 37
+    },
+    {
+      "brand": "Tre Stelle",
+      "products": 37
+    },
+    {
+      "brand": "Vachon",
+      "products": 37
+    },
+    {
+      "brand": "ANS Performance",
+      "products": 36
+    },
+    {
+      "brand": "Believe Supplements",
+      "products": 36
+    },
+    {
+      "brand": "Benefits By Nature",
+      "products": 36
+    },
+    {
+      "brand": "Bonduelle",
+      "products": 36
+    },
+    {
+      "brand": "Cedar Phoenicia",
+      "products": 36
+    },
+    {
+      "brand": "Clic",
+      "products": 36
+    },
+    {
+      "brand": "Shirakiku",
+      "products": 36
+    },
+    {
+      "brand": "Yves Veggie Cuisine",
+      "products": 36
+    },
+    {
+      "brand": "Alani",
+      "products": 35
+    },
+    {
+      "brand": "Blue Dragon",
+      "products": 35
+    },
+    {
+      "brand": "Country Harvest",
+      "products": 35
+    },
+    {
+      "brand": "Dan-D Pak",
+      "products": 35
+    },
+    {
+      "brand": "De Cecco",
+      "products": 35
+    },
+    {
+      "brand": "Encore Gourmet",
+      "products": 35
+    },
+    {
+      "brand": "Grimm's",
+      "products": 35
+    },
+    {
+      "brand": "Humpty Dumpty",
+      "products": 35
+    },
+    {
+      "brand": "Jordans",
+      "products": 35
+    },
+    {
+      "brand": "PEScience",
+      "products": 35
+    },
+    {
+      "brand": "Royal Nuts",
+      "products": 35
+    },
+    {
+      "brand": "Wonder",
+      "products": 35
+    },
+    {
+      "brand": "Bassé",
+      "products": 34
+    },
+    {
+      "brand": "Cheerios",
+      "products": 34
+    },
+    {
+      "brand": "Crave",
+      "products": 34
+    },
+    {
+      "brand": "Lindt & Sprüngli",
+      "products": 34
+    },
+    {
+      "brand": "M&M's",
+      "products": 34
+    },
+    {
+      "brand": "Mondelez",
+      "products": 34
+    },
+    {
+      "brand": "Nissin",
+      "products": 34
+    },
+    {
+      "brand": "Olivieri",
+      "products": 34
+    },
+    {
+      "brand": "Powerade",
+      "products": 34
+    },
+    {
+      "brand": "Rana",
+      "products": 34
+    },
+    {
+      "brand": "Smart Sweets",
+      "products": 34
+    },
+    {
+      "brand": "Trident",
+      "products": 34
+    },
+    {
+      "brand": "Two-Bite",
+      "products": 34
+    },
+    {
+      "brand": "Lundberg Family Farms",
+      "products": 33
+    },
+    {
+      "brand": "Organic Traditions",
+      "products": 33
+    },
+    {
+      "brand": "Smucker's",
+      "products": 33
+    },
+    {
+      "brand": "Twinings",
+      "products": 33
+    },
+    {
+      "brand": "7-Eleven",
+      "products": 32
+    },
+    {
+      "brand": "Haldiram's",
+      "products": 32
+    },
+    {
+      "brand": "Nestea",
+      "products": 32
+    },
+    {
+      "brand": "Perrier",
+      "products": 32
+    },
+    {
+      "brand": "RXBAR",
+      "products": 32
+    },
+    {
+      "brand": "Shop Sante",
+      "products": 32
+    },
+    {
+      "brand": "Three Farmers",
+      "products": 32
+    },
+    {
+      "brand": "Zehrs",
+      "products": 32
+    },
+    {
+      "brand": "Adonis",
+      "products": 31
+    },
+    {
+      "brand": "BioX",
+      "products": 31
+    },
+    {
+      "brand": "Blue Diamond",
+      "products": 31
+    },
+    {
+      "brand": "Covered Bridge",
+      "products": 31
+    },
+    {
+      "brand": "Frank",
+      "products": 31
+    },
+    {
+      "brand": "Ghost",
+      "products": 31
+    },
+    {
+      "brand": "Godiva",
+      "products": 31
+    },
+    {
+      "brand": "Independent",
+      "products": 31
+    },
+    {
+      "brand": "Jelly Belly",
+      "products": 31
+    },
+    {
+      "brand": "Koyo",
+      "products": 31
+    },
+    {
+      "brand": "Lays",
+      "products": 31
+    },
+    {
+      "brand": "Lucerne",
+      "products": 31
+    },
+    {
+      "brand": "Monster Energy",
+      "products": 31
+    },
+    {
+      "brand": "Perfect Sports",
+      "products": 31
+    },
+    {
+      "brand": "Sensations",
+      "products": 31
+    },
+    {
+      "brand": "Thriftys",
+      "products": 31
+    },
+    {
+      "brand": "Bick's",
+      "products": 30
+    },
+    {
+      "brand": "Biosteel",
+      "products": 30
+    },
+    {
+      "brand": "Galerie Au Chocolat",
+      "products": 30
+    },
+    {
+      "brand": "Gusta",
+      "products": 30
+    },
+    {
+      "brand": "Island Farms",
+      "products": 30
+    },
+    {
+      "brand": "Joe's Tasty Travels",
+      "products": 30
+    },
+    {
+      "brand": "La Petite Bretonne",
+      "products": 30
+    },
+    {
+      "brand": "Michelina's",
+      "products": 30
+    },
+    {
+      "brand": "Monster",
+      "products": 30
+    },
+    {
+      "brand": "Muscletech",
+      "products": 30
+    },
+    {
+      "brand": "Red Bull",
+      "products": 30
+    },
+    {
+      "brand": "Royal",
+      "products": 30
+    },
+    {
+      "brand": "San Remo",
+      "products": 30
+    },
+    {
+      "brand": "Schinoussa",
+      "products": 30
+    },
+    {
+      "brand": "Sunflower Kitchen",
+      "products": 30
+    },
+    {
+      "brand": "Sweet Sixteen",
+      "products": 30
+    },
+    {
+      "brand": "Biskwi",
+      "products": 29
+    },
+    {
+      "brand": "Bubly",
+      "products": 29
+    },
+    {
+      "brand": "Chocxo",
+      "products": 29
+    },
+    {
+      "brand": "Farmers Market",
+      "products": 29
+    },
+    {
+      "brand": "Maynards",
+      "products": 29
+    },
+    {
+      "brand": "Nutrabolics",
+      "products": 29
+    },
+    {
+      "brand": "Rockstar",
+      "products": 29
+    },
+    {
+      "brand": "Webber Naturals",
+      "products": 29
+    },
+    {
+      "brand": "Arla",
+      "products": 28
+    },
+    {
+      "brand": "Butcher's Choice",
+      "products": 28
+    },
+    {
+      "brand": "Carbonaut",
+      "products": 28
+    },
+    {
+      "brand": "Clif Bar",
+      "products": 28
+    },
+    {
+      "brand": "Fanta",
+      "products": 28
+    },
+    {
+      "brand": "Ghirardelli",
+      "products": 28
+    },
+    {
+      "brand": "La Molisana",
+      "products": 28
+    },
+    {
+      "brand": "Ritter Sport",
+      "products": 28
+    },
+    {
+      "brand": "Rooster",
+      "products": 28
+    },
+    {
+      "brand": "Sabra",
+      "products": 28
+    },
+    {
+      "brand": "Verka",
+      "products": 28
+    },
+    {
+      "brand": "Basic Supplements",
+      "products": 27
+    },
+    {
+      "brand": "Beyond Yourself",
+      "products": 27
+    },
+    {
+      "brand": "Blume",
+      "products": 27
+    },
+    {
+      "brand": "Boulangerie Grissol",
+      "products": 27
+    },
+    {
+      "brand": "Felicetti",
+      "products": 27
+    },
+    {
+      "brand": "Gay Lea",
+      "products": 27
+    },
+    {
+      "brand": "Grenade",
+      "products": 27
+    },
+    {
+      "brand": "Lilydale",
+      "products": 27
+    },
+    {
+      "brand": "LOOP Mission",
+      "products": 27
+    },
+    {
+      "brand": "Maggi",
+      "products": 27
+    },
+    {
+      "brand": "Mastro",
+      "products": 27
+    },
+    {
+      "brand": "Righteous",
+      "products": 27
+    },
+    {
+      "brand": "Rustica",
+      "products": 27
+    },
+    {
+      "brand": "Sealtest",
+      "products": 27
+    },
+    {
+      "brand": "Skittles",
+      "products": 27
+    },
+    {
+      "brand": "Amy's",
+      "products": 26
+    },
+    {
+      "brand": "Califia Farms",
+      "products": 26
+    },
+    {
+      "brand": "Earth Island",
+      "products": 26
+    },
+    {
+      "brand": "Ferrero Rocher",
+      "products": 26
+    },
+    {
+      "brand": "Kawartha Dairy",
+      "products": 26
+    },
+    {
+      "brand": "Kettle Brand",
+      "products": 26
+    },
+    {
+      "brand": "Leanfit",
+      "products": 26
+    },
+    {
+      "brand": "Peace By Chocolate",
+      "products": 26
+    },
+    {
+      "brand": "Premiere Moisson",
+      "products": 26
+    },
+    {
+      "brand": "Que Pasa",
+      "products": 26
+    },
+    {
+      "brand": "Roma",
+      "products": 26
+    },
+    {
+      "brand": "Simply Organic",
+      "products": 26
+    },
+    {
+      "brand": "Sterling Silver",
+      "products": 26
+    },
+    {
+      "brand": "Sweets From The Earth",
+      "products": 26
+    },
+    {
+      "brand": "Tic Tac",
+      "products": 26
+    },
+    {
+      "brand": "Arizona",
+      "products": 25
+    },
+    {
+      "brand": "Burnbrae Farms",
+      "products": 25
+    },
+    {
+      "brand": "Dainty",
+      "products": 25
+    },
+    {
+      "brand": "Genuine Health",
+      "products": 25
+    },
+    {
+      "brand": "International Delight",
+      "products": 25
+    },
+    {
+      "brand": "Johnsonville",
+      "products": 25
+    },
+    {
+      "brand": "Kosa",
+      "products": 25
+    },
+    {
+      "brand": "Lafleur",
+      "products": 25
+    },
+    {
+      "brand": "Larabar",
+      "products": 25
+    },
+    {
+      "brand": "Limitless Pharma",
+      "products": 25
+    },
+    {
+      "brand": "Maille",
+      "products": 25
+    },
+    {
+      "brand": "McSweeney's",
+      "products": 25
+    },
+    {
+      "brand": "No Frills",
+      "products": 25
+    },
+    {
+      "brand": "Nutiva",
+      "products": 25
+    },
+    {
+      "brand": "Ocean's",
+      "products": 25
+    },
+    {
+      "brand": "Parmissimo",
+      "products": 25
+    },
+    {
+      "brand": "Portofino",
+      "products": 25
+    },
+    {
+      "brand": "Rogers",
+      "products": 25
+    },
+    {
+      "brand": "Sprague",
+      "products": 25
+    },
+    {
+      "brand": "Sunterra",
+      "products": 25
+    },
+    {
+      "brand": "T&T Bakery",
+      "products": 25
+    },
+    {
+      "brand": "Takis",
+      "products": 25
+    },
+    {
+      "brand": "Trader Joe's",
+      "products": 25
+    },
+    {
+      "brand": "Twizzlers",
+      "products": 25
+    },
+    {
+      "brand": "VH",
+      "products": 25
+    },
+    {
+      "brand": "ACE Bakery Limited",
+      "products": 24
+    },
+    {
+      "brand": "Balderson",
+      "products": 24
+    },
+    {
+      "brand": "Bertolli",
+      "products": 24
+    },
+    {
+      "brand": "Built",
+      "products": 24
+    },
+    {
+      "brand": "Butcher’s Choice",
+      "products": 24
+    },
+    {
+      "brand": "Flora",
+      "products": 24
+    },
+    {
+      "brand": "Galbani",
+      "products": 24
+    },
+    {
+      "brand": "Good Protein",
+      "products": 24
+    },
+    {
+      "brand": "High Liner",
+      "products": 24
+    },
+    {
+      "brand": "Legends Haul",
+      "products": 24
+    },
+    {
+      "brand": "Meridian Farm Market",
+      "products": 24
+    },
+    {
+      "brand": "Nutella",
+      "products": 24
+    },
+    {
+      "brand": "Organic Meadow",
+      "products": 24
+    },
+    {
+      "brand": "Sanpellegrino",
+      "products": 24
+    },
+    {
+      "brand": "Scotsburn",
+      "products": 24
+    },
+    {
+      "brand": "Smartfood",
+      "products": 24
+    },
+    {
+      "brand": "Sunrise",
+      "products": 24
+    },
+    {
+      "brand": "Tamam",
+      "products": 24
+    },
+    {
+      "brand": "Yves",
+      "products": 24
+    },
+    {
+      "brand": "Basse",
+      "products": 23
+    },
+    {
+      "brand": "Bon Matin",
+      "products": 23
+    },
+    {
+      "brand": "Carnaby Sweet",
+      "products": 23
+    },
+    {
+      "brand": "Cavendish Farms",
+      "products": 23
+    },
+    {
+      "brand": "Choices Market",
+      "products": 23
+    },
+    {
+      "brand": "Coaticook",
+      "products": 23
+    },
+    {
+      "brand": "Delverde",
+      "products": 23
+    },
+    {
+      "brand": "Foothills Creamery",
+      "products": 23
+    },
+    {
+      "brand": "Fresh Express",
+      "products": 23
+    },
+    {
+      "brand": "Fruitropic",
+      "products": 23
+    },
+    {
+      "brand": "GoGo SqueeZ",
+      "products": 23
+    },
+    {
+      "brand": "Krispy Kernels",
+      "products": 23
+    },
+    {
+      "brand": "Lancia",
+      "products": 23
+    },
+    {
+      "brand": "Lee Kum Kee",
+      "products": 23
+    },
+    {
+      "brand": "Lotte",
+      "products": 23
+    },
+    {
+      "brand": "Slimfast",
+      "products": 23
+    },
+    {
+      "brand": "Tradition",
+      "products": 23
+    },
+    {
+      "brand": "Traditional Medicinals",
+      "products": 23
+    },
+    {
+      "brand": "Trophy",
+      "products": 23
+    },
+    {
+      "brand": "Watson",
+      "products": 23
+    },
+    {
+      "brand": "Wonderful",
+      "products": 23
+    },
+    {
+      "brand": "Yummy Sports",
+      "products": 23
+    },
+    {
+      "brand": "Agropur",
+      "products": 22
+    },
+    {
+      "brand": "Alter Eco",
+      "products": 22
+    },
+    {
+      "brand": "Chocolats Favoris",
+      "products": 22
+    },
+    {
+      "brand": "Farmers",
+      "products": 22
+    },
+    {
+      "brand": "Folgers",
+      "products": 22
+    },
+    {
+      "brand": "Fortinos",
+      "products": 22
+    },
+    {
+      "brand": "Frito Lay",
+      "products": 22
+    },
+    {
+      "brand": "Garden of Life",
+      "products": 22
+    },
+    {
+      "brand": "Gold Label",
+      "products": 22
+    },
+    {
+      "brand": "Hulkmeal",
+      "products": 22
+    },
+    {
+      "brand": "Meiji",
+      "products": 22
+    },
+    {
+      "brand": "Mikes",
+      "products": 22
+    },
+    {
+      "brand": "MiO",
+      "products": 22
+    },
+    {
+      "brand": "Orville Redenbacher",
+      "products": 22
+    },
+    {
+      "brand": "P'tit Québec",
+      "products": 22
+    },
+    {
+      "brand": "Russell Stover",
+      "products": 22
+    },
+    {
+      "brand": "Siwin",
+      "products": 22
+    },
+    {
+      "brand": "Splenda",
+      "products": 22
+    },
+    {
+      "brand": "Stonewall Kitchen",
+      "products": 22
+    },
+    {
+      "brand": "Taste Of Nature",
+      "products": 22
+    },
+    {
+      "brand": "Twigz",
+      "products": 22
+    },
+    {
+      "brand": "Unknown",
+      "products": 22
+    },
+    {
+      "brand": "Andalos",
+      "products": 21
+    },
+    {
+      "brand": "Crofters Organic",
+      "products": 21
+    },
+    {
+      "brand": "Crush",
+      "products": 21
+    },
+    {
+      "brand": "duBreton",
+      "products": 21
+    }
+  ]
+}

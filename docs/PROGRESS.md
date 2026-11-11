@@ -2,6 +2,60 @@
 
 Newest entry first.
 
+## 2026-11-11 — P4.11 Brand keys
+
+**What changed** (D-096)
+- **`packages/core/src/brand.ts`**, exported from core:
+  - `brandKey()` folds accents, case, apostrophes (`President's` = `Presidents`), `&`/and, ™ ® © and legal suffixes, and joins the words with no space (`Farm Boy` = `Farmboy`, `Co-op` = `Coop`).
+  - `BRAND_STOPLIST` has 18 non-brand keys (`null`, `Unknown`, `Generic`, `Produit maison`, `Sans marque`, …).
+  - `splitBrandText` and `brandKeys` split OFF's comma lists.
+  - `clusterBrands` groups strings into key → variants, counts and the most common spelling.
+  - `pickBrandPart` picks the first part that's an owned brand, else the first brand part. P4.13 will use it.
+- **`brand.test.ts`**: 75 tests, one per stoplist entry. **`brand.top500.json`**: the top 500 rows of `off_brand_strings()` on dev today (OFF data, ODbL).
+- No database writes, no migration.
+
+**Verification**
+- `typecheck`, `lint` and `format:check` pass. `npm test`: 1,221 passed, 2 skipped.
+- **Top 500 strings → 476 keys.** Only `null` (109 products) and `Unknown` (22) get no key. The 19 merges, all checked and all right: President's Choice = Presidents Choice, Farm Boy = Farmboy, Selection = Sélection, Irrésistibles = Irresistibles, Longos = Longo's, Nestlé = Nestle, Irresistible = Irrésistible, Lay's = Lays, Co-op Gold = Coop Gold, Freshprep = Fresh Prep, Shop Santé = Shop Sante, Co-op = Coop, Campbell's = Campbells, Made Good = MadeGood, Farmer's Market = Farmers Market, Première Moisson = Premiere Moisson, goodprotein = Good Protein, Ace Bakery = ACE Bakery Limited, Bassé = Basse.
+  - **Co-op = Coop** was the only doubtful one. A sample of both spellings shows the same Canadian Co-op own-brand line (ground beef, buns, "Canadian Harvest" bread). Which federation owns it is P4.12's job.
+  - **Kept apart on purpose:** Kirkland / Kirkland Signature, M&M (the store) / M&M's, Whole Foods / Whole Foods Market, Clif / Clif Bar, Hershey / Hershey's, Irresistible / Irresistibles. Merging these needs aliases (P4.12), not key rules.
+- **All 19,851 strings (84,465 mentions) → 17,924 clusters**, 1,332 of them with 2+ spellings. The 20 largest:
+
+| Cluster | Products | Spellings merged |
+|---|---|---|
+| President's Choice | 2,113 | Presidents Choice 160, Président's Choice 4 |
+| Compliments | 2,102 | Compliment s 1 |
+| Great Value | 1,685 | — |
+| Farm Boy | 1,338 | Farmboy 152, “Farmboy” 1 |
+| Western Family | 1,244 | Western Family 🇨🇦 2, westernfamily 2 |
+| Selection | 1,102 | Sélection 55 |
+| No Name | 901 | No-name 1, Noname 1 |
+| Kirkland | 773 | — |
+| Irrésistibles | 693 | Irresistibles 239 |
+| Sobeys | 643 | Sobey's 35 |
+| Longos | 530 | Longo's 217, Longo`s 1, Longo”s 1 |
+| Safeway | 511 | Safe way 2 |
+| Kirkland Signature | 445 | — |
+| Nestlé | 433 | Nestle 68, Nestlé S.A. 1, Néstle 1 |
+| Metro | 412 | Métro 16 |
+| Sans nom | 289 | — |
+| Le Choix du Président | 286 | Le choix du president 3 |
+| Kraft | 284 | — |
+| Kellogg's | 274 | Kelloggs 5 |
+| T&T | 261 | T & T 3, T And T 1 |
+
+  No wrong merge among them.
+- **Pick rule on dev data:** there are 1,727 active OFF products with 2+ brand parts (the plan said 1,659 on an older count). "Owned" means a brand with an owner, by name or alias, which gives 2,476 keys. 831 pick the first part as an owned brand, 239 pick a later owned part, and 657 have no owned part and take the first. Examples: `G, Gatorade, Pepsico` → Gatorade, `Costco Companies Inc., Kirkland Signature` → Kirkland Signature, `Selection, Metro` → Metro.
+  - **Weak spot:** the rule can prefer a company-named brand over the real one (`Dunkaroos, General Mills` → General Mills). The owner is still right (D-096).
+
+**For the owner**
+- **Display names follow frequency,** so the Longo's store brand shows as "Longos" (311 vs 217). P4.13 can override it if you care.
+- `run-tasks.ps1` (your edits) and the line-ending-only change to `pipeline/src/raw/retention.ts` are still uncommitted. I left both out.
+
+**Next:** P4.27 Ownership chains stop at an organisation.
+
+---
+
 ## 2026-11-11 — P4.10 Edges keep evidence from several sources
 
 **What changed** (D-095)

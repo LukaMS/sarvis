@@ -1689,7 +1689,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - An RLS check in `supabase/tests/`. Advisors are clean.
 - ✅ Done 2026-11-11 (D-095): `check:writers` covers all three cases, plus edge_sources RLS through PostgREST as anon, a user and an admin. `supabase/tests/edge_sources.sql` holds the SQL version, but the MCP wouldn't run it unattended (see PROGRESS). Advisors show nothing new. SEC's known-pair skip stays (D-095).
 
-### [ ] P4.11 Brand keys
+### [x] P4.11 Brand keys
 - **Slice:** brand-resolver.
 - **Goal:** one stable key per brand across spelling, case and accents.
 - **Deps:** P3.19a.
@@ -1703,6 +1703,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - Tests from the real top 500 strings.
   - Report strings → keys and the 20 largest clusters, with any wrong merge listed.
+- ✅ Done 2026-11-11 (D-096): 75 tests, including the top 500 fixture (`brand.top500.json`). 500 strings give 476 clusters with 19 merges, all checked by hand, and no wrong merge. Pick rule measured on 1,727 multi-part products (PROGRESS).
 
 ### [ ] P4.27 Ownership chains stop at an organisation (added by the review)
 - **Slice:** schema.

@@ -2,6 +2,7 @@
 
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './db/database.types.ts';
 
+export * from './brand.ts';
 export * from './gtin.ts';
 export * from './price.ts';
 export * from './records/index.ts';
