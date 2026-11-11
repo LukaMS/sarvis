@@ -1,4 +1,5 @@
-# Typecheck, lint and unit tests on every push and PR. No secrets. E2E runs locally for now (P1.3).
+# Typecheck, lint and unit tests on every push and PR. No secrets. The checks that need the dev
+# project (dev-DB checks, both e2e suites) run in dev-db-checks.yml, on main only (P6.2).
 name: CI
 
 on:
