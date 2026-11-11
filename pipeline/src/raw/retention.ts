@@ -1,5 +1,5 @@
 // How long raw files are kept, per source (DATA_MODEL §5, D-010). Pure: the store uses it to set
-// `raw_objects.expires_at`, and the Phase 6 cleanup job applies the count limits.
+// `raw_objects.expires_at`, and the cleanup job (cleanup.ts, P6.3) applies every limit.
 //
 // A file is deleted as soon as any limit is passed:
 // - `maxAge`: older than this (relative to `fetched_at`). This is the row's `expires_at`.

@@ -253,22 +253,47 @@ export async function deleteRawFile(db: ServiceClient, id: string): Promise<void
     .maybeSingle();
   if (error) throw new DatabaseError(`Reading raw object ${id} failed: ${error.message}`, error);
   if (!row) throw new NotFoundError(`Raw object ${id} does not exist.`);
+  await deleteRawFiles(db, [{ id, storagePath: row.storage_path }]);
+}
 
-  const removed = await db.storage.from(RAW_BUCKET).remove([objectKeyOf(row.storage_path)]);
-  if (removed.error) {
-    throw new DatabaseError(
-      `Deleting ${row.storage_path} failed: ${removed.error.message}`,
-      removed.error,
-    );
+const DELETE_CHUNK = 100;
+
+/**
+ * deleteRawFile for many files (the retention cleanup, P6.3): removes the files 100 at a time,
+ * then marks those rows. Removing a file that is already gone succeeds, so a cleanup interrupted
+ * between the two steps is finished by the next one. Returns the number of rows marked.
+ */
+export async function deleteRawFiles(
+  db: ServiceClient,
+  files: readonly { id: string; storagePath: string }[],
+): Promise<number> {
+  let marked = 0;
+  for (let i = 0; i < files.length; i += DELETE_CHUNK) {
+    const chunk = files.slice(i, i + DELETE_CHUNK);
+    const removed = await db.storage
+      .from(RAW_BUCKET)
+      .remove(chunk.map((f) => objectKeyOf(f.storagePath)));
+    if (removed.error) {
+      throw new DatabaseError(
+        `Deleting ${chunk.length} raw files from ${chunk[0]?.storagePath} failed: ${removed.error.message}`,
+        removed.error,
+      );
+    }
+    const update = await db
+      .from('raw_objects')
+      .update({ deleted_at: new Date().toISOString() })
+      .in(
+        'id',
+        chunk.map((f) => f.id),
+      )
+      .select('id');
+    if (update.error) {
+      throw new DatabaseError(
+        `Marking ${chunk.length} raw objects deleted failed: ${update.error.message}`,
+        update.error,
+      );
+    }
+    marked += update.data.length;
   }
-  const marked = await db
-    .from('raw_objects')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id);
-  if (marked.error) {
-    throw new DatabaseError(
-      `Marking raw object ${id} deleted failed: ${marked.error.message}`,
-      marked.error,
-    );
-  }
+  return marked;
 }

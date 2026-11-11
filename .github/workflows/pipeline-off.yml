@@ -4,6 +4,9 @@
 # `--mode auto` runs a delta while OFF's 14-day delta index still reaches back to the last clean
 # full or delta run, and a full import once it doesn't (more than 13 days).
 #
+# Weekly, the same workflow runs the raw-retention cleanup (P6.3, D-092): raw files past their
+# source's retention (DATA_MODEL §5) are deleted and their rows marked. A dispatch picks the task.
+#
 # Never on pull_request or push: forks can't reach the secrets. The logs are public (D-003): the
 # pipeline logger redacts keys and the contact email, and Actions masks every secret as well.
 name: Pipeline OFF
@@ -12,10 +15,17 @@ on:
   schedule:
     # Daily at 09:17 UTC, after OFF's nightly export and delta file.
     - cron: '17 9 * * *'
+    # Sundays at 10:47 UTC: the raw-retention cleanup, after that day's OFF run.
+    - cron: '47 10 * * 0'
   workflow_dispatch:
     inputs:
+      task:
+        description: 'off (default), raw-cleanup, or raw-cleanup-dry-run (lists what would go)'
+        type: choice
+        options: [off, raw-cleanup, raw-cleanup-dry-run]
+        default: off
       mode:
-        description: 'auto (default), delta or full'
+        description: 'OFF only: auto (default), delta or full'
         type: choice
         options: [auto, delta, full]
         default: auto
@@ -36,6 +46,7 @@ concurrency:
 
 jobs:
   off:
+    if: ${{ github.event.schedule == '17 9 * * *' || (github.event_name == 'workflow_dispatch' && inputs.task == 'off') }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -77,12 +88,39 @@ jobs:
           path: .cache/http
           key: pipeline-http-${{ github.run_id }}
 
+  raw-cleanup:
+    if: ${{ github.event.schedule == '47 10 * * 0' || (github.event_name == 'workflow_dispatch' && startsWith(inputs.task, 'raw-cleanup')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Prints one line per run and reason, then reads one file of every protected run back.
+      - name: Raw-retention cleanup
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_DEV_URL }}
+          SUPABASE_DEV_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_DEV_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ inputs.task == 'raw-cleanup-dry-run' && '--dry-run' || '' }}
+        run: npm run pipeline -- raw cleanup $DRY_RUN
+
+  failure-issue:
+    needs: [off, raw-cleanup]
+    # A skipped job isn't a failure, so this runs only when the task that ran failed.
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    steps:
       # One open issue per workflow: a later failure comments on it instead of opening another.
       # The body holds links only, no log lines.
       - name: Open or update the failure issue
-        if: ${{ failure() }}
         env:
           GH_TOKEN: ${{ github.token }}
+          # No checkout in this job, so gh needs the repository named.
+          GH_REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           EVENT: ${{ github.event_name }}
           SHA: ${{ github.sha }}

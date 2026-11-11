@@ -516,7 +516,7 @@ This finalizes D-010.
 | S23 GDELT, S24 RSS | API/feed responses (gz), written only when the content hash changed. | 30 days. |
 | OpenRouter | Full model responses for scoring and tagging (gz). Receipt-parse responses are stored under the receipt's lifetime instead. | Scoring and tagging: 13 months (evidence for reviews). Receipts: deleted with the receipt image. |
 
-**General rule:** keep the last 3 runs per source and at most 30 days, except where the table says otherwise. A nightly cleanup job (Phase 6) deletes expired files and sets `raw_objects.deleted_at`.
+**General rule:** keep the last 3 runs per source and at most 30 days, except where the table says otherwise. A weekly cleanup job (`npm run pipeline -- raw cleanup`, P6.3, D-092) deletes the files past any limit and sets `raw_objects.deleted_at`. It never deletes the files of a running run or of each source's newest completed full run.
 
 **Never in Supabase:** full OFF or Wikidata dumps, product images (hotlinked from OFF with attribution), and brand logos (Wikimedia Commons links).
 

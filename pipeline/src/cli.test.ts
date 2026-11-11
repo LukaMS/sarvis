@@ -29,7 +29,19 @@ describe('parseCliArgs', () => {
     expect(parseCliArgs(['export', 'odbl'])).toEqual({ command: 'export', target: 'odbl' });
   });
 
+  it('parses raw cleanup, with and without --dry-run', () => {
+    expect(parseCliArgs(['raw', 'cleanup'])).toEqual({ command: 'raw-cleanup', dryRun: false });
+    expect(parseCliArgs(['raw', 'cleanup', '--dry-run'])).toEqual({
+      command: 'raw-cleanup',
+      dryRun: true,
+    });
+  });
+
   it.each([
+    [['raw'], /Unknown raw command/],
+    [['raw', 'purge'], /Unknown raw command/],
+    [['raw', 'cleanup', 'x'], /Unexpected arguments/],
+    [['raw', 'cleanup', '--sample', '5'], /--dry-run only/],
     [['export'], /Unknown export/],
     [['export', 'csv'], /Unknown export/],
     [['export', 'odbl', 'x'], /Unexpected arguments/],

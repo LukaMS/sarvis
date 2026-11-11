@@ -3,13 +3,15 @@
 //   npm run pipeline -- run <source> [--sample N] [--dry-run] [--mode full|delta]
 //   npm run pipeline -- job <name> [--sample N] [--dry-run]
 //   npm run pipeline -- export odbl
+//   npm run pipeline -- raw cleanup [--dry-run]
 //
 // `--sample N` runs the first N records; `--dry-run` fetches, parses and validates but writes no
 // catalog rows or raw files (the run row and its events are still recorded). Without either, the
 // run is `--mode` (default full; `auto` picks delta or full, P6.1). Exit codes: 0 completed, 2
 // completed with errors, 1 failed or a bad command, 130 cancelled. `export odbl` publishes the
 // ODbL extract (P3.8): exit 0 or 1. `job` runs a derived job over our own tables (P4.7), with the
-// same exit codes as `run`.
+// same exit codes as `run`. `raw cleanup` deletes the raw files past their retention (P6.3): exit 0
+// or 1.
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
@@ -19,6 +21,7 @@ import { type ServiceClient, getServiceClient } from './db/client.ts';
 import { writerFor } from './db/writers/index.ts';
 import { parseContactEmail } from './env.ts';
 import { exportOdbl } from './exports/odbl.ts';
+import { cleanupRaw, describePlan, kb } from './raw/cleanup.ts';
 import { ConfigurationError, classifyError } from './errors.ts';
 import { type Job, createJob, listJobNames } from './jobs/index.ts';
 import { type JobMode, runJob } from './jobs/runner.ts';
@@ -32,6 +35,7 @@ import { type Source, createSource, listSourceKeys, registerAllSources } from '.
 export const USAGE = `Usage: npm run pipeline -- run <source> [--sample N] [--dry-run] [--mode full|delta]
        npm run pipeline -- job <name> [--sample N] [--dry-run]
        npm run pipeline -- export odbl
+       npm run pipeline -- raw cleanup [--dry-run]
 
   --sample N   Run the first N records only (mode sample).
   --dry-run    Fetch, parse and validate, but write no catalog rows or raw files.
@@ -45,11 +49,15 @@ export const USAGE = `Usage: npm run pipeline -- run <source> [--sample N] [--dr
                Takes --sample and --dry-run, not --mode.
 
   export odbl  Publish the ODbL extract (OFF products, Open Prices stores and prices) to the
-               public-exports bucket, keeping the latest 2 exports.`;
+               public-exports bucket, keeping the latest 2 exports.
+
+  raw cleanup  Delete the raw files past their source's retention (DATA_MODEL §5) and mark
+               their rows. With --dry-run, list what would go and delete nothing.`;
 
 export type CliCommand =
   | { command: 'help' }
   | { command: 'export'; target: 'odbl' }
+  | { command: 'raw-cleanup'; dryRun: boolean }
   | { command: 'run'; sourceKey: string; mode: RunMode | 'auto'; sampleSize: number | null }
   | { command: 'job'; name: string; mode: JobMode; sampleSize: number | null };
 
@@ -84,6 +92,19 @@ export function parseCliArgs(argv: string[]): CliCommand {
       throw new ConfigurationError('export odbl takes no options.');
     }
     return { command: 'export', target: 'odbl' };
+  }
+  if (command === 'raw') {
+    if (sourceKey !== 'cleanup') {
+      throw new ConfigurationError(
+        `Unknown raw command: ${sourceKey ?? '(none)'}. Commands: cleanup.`,
+      );
+    }
+    if (extra.length > 0) throw new ConfigurationError(`Unexpected arguments: ${extra.join(' ')}`);
+    const { 'dry-run': dryRun, ...rest } = values;
+    if (Object.keys(rest).length > 0) {
+      throw new ConfigurationError('raw cleanup takes --dry-run only.');
+    }
+    return { command: 'raw-cleanup', dryRun: dryRun === true };
   }
   if (command !== 'run' && command !== 'job') {
     throw new ConfigurationError(`Unknown command: ${command}\n\n${USAGE}`);
@@ -273,6 +294,47 @@ export async function main(argv: string[], log: Logger = rootLogger): Promise<nu
     } catch (err) {
       const c = classifyError(err);
       log.error('ODbL export failed', { errorType: c.type, err });
+      return 1;
+    }
+  }
+
+  if (cmd.command === 'raw-cleanup') {
+    try {
+      const { plan, deleted, readBack } = await cleanupRaw(getServiceClient(), {
+        dryRun: cmd.dryRun,
+        log,
+      });
+      const sources = Object.entries(plan.bySource)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(
+          ([key, s]) =>
+            `  ${key.padEnd(17)} ${String(s.files).padStart(6)} files ${kb(s.bytes).padStart(11)}   delete ${String(s.deleteFiles).padStart(5)} ${kb(s.deleteBytes).padStart(11)}`,
+        );
+      const freed = plan.delete.reduce((n, d) => n + d.file.byteSize, 0);
+      process.stdout.write(
+        [
+          '',
+          `raw cleanup${cmd.dryRun ? ' (dry run)' : ''}: ${cmd.dryRun ? 'would delete' : 'deleted'} ${cmd.dryRun ? plan.delete.length : deleted} files, ${kb(freed)}`,
+          ...sources,
+          '',
+          cmd.dryRun ? 'Would go:' : 'Went:',
+          ...(plan.delete.length > 0 ? describePlan(plan) : ['  (nothing)']),
+          '',
+          'Protected:',
+          ...plan.protectedRuns.map((r) => `  ${r.sourceKey.padEnd(17)} ${r.runId}  ${r.why}`),
+          ...(readBack.length > 0
+            ? [
+                '',
+                `Read back with readRaw: ${readBack.map((r) => `${r.sourceKey} ${r.rawObjectId}`).join(', ')}`,
+              ]
+            : []),
+          '',
+        ].join('\n'),
+      );
+      return 0;
+    } catch (err) {
+      const c = classifyError(err);
+      log.error('raw cleanup failed', { errorType: c.type, err });
       return 1;
     }
   }
