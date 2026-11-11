@@ -8,6 +8,7 @@ export * from './records/index.ts';
 export * from './runs.ts';
 export * from './slug.ts';
 export * from './text.ts';
+export * from './units.ts';
 export * from './validation/index.ts';
 
 export const APP_NAME = 'Sarvis';

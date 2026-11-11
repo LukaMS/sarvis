@@ -2,6 +2,30 @@
 
 Newest entry first.
 
+## 2026-11-10 — P4.5 Size and unit parser
+
+**What changed** (D-087)
+- **`packages/core/src/units.ts`:** `parseSize()` returns `unit_parse_status`, `net_quantity` (pack total in `g`, `ml` or `ct`), `net_unit`, `pack_count` (multipacks only) and a `reason`. `sizeUnitParser` plugs it into the `UnitParser` hook. `unitPrice()` gives the price per g, ml or item from our own size, or per g from a per-kg/lb price.
+- It reads multipacks and chains, `de`/`of` packs, lb+oz compounds, fractions, decimal commas, French/Cyrillic/Arabic units, counts, and count plus total. Drained weights, per-item sizes and servings are dropped. A metric total wins, and the other measures must agree with it. Anything that reads two ways is `ambiguous`, not guessed.
+- **Tests:** `units.test.ts` (373): the legacy `normalizer.test.ts` cases, the plan's cases, rules, `validateBatch` with the hook, and `unitPrice`. `units.cases.ts` holds **328 real dev strings** across frequency, each reading checked by hand, many of them strings D-057 can't read.
+- New read-only dev check `npm run check:units` (CLAUDE.md Commands). DATA_MODEL §3.3 now defines `net_quantity` and `pack_count`.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,036 passed, 1 skipped (373 new).
+- `check:units` on dev: **4,478 distinct `quantity_text`, 4,088 `ok` (91.3%)**, 64 ambiguous, 326 unparsed. By rows: 20,201 of 21,088 (95.8%). D-057 read 3,910 (87.3%). Every result passes the product schema.
+- Left: 204 bare numbers (`1` alone is 215 rows), 82 with no size (`Halal`, `Unknown Quantity`), 24 sizes that disagree, 15 mass and volume, 13 per-weight, 11 doses only.
+- 10 of what's left: `1` (215 rows), `6`, `12`, `10`, `4`, `141`, `06038365367` (all bare numbers), `12 x 355 Cans` (unit missing), `225 ml (284 g)` (mass and volume), `4 times 100`.
+- **D-057 ok, now not ok: 60**, all looked at by hand. They're data errors (`400g (4x40g)`, `705g (3x325g)`, `25 kg / 5 lbs`), doses (`300 mg`), space-joined numbers (`1 400 g`, `1 500ml`), lists of sizes (`500 g / 750 g`), servings (`per slice 19 g`) and per-item sizes with no count (`24g/bar`).
+- **Newly ok: 238**, all looked at by hand. Mostly counts (`12 pcs`, `90 capsules`, `12 eggs, Net: _____ g.`) and spellings (`1 kilo`, `1.5ltr`, `250 г`, `150 جرام`). The one wrong reading found (`ff7u b hi 9 b vg` → 7 ct) was fixed.
+
+**For the owner**
+- Nothing to decide. Bare numbers stay `unparsed` (plan rule), so the 215 products with size `1` get no size until P4.6's name fallback or a later source.
+- Stored rows are unchanged. P4.6 applies the parser to OFF.
+
+**Next:** P4.6 OFF: apply the size parser.
+
+---
+
 ## 2026-11-10 — P4.30 OFF deltas apply the bad-code duplicate rule
 
 **What changed** (D-086)

@@ -11,6 +11,7 @@
     "check:writers": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run --config vitest.devdb.config.ts src/db/writers.devdb.ts",
     "check:takeover": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run --config vitest.devdb.config.ts src/db/takeover.devdb.ts",
     "check:off-delta": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run --config vitest.devdb.config.ts src/sources/off/delta-replay.devdb.ts",
+    "check:units": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run --config vitest.devdb.config.ts src/db/units.devdb.ts --silent=false",
     "pipeline": "node --experimental-strip-types --no-warnings=ExperimentalWarning --env-file-if-exists=../.env src/cli.ts",
     "e2e": "node --env-file-if-exists=../.env ../node_modules/vitest/vitest.mjs run test/e2e"
   },

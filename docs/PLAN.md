@@ -1564,7 +1564,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** a unit test with a delta that holds a bad-code duplicate of a stored product. A delta run on dev drops it, and the next full run on the same dump discontinues 0.
 - ✅ Done 2026-11-10: unit tests (duplicate of an earlier file, of a stored product, self, renamed twin, discontinued twin); `check:off-delta` replays the 24 stored delta files on dev and drops all 15 discontinued rows and no active one; delta run `702c3500` (no new file yet) and full run `0120b991` on the same dump: 0 deactivated, 93,411 unchanged (D-086).
 
-### [ ] P4.5 Size and unit parser
+### [x] P4.5 Size and unit parser
 - **Slice:** core-units.
 - **Goal:** turn real size strings into a base-unit quantity and pack count, and compute unit prices.
 - **Deps:** P3.19a.
@@ -1578,6 +1578,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - Tests pass. Report the share of all distinct `quantity_text` values parsed, and 10 of what's left.
   - Every result satisfies the product schema's rules.
+- ✅ Done 2026-11-10: 373 unit tests (328 real strings), `check:units` on dev: 4,478 distinct strings, 91.3% `ok` (95.8% of rows; D-057 87.3%), every result passes the product schema (D-087).
 
 ### [ ] P4.6 OFF: apply the size parser
 - **Slice:** source-off.

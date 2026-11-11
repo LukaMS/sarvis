@@ -264,9 +264,9 @@ Unique on `(brand_id, company_id, relation, coalesce(valid_from,'-infinity'))`. 
 | `brand_text` | text null | The raw brand string from the source, kept for the resolver and for review. |
 | `category_id` | uuid null → `categories` | |
 | `quantity_text` | text null | Source string, e.g. "12 x 355 mL". |
-| `net_quantity` | numeric(12,3) null | Normalized total in the base unit. |
-| `net_unit` | text null | `g`, `ml` or `ct` (P4 parser). |
-| `pack_count` | smallint null | |
+| `net_quantity` | numeric(12,3) null | Normalized pack total in the base unit ("12 x 355 mL" → 4260). |
+| `net_unit` | text null | `g`, `ml` or `ct` (P4 parser, D-087). |
+| `pack_count` | smallint null | Items in a multipack (≥ 2), else null. |
 | `unit_parse_status` | text | `ok`, `unparsed`, `ambiguous`. |
 | `label_codes` | smallint[] | Ethics-relevant labels only (organic, fair trade, RSPO …) as codes from a small `labels` lookup. That saves about 40 bytes per row compared with tag text. |
 | `image_key` | text null | OFF image path suffix; the full URL is built from the source template. Images are hotlinked with CC BY-SA attribution, never stored. |
