@@ -15,6 +15,7 @@ Newest entry first.
 - **Green:** push run [43078402898](https://github.com/LukaMS/sarvis/actions/runs/43078402898), 3 min 18 s: gtin 5/5, writers 8/8, pipeline e2e 2/2, Playwright 28/28 (none skipped, none flaky).
 - **Red:** dispatch [43078601230](https://github.com/LukaMS/sarvis/actions/runs/43078601230) on `throwaway/p6-2-broken-writer` (price writer dropped its provenance): `check:writers` failed (`invalid input syntax for type uuid`), the rest ran. The pipeline e2e also failed there on the trigger bug above.
 - **After the fix:** push [43079746297](https://github.com/LukaMS/sarvis/actions/runs/43079746297) and dispatch on `main` [43079766063](https://github.com/LukaMS/sarvis/actions/runs/43079766063) both green with the same counts.
+- **A flake:** the push run for the docs commit ([43080856469](https://github.com/LukaMS/sarvis/actions/runs/43080856469)) failed because the job e2e timed out at vitest's 5 s default (the run e2e already had 180 s). It now has 180 s too. Push [43081618436](https://github.com/LukaMS/sarvis/actions/runs/43081618436) is green.
 - All logs scanned for the dev URL host, the anon key, the service-role key and the contact email: 0 hits. Dev holds no fixture products, brands or prices after the red run. The throwaway branch is deleted.
 
 **For the owner**
