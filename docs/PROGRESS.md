@@ -17,8 +17,8 @@ Newest entry first.
 - Advisors: nothing new (leaked-password protection off, unused indexes, as before).
 
 **For the owner**
-- **GitHub Actions looks stuck again.** After you cancelled 43084752310, the push runs for `5b57428` (CI [43095295439](https://github.com/LukaMS/sarvis/actions/runs/43095295439) and Dev DB checks 43095295335) sat `queued` for 1 h 40 min with no jobs, and nothing is `in_progress`. GitHub status says Actions is operational. Even plain CI, which doesn't share the `dev-db` queue, didn't start. I cancelled the older pending Dev DB run (43092079226), since the newer one covers it. See the next entry or the commit for whether this push's runs started.
-- The new failure-issue step (P6.3) is still unconfirmed on GitHub: once Actions runs again, dispatch `gh workflow run pipeline-off.yml -f task=raw-cleanup-dry-run` once.
+- **GitHub Actions is unstuck.** After you cancelled 43084752310, the push runs for `5b57428` sat `queued` for 1 h 40 min with no jobs (even plain CI). I cancelled the older pending Dev DB run (43092079226). This task's push started at once: CI and Dev DB checks ([43107918308](https://github.com/LukaMS/sarvis/actions/runs/43107918308)) are green on `9e415bf`, and the two old queued runs then closed by themselves.
+- **P6.3's fix is confirmed on GitHub:** dispatch `task=raw-cleanup-dry-run` ([43108548771](https://github.com/LukaMS/sarvis/actions/runs/43108548771)) completed `success`: `off` skipped, `raw-cleanup` green, and its failure-issue step skipped. The run no longer hangs.
 
 **Next:** P4.9 Categories from OFF tags.
 
