@@ -1567,7 +1567,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** a unit test with a delta that holds a bad-code duplicate of a stored product. A delta run on dev drops it, and the next full run on the same dump discontinues 0.
 - ✅ Done 2026-11-10: unit tests (duplicate of an earlier file, of a stored product, self, renamed twin, discontinued twin); `check:off-delta` replays the 24 stored delta files on dev and drops all 15 discontinued rows and no active one; delta run `702c3500` (no new file yet) and full run `0120b991` on the same dump: 0 deactivated, 93,411 unchanged (D-086).
 
-### [ ] P4.31 OFF delta twin lookup ignores accents (found in P4.30)
+### [x] P4.31 OFF delta twin lookup ignores accents (found in P4.30)
 - **Slice:** source-off.
 - **Goal:** the delta duplicate rule finds a stored twin that differs only by accents (`Crème` / `Creme`), as a full run does.
 - **Deps:** P4.30.

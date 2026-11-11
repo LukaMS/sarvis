@@ -4266,6 +4266,14 @@ export type Database = {
       }
     }
     Functions: {
+      active_products_named: {
+        Args: { names: string[]; source_id: string }
+        Returns: {
+          brand_text: string
+          external_id: string
+          name: string
+        }[]
+      }
       admin_ping: { Args: never; Returns: boolean }
       delete_own_account: { Args: never; Returns: undefined }
       gtin_is_restricted: { Args: { value: string }; Returns: boolean }

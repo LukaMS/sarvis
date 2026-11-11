@@ -8,7 +8,7 @@ import type { AddressInfo } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
-import { validateBatch } from '@sarvis/core';
+import { normalizeMatchText, validateBatch } from '@sarvis/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createHttpClient } from '../../http/client.ts';
@@ -27,7 +27,12 @@ import {
 } from './delta.ts';
 import { createOffSource } from './index.ts';
 import { toProductRecord } from './map.ts';
-import { type StoredProduct, ilikeElement } from './stored.ts';
+import {
+  NAMES_PER_CALL,
+  type StoredProduct,
+  type StoredProductsClient,
+  supabaseStoredProducts,
+} from './stored.ts';
 
 const fixture = (n: number) =>
   readFileSync(fileURLToPath(new URL(`./fixture.delta-${n}.jsonl`, import.meta.url)), 'utf8');
@@ -65,6 +70,8 @@ const DUP_FILE_4 = [
   product('0011110020751', 'Imitation Vanilla', 'Kirkland'),
   // 5. Matches only a discontinued product (the lookup returns active ones): kept.
   product('0008577002782', 'Maple Taffy', 'Kirkland Signature'),
+  // 6. Differs from a stored active product only by accents: dropped, counted as stored (P4.31).
+  product('0008577002783', 'Creme Brulee', 'Kirkland Signature'),
 ].join('\n');
 const STORED: (StoredProduct & { status: string })[] = [
   {
@@ -90,6 +97,12 @@ const STORED: (StoredProduct & { status: string })[] = [
     name: 'Maple Taffy',
     brand_text: 'Kirkland Signature',
     status: 'discontinued',
+  },
+  {
+    external_id: '0008577002788',
+    name: 'Crème Brûlée',
+    brand_text: 'Kirkland Signature',
+    status: 'active',
   },
 ];
 
@@ -260,10 +273,11 @@ describe('OFF delta runs through the driver', () => {
   const lookups: { sourceId: string; names: string[] }[] = [];
   async function findStoredProducts(sourceId: string, names: string[]) {
     lookups.push({ sourceId, names });
-    const wanted = new Set(names.map((n) => n.toLowerCase()));
-    return STORED.filter((p) => p.status === 'active' && wanted.has(p.name.toLowerCase())).map(
-      ({ status: _status, ...p }) => p,
-    );
+    // As active_products_named does: names compare through normalize_match_text.
+    const wanted = new Set(names.map(normalizeMatchText));
+    return STORED.filter(
+      (p) => p.status === 'active' && wanted.has(normalizeMatchText(p.name)),
+    ).map(({ status: _status, ...p }) => p);
   }
 
   async function deltaRun(store: MemoryRunStore) {
@@ -390,6 +404,7 @@ describe('OFF delta runs through the driver', () => {
           'Maple Butter',
           'Imitation Vanilla',
           'Maple Taffy',
+          'Creme Brulee',
         ],
       },
     ]);
@@ -397,18 +412,64 @@ describe('OFF delta runs through the driver', () => {
     expect(events.map((e) => e.details?.file)).toEqual([FILE_3, FILE_4]);
     expect(events[1]?.details).toMatchObject({
       kept: 3,
-      dropped: { bad_code_duplicate: 2 },
-      bad_code_duplicate_of_stored: 1,
+      dropped: { bad_code_duplicate: 3 },
+      bad_code_duplicate_of_stored: 2,
     });
     expect(events[0]?.details).toMatchObject({ bad_code_duplicate_of_stored: 0 });
   }, 20_000);
 });
 
 describe('stored-product lookup', () => {
-  it('quotes a name as an exact ilike array element', () => {
-    expect(ilikeElement('Maple Syrup')).toBe('"Maple Syrup"');
-    // LIKE escapes first (\% \_ \\), then the array element's (\\ and \").
-    expect(ilikeElement('50% less, "lite"')).toBe('"50\\\\% less, \\"lite\\""');
-    expect(ilikeElement('a_b\\c')).toBe('"a\\\\_b\\\\\\\\c"');
+  function fakeClient(rows: (page: number, names: string[]) => StoredProduct[]) {
+    const calls: { fn: string; source: string; names: number; from: number; to: number }[] = [];
+    const client = {
+      rpc(fn: string, args: { source_id: string; names: string[] }) {
+        return {
+          range: async (from: number, to: number) => {
+            calls.push({ fn, source: args.source_id, names: args.names.length, from, to });
+            return { data: rows(from / 1000, args.names), error: null };
+          },
+        };
+      },
+    } as unknown as StoredProductsClient;
+    return { client, calls };
+  }
+
+  it('calls active_products_named in batches of unique names and pages each batch', async () => {
+    const names = Array.from({ length: NAMES_PER_CALL + 5 }, (_, i) => `Name ${i}`);
+    const { client, calls } = fakeClient((page, batch) => {
+      // The first batch fills a page, then has one more row; the second batch has one row.
+      if (batch.length === NAMES_PER_CALL) {
+        return Array.from({ length: page === 0 ? 1000 : 1 }, (_, i) => ({
+          external_id: `${page}-${i}`,
+          name: 'x',
+          brand_text: null,
+        }));
+      }
+      return [{ external_id: 'b2', name: 'Name 100', brand_text: 'B' }];
+    });
+    // A repeated name is sent once.
+    const found = await supabaseStoredProducts(client)('src-off', [...names, 'Name 0']);
+    expect(found).toHaveLength(1002);
+    expect(calls).toEqual([
+      { fn: 'active_products_named', source: 'src-off', names: NAMES_PER_CALL, from: 0, to: 999 },
+      {
+        fn: 'active_products_named',
+        source: 'src-off',
+        names: NAMES_PER_CALL,
+        from: 1000,
+        to: 1999,
+      },
+      { fn: 'active_products_named', source: 'src-off', names: 5, from: 0, to: 999 },
+    ]);
+  });
+
+  it('throws a DatabaseError when the RPC fails', async () => {
+    const client = {
+      rpc: () => ({ range: async () => ({ data: null, error: { message: 'boom' } }) }),
+    } as unknown as StoredProductsClient;
+    await expect(supabaseStoredProducts(client)('src-off', ['A'])).rejects.toThrow(
+      'Reading stored OFF products failed: boom',
+    );
   });
 });

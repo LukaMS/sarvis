@@ -2,6 +2,28 @@
 
 Newest entry first.
 
+## 2026-11-11 — P4.31 OFF delta twin lookup ignores accents
+
+**What changed** (D-086 updated)
+- **Migration `20261111214339_active_products_named`:** `public.active_products_named(source_id uuid, names text[])` returns the source's active products whose `normalize_match_text(name)` equals that of one of the names. `security invoker`, `search_path = ''`, `EXECUTE` for `service_role` only (anon and authenticated checked: no). Types regenerated.
+- **`pipeline/src/sources/off/stored.ts`:** `supabaseStoredProducts` calls the RPC, 100 unique names per call, paged by 1,000 rows. Each match is still confirmed with the TS `duplicateKey` (first brand included). `ilikeElement` is gone.
+- **Tests:** the delta driver test has a sixth held row, `Creme Brulee`, whose only twin is the stored `Crème Brûlée`: it's dropped and counted as stored. The fake lookup now compares through `normalizeMatchText`, as the RPC does. Two new tests cover the batching, paging and the error path with a fake client.
+- The plan's draft passed a source key and brands. The caller already has the source id, and the brand check stays in TS, so a difference between the SQL and TS normalizers on brands can't hide a twin.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,124 passed, 2 skipped.
+- **On dev:** the RPC found all 3 accented stored names (e.g. `Mélange pour boisson saveur de lime`) when queried unaccented and upper-case. Timed through the client: 10 names ~0.15 s (39 rows), 100 names ~0.9 s (350 rows). The plan uses `products_name_trgm_idx`.
+- `check:off-delta` passes: 25 delta files, 4,104 rows, 209 bad-code rows, 46 dropped (all 15 discontinued among them), no active row dropped. That's the same 46 as P4.30, so the stored deltas hold no accent-only twin today.
+- Advisors: nothing new (leaked-password protection off, unused indexes, as before).
+
+**For the owner**
+- **GitHub Actions looks stuck again.** After you cancelled 43084752310, the push runs for `5b57428` (CI [43095295439](https://github.com/LukaMS/sarvis/actions/runs/43095295439) and Dev DB checks 43095295335) sat `queued` for 1 h 40 min with no jobs, and nothing is `in_progress`. GitHub status says Actions is operational. Even plain CI, which doesn't share the `dev-db` queue, didn't start. I cancelled the older pending Dev DB run (43092079226), since the newer one covers it. See the next entry or the commit for whether this push's runs started.
+- The new failure-issue step (P6.3) is still unconfirmed on GitHub: once Actions runs again, dispatch `gh workflow run pipeline-off.yml -f task=raw-cleanup-dry-run` once.
+
+**Next:** P4.9 Categories from OFF tags.
+
+---
+
 ## 2026-11-11 — P6.3 Raw-retention cleanup
 
 **What changed** (D-092)
