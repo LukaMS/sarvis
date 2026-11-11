@@ -413,6 +413,14 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-097 The top parent is a corporate parent: the walk stops below people and nonprofits — Proposed (P4.27)
+- **Rule:** `company_ultimate_parent` climbs approved, current `subsidiary` / `majority_stake` / `division` edges, but never into a parent whose `kind` is `individual` or `nonprofit`. An `individual` has no row at all, so nothing shows a person as a top parent. The edges stay in `company_ownership`.
+- **Why nonprofits too (beyond the plan's "not individual"):** the plan's own check, Hershey's → The Hershey Company, can't pass otherwise. Its controller is Hershey Trust Company, trustee of the Milton Hershey School Trust. Foundations that control a company (Stichting INGKA → IKEA, Dieter Schwarz Stiftung → Schwarz group) are the same case: users and scores should see the operating group, not the charity. Government bodies and cooperatives stay walkable: a state or a co-op is the real owner in the sense users mean.
+- **Families are `individual`.** Wikidata types them as family (Q8436), which our mapper (`kindOf`) reads as `company`. No new `kind` value, so no check-constraint or zod change. A family raises the same privacy point as a person.
+- **Corrections (migration `20261111234232`, 6 rows):** Sobey, Cargill, Rossy, Gervoson and Reimann families → `individual`; Hershey Trust Company → `nonprofit`. Each gets `kind` in `locked_fields`, so a Wikidata re-run can't undo it, and an `audit_log` row with `source`/`method` `manual`, `manual@p4.27` and the citation URL. The row's own +prov stays Wikidata's, as §1.2 says for admin edits.
+- **A brand owned directly by a person** (1 today: Más+ → Lionel Messi) keeps its owner in `brand_current_owner` and gets no top parent.
+**Why:** review H-3. The parent shown, and scored in Phase 7, should be an organisation that runs the business.
+
 ## D-096 Brand keys: spaceless folded words; first owned part names a product — Accepted (P4.11)
 - **`brandKey()` in `packages/core/src/brand.ts`** strips ™ ® © ℠ (before NFKD, which turns ™ into "TM") and removes apostrophes without a break (`President's` = `Presidents`). It then folds accents and case, reads `&` as "and", and treats any other punctuation as a word break. It drops a leading "the" and trailing legal forms, one to three words joined (`Inc`, `Ltd`, `Ltée`, `S.A.`, `Co`, …), never the last word. Then it **joins the words with no space**.
 - **Why spaceless:** the top 500 OFF strings hold Farm Boy/Farmboy, Co-op/Coop, Made Good/MadeGood, Fresh Prep/Freshprep and goodprotein/Good Protein, each one brand. No wrong merge came from it in the top 500 (19 merges, all checked).

@@ -1705,7 +1705,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Report strings → keys and the 20 largest clusters, with any wrong merge listed.
 - ✅ Done 2026-11-11 (D-096): 75 tests, including the top 500 fixture (`brand.top500.json`). 500 strings give 476 clusters with 19 merges, all checked by hand, and no wrong merge. Pick rule measured on 1,727 multi-part products (PROGRESS).
 
-### [ ] P4.27 Ownership chains stop at an organisation (added by the review)
+### [x] P4.27 Ownership chains stop at an organisation (added by the review)
 - **Slice:** schema.
 - **Goal:** the parent shown to users, and scored later, is an organisation, not a person (review H-3).
 - **Deps:** P3.19a.
@@ -1719,6 +1719,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - SQL checks as `anon`: Sobeys → Empire Company, St-Hubert → its corporate parent, Hershey's → The Hershey Company.
   - No row of `company_ultimate_parent` names an `individual` as the top parent.
   - Advisors are clean, and the types are regenerated.
+- ✅ Done 2026-11-11 (D-097): as `anon`, Sobeys and Safeway → Empire Company, St-Hubert → Fairfax Financial, Hershey Canada → The Hershey Company. 0 rows name an individual. The walk also stops below a nonprofit, which the Hershey check needs (D-097). 35 top parents have 100+ mentions, all organisations. 6 `kind` rows corrected and locked. Types unchanged (same columns). Advisors: only leaked-password protection.
 
 ### [ ] P4.29 🟡 Banner seed and store links (added by the review)
 - **Slice:** brand-resolver.
@@ -1779,6 +1780,15 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - Unit tests with the real cases: Leclerc, Dairyland and Ziggy's are held; Nestlé (CH) is held and queued; a lone CA or US candidate is approved as before.
   - A `--dry-run --sample` reports how many picks the rule holds.
+
+### [ ] P4.33 Wikidata: a family is an individual (found in P4.27)
+- **Slice:** source-wikidata.
+- **Goal:** new family rows from Wikidata get `kind = individual`, so the corporate top-parent walk (D-097) stops below them without a manual fix.
+- **Deps:** P4.27.
+- **In:** add Wikidata family (Q8436) and royal family (Q2006518) to `KIND_BY_CLASS` in `pipeline/src/sources/wikidata/map.ts` as `individual`, with a test, and bump the `wikidata` `method_version`. Add foundations (Q157031) as `nonprofit` if a sample shows they come in as `company` (Olvi Foundation does).
+- **Out:** re-typing the rows P4.27 already locked.
+- **Files:** `pipeline/src/sources/wikidata/map.ts`, tests, `docs/DECISIONS.md` (D-066, D-097).
+- **Verification:** unit tests with Sobey family and Cargill family. A `--dry-run --sample` reports the kinds it would change.
 
 ### [ ] P4.13 Brand rows and product links
 - **Slice:** brand-resolver.

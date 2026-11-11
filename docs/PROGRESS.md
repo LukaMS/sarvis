@@ -2,6 +2,46 @@
 
 Newest entry first.
 
+## 2026-11-11 — P4.27 Ownership chains stop at an organisation
+
+**What changed** (D-097, Proposed)
+- **Migration `20261111234232_corporate_top_parent`**, applied on dev:
+  - `company_ultimate_parent` no longer climbs into a parent whose `kind` is `individual` or `nonprofit`. Individuals get no row.
+  - `product_ownership_chain` reads the view, so it follows without a change.
+  - The edges to people stay in `company_ownership`. Nothing was deleted.
+- **6 `kind` corrections**, each with `kind` locked and one `audit_log` row (`manual`, `manual@p4.27`, citation URL):
+  - Sobey, Cargill, Rossy, Gervoson and Reimann families → `individual`. Wikidata types each one as family (Q8436), but our mapper stores them as `company`.
+  - Hershey Trust Company → `nonprofit`. Wikipedia says it's owned by the Milton Hershey School Trust, acts as its trustee, and manages charitable trusts that hold the controlling stake in Hershey.
+- **`supabase/tests/ownership.sql`** has 6 new checks: a person and a foundation as parents, and no individual as a top parent as `anon`.
+- DATA_MODEL (`kind`, the view), the supabase README row, and the new task **P4.33** (the Wikidata mapper reads family as `individual`, so new families don't need a manual fix).
+
+**Verification**
+- **As `anon` on dev:**
+  - Sobeys → Empire Company, and Safeway → Empire Company.
+  - St-Hubert → Recipe Unlimited → Fairfax Financial.
+  - Hershey Canada → The Hershey Company.
+  - Loblaws → Loblaw Companies → George Weston Limited (unchanged).
+  - Aldi → Aldi.
+  - **0 rows** of `company_ultimate_parent` or `product_ownership_chain` name an individual.
+- **Effect:** 55 companies got a new top parent (before, their top parent was a person, a family, or a nonprofit), and 60 rows for individuals left the view.
+- **Top parents with 100+ product mentions** (OFF brand strings matched by name or alias): 35, every one an organisation of kind `company`. The largest are George Weston 3,593, Walmart 1,798, Empire 1,330, Farm Boy 1,185 and PepsiCo 864.
+- `ownership.sql`: I ran the constraint, view and anon parts on dev (17 checks, all `ok`, rolled back). The user and admin RLS parts are unchanged and weren't re-run.
+- Advisors: only leaked-password protection.
+- **Types:** the view keeps its exact columns (checked in `information_schema`), so `database.types.ts` is unchanged.
+- `npm test`: 1,221 passed, 2 skipped. `format:check` passes.
+
+**For the owner**
+- **I went one step past the plan's rule.** The walk also stops below **nonprofits**, because the plan's own Hershey check can't pass otherwise. It also stops IKEA at IKEA instead of Stichting INGKA Foundation. Cooperatives and government bodies are still walked. D-097 is Proposed, so say if you'd rather show trusts and foundations as the parent.
+- **Families are stored as `individual`.** I didn't add a `family` kind.
+- **Not fixed here (P4.25 / P4.12 work):** some of the 35 big top parents are wrong matches or missing links. IGA, Metcash, E.Leclerc and Plesio are wrong matches. Lay's, H. J. Heinz and Cracker Barrel stand alone with no link to PepsiCo or Kraft Heinz.
+- One brand is owned directly by a person: Más+ → Lionel Messi. Its owner still shows, but it gets no top parent.
+- The royal family of Morocco (Q2006518) is left as `company`. It has no controlling child edge, so the walk is unaffected. P4.33 covers it.
+- `run-tasks.ps1` (your edits) and the line-ending-only change to `pipeline/src/raw/retention.ts` are still uncommitted. I left both out.
+
+**Next:** P4.29 Banner seed and store links (builds the list, then waits for your approval).
+
+---
+
 ## 2026-11-11 — P4.11 Brand keys
 
 **What changed** (D-096)

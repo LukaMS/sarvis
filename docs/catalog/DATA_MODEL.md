@@ -212,7 +212,7 @@ bigint id · `run_id` · `raw_object_id` · `record_key` (e.g. the GTIN) · `rul
 | `id`, `slug` | uuid, text unique | |
 | `name`, `legal_name` | text | |
 | `aliases` | text[] | Old names, other spellings. |
-| `kind` | text | `company`, `cooperative`, `government`, `individual`, `nonprofit`. |
+| `kind` | text | `company`, `cooperative`, `government`, `individual`, `nonprofit`. `individual` covers a person or a family; `nonprofit` covers foundations and charitable trusts that hold shares. A manual correction locks `kind` (D-097). |
 | `country` | char(2) | |
 | `headquarters`, `founded_year`, `ownership_type` (`public`/`private`/`state`/`coop`), `stock_ticker`, `website`, `description`, `logo_url` | | Legacy profile fields. `logo_url` links to Wikimedia Commons; logos aren't stored in Supabase. |
 | `ceo`, `revenue_range` | text null | Legacy fields. Volatile, so `locked_fields` / audit applies. |
@@ -489,7 +489,7 @@ Receipt prices reach the public catalog **only** as `price_points_weekly` aggreg
 | View | Purpose | RLS / security |
 |---|---|---|
 | `brand_current_owner` | Brand → current approved owner company. | Public (`security_invoker`). |
-| `company_ultimate_parent` | Recursive walk of approved, current `company_ownership` up to the top parent, with the path. | Public. |
+| `company_ultimate_parent` | Recursive walk of approved, current controlling `company_ownership` edges up to the top corporate parent, with the path. The walk never enters an `individual` or `nonprofit` parent, and individuals have no row, so the top parent is always an organisation (D-097). The edges to them stay in `company_ownership`. | Public. |
 | `product_ownership_chain` | Product → brand → owner → … → ultimate parent, for the product screen (PLAN Phase 8). | Public. |
 | `published_company_scores` | Latest `approved`, not superseded score per company × category, with its rubric version. | Public. |
 | `current_prices` | Per store × product: the latest observation or weekly point, with the effective-price rule applied and `fetched_at`. | Public. |

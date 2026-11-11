@@ -1,4 +1,4 @@
--- P2.4 RLS and constraint checks for the ownership domain.
+-- P2.4 RLS and constraint checks for the ownership domain. P4.27 adds the corporate top-parent walk.
 -- Run the whole file with the supabase-dev MCP `execute_sql`. Everything happens inside one
 -- transaction that is rolled back, so it leaves no rows behind. The last select lists every check;
 -- each row must have ok = true.
@@ -17,9 +17,13 @@ declare
   v_c constant uuid := '00000000-0000-4000-8000-0000000c000c';
   v_d constant uuid := '00000000-0000-4000-8000-0000000c000d';
   v_r constant uuid := '00000000-0000-4000-8000-0000000c000e';
+  -- P4.27: P is a person who controls A; N is a foundation that controls D.
+  v_p constant uuid := '00000000-0000-4000-8000-0000000c000f';
+  v_n constant uuid := '00000000-0000-4000-8000-0000000c0010';
   v_x constant uuid := '00000000-0000-4000-8000-0000000d0001';
   v_y constant uuid := '00000000-0000-4000-8000-0000000d0002';
   v_ids constant uuid[] := array[v_a, v_b, v_c, v_d, v_r];
+  v_all constant uuid[] := array[v_a, v_b, v_c, v_d, v_r, v_p, v_n];
   v_src uuid;
   v_edge uuid;
   v_pending_co uuid;
@@ -43,12 +47,15 @@ begin
          (v_c, 'rls-c', 'RLS C Dairy', 'active', v_src, now(), 'manual', 'manual@test'),
          (v_d, 'rls-d', 'RLS D Capital', 'active', v_src, now(), 'manual', 'manual@test'),
          (v_r, 'rls-r', 'RLS Rejected', 'rejected', v_src, now(), 'manual', 'manual@test');
+  insert into public.companies (id, slug, name, kind, status, source_id, fetched_at, method, method_version)
+  values (v_p, 'rls-p', 'RLS Person', 'individual', 'active', v_src, now(), 'manual', 'manual@test'),
+         (v_n, 'rls-n', 'RLS Foundation', 'nonprofit', 'active', v_src, now(), 'manual', 'manual@test');
   insert into public.brands (id, slug, name, source_id, fetched_at, method, method_version)
   values (v_x, 'rls-x', 'RLS X', v_src, now(), 'manual', 'manual@test'),
          (v_y, 'rls-y', 'RLS Y', v_src, now(), 'manual', 'manual@test');
   -- Users see companies and brands only once approved (P2.22, D-050).
   update public.companies set review_status = 'approved', reviewed_at = now(), decision_method = 'admin'
-  where id = any (v_ids);
+  where id = any (v_all);
   update public.brands set review_status = 'approved', reviewed_at = now(), decision_method = 'admin'
   where id in (v_x, v_y);
 
@@ -56,7 +63,9 @@ begin
     (parent_company_id, child_company_id, relation, review_status, reviewed_at, decision_method,
      source_id, fetched_at, method, method_version)
   values (v_a, v_b, 'subsidiary', 'approved', now(), 'admin', v_src, now(), 'manual', 'manual@test'),
-         (v_b, v_c, 'subsidiary', 'approved', now(), 'admin', v_src, now(), 'manual', 'manual@test');
+         (v_b, v_c, 'subsidiary', 'approved', now(), 'admin', v_src, now(), 'manual', 'manual@test'),
+         (v_p, v_a, 'subsidiary', 'approved', now(), 'admin', v_src, now(), 'manual', 'manual@test'),
+         (v_n, v_d, 'majority_stake', 'approved', now(), 'admin', v_src, now(), 'manual', 'manual@test');
   insert into public.company_ownership
     (parent_company_id, child_company_id, relation, source_id, fetched_at, method, method_version)
   values (v_d, v_a, 'minority_stake', v_src, now(), 'manual', 'manual@test')
@@ -187,8 +196,18 @@ begin
     v_up.ultimate_parent_id = v_a and v_up.depth = 2 and v_up.path = array[v_c, v_b, v_a],
     v_up.ultimate_parent_slug, v_up.depth, v_up.path);
   select * into v_up from public.company_ultimate_parent where company_id = v_a;
-  res := res || format('A is its own top parent (minority stake not walked)|%s|%s depth %s',
+  res := res || format('A is its own top parent (minority stake and person not walked)|%s|%s depth %s',
     v_up.ultimate_parent_id = v_a and v_up.depth = 0, v_up.ultimate_parent_slug, v_up.depth);
+  select * into v_up from public.company_ultimate_parent where company_id = v_d;
+  res := res || format('D is its own top parent (nonprofit parent not walked)|%s|%s depth %s',
+    v_up.ultimate_parent_id = v_d and v_up.depth = 0, v_up.ultimate_parent_slug, v_up.depth);
+  select * into v_up from public.company_ultimate_parent where company_id = v_n;
+  res := res || format('the nonprofit N is its own top parent|%s|%s depth %s',
+    v_up.ultimate_parent_id = v_n and v_up.depth = 0, v_up.ultimate_parent_slug, v_up.depth);
+  select count(*) into n from public.company_ultimate_parent where company_id = v_p or ultimate_parent_id = v_p;
+  res := res || format('the person P has no row and is nobody''s top parent|%s|%s rows', n = 0, n);
+  select count(*) into n from public.company_ownership where parent_company_id in (v_p, v_n);
+  res := res || format('the edges from P and N are kept|%s|%s rows', n = 2, n);
   select count(*) into n from public.brand_current_owner where brand_id = v_x and company_id = v_c;
   res := res || format('brand_current_owner maps X to C|%s|%s rows', n = 1, n);
 
@@ -203,10 +222,13 @@ begin
   select count(*) into n from public.brand_ownership where id = v_pending_bo;
   res := res || format('anon does not see a pending brand edge|%s|%s rows', n = 0, n);
   select count(*) into n from public.company_ownership where child_company_id = any (v_ids);
-  res := res || format('anon sees the 2 approved company edges|%s|%s rows', n = 2, n);
+  res := res || format('anon sees the 4 approved company edges|%s|%s rows', n = 4, n);
   select * into v_up from public.company_ultimate_parent where company_id = v_c;
   res := res || format('anon walks C up to A|%s|%s depth %s',
     v_up.ultimate_parent_id = v_a and v_up.depth = 2, v_up.ultimate_parent_slug, v_up.depth);
+  select count(*) into n from public.company_ultimate_parent u join public.companies p on p.id = u.ultimate_parent_id
+  where p.kind = 'individual';
+  res := res || format('anon: no top parent in the whole view is an individual|%s|%s rows', n = 0, n);
   select count(*) into n from public.brand_current_owner where brand_id in (v_x, v_y);
   res := res || format('anon sees only the approved brand owner|%s|%s rows', n = 1, n);
   begin
