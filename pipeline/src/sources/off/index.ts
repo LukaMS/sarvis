@@ -8,7 +8,9 @@
 //
 // A delta run (P3.7) reads the delta index, skips the files a completed delta run already stored,
 // and streams each new file through the same filter into the same extract format, oldest first.
-// Deltas can't signal deletions, so only a full run deactivates (the driver's rule).
+// Deltas can't signal deletions, so only a full run deactivates (the driver's rule). A delta checks
+// bad-code rows against the rows it read earlier and the active catalog, as a full run checks them
+// against the whole export (D-086).
 import { ConfigurationError } from '../../errors.ts';
 import { openLines } from '../../http/lines.ts';
 import type { FetchResult, ParseResult, RawPayload, Source, SourceRunContext } from '../source.ts';
@@ -23,6 +25,7 @@ import {
 } from './csv.ts';
 import { type DeltaFile, OFF_DELTA_BASE, createDeltaFilter, parseDeltaIndex } from './delta.ts';
 import { OFF_JOB, OFF_KEY, OFF_VERSION, toProductRecord } from './map.ts';
+import { type FindStoredProducts, storedDuplicateKeys, supabaseStoredProducts } from './stored.ts';
 
 export { OFF_JOB, OFF_KEY, OFF_VERSION } from './map.ts';
 
@@ -44,6 +47,8 @@ export interface OffSourceOptions {
   extractSize?: number;
   /** Where the delta index and files live (tests serve them locally). */
   deltaBase?: string;
+  /** Delta runs: the catalog lookup behind the bad-code duplicate rule (P4.30). */
+  findStoredProducts?: FindStoredProducts;
 }
 
 /** Filtered rows, taken a batch at a time. */
@@ -128,7 +133,12 @@ interface DeltaIndexSummary {
   new: number;
 }
 
-function deltaEvent(file: DeltaFile, counts: FilterCounts, index: DeltaIndexSummary | null) {
+function deltaEvent(
+  file: DeltaFile,
+  counts: FilterCounts,
+  ofStored: number,
+  index: DeltaIndexSummary | null,
+) {
   const d = counts.dropped;
   return {
     severity: 'info' as const,
@@ -137,13 +147,14 @@ function deltaEvent(file: DeltaFile, counts: FilterCounts, index: DeltaIndexSumm
       `${file.name}: scanned ${counts.scanned}, kept ${counts.kept}. Dropped: ${d.malformed} ` +
       `malformed, ${d.not_canada} not sold in Canada, ${d.no_name} without a name, ` +
       `${d.no_brand_or_category} without a brand or category, ${d.bad_code_duplicate} with a ` +
-      `bad check digit that duplicate a kept product.`,
+      `bad check digit that duplicate a kept or stored product (${ofStored} stored).`,
     details: {
       file: file.name,
       window: [new Date(file.from * 1000).toISOString(), new Date(file.to * 1000).toISOString()],
       scanned: counts.scanned,
       kept: counts.kept,
       dropped: { ...d },
+      bad_code_duplicate_of_stored: ofStored,
       ...(index ? { index } : {}),
     },
   };
@@ -153,6 +164,7 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
   const csvUrl = options.csvUrl ?? OFF_CSV_URL;
   const extractSize = options.extractSize ?? OFF_EXTRACT_SIZE;
   const deltaBase = options.deltaBase ?? OFF_DELTA_BASE;
+  const findStored = options.findStoredProducts ?? supabaseStoredProducts();
   const isUrl = /^https?:\/\//i.test(csvUrl);
   let feed: RowFeed | null = null;
   let counts = emptyFilterCounts();
@@ -160,7 +172,11 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
   // Delta runs: the new files, the index summary, and the kept rows of the file being read.
   let deltaFiles: DeltaFile[] = [];
   let deltaIndex: DeltaIndexSummary | null = null;
-  let held: { rows: OffRow[]; fetchedAt: string; counts: FilterCounts } | null = null;
+  let held: { rows: OffRow[]; fetchedAt: string; counts: FilterCounts; ofStored: number } | null =
+    null;
+  // Delta runs: the keys of every row kept so far and the codes of every row read, across files.
+  let runSeen = new Set<string>();
+  let runCodes = new Set<string>();
 
   /**
    * A sample reads only as far as it needs; the stream is closed before anything is written. The
@@ -223,16 +239,29 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
     if (chunk === 0) {
       const counts = emptyFilterCounts();
       const keep = createDeltaFilter(counts);
-      // A delta checks bad codes against its own file only; the next full run drops the rest.
-      const gate = createBadCodeGate(counts);
+      // A bad-code row is a duplicate of a row kept earlier in this run, or of an active stored
+      // product, as a full run would find it among the export's kept rows (D-081, D-086).
+      const gate = createBadCodeGate(counts, runSeen);
       const fetchedAt = new Date().toISOString();
       const rows: OffRow[] = [];
       for await (const line of openLines(file.url, { http: ctx.http, gzip: true })) {
         const row = keep(line);
-        if (row && gate.admit(row)) rows.push(row);
+        if (!row) continue;
+        runCodes.add(row.code.trim());
+        if (gate.admit(row)) rows.push(row);
       }
-      rows.push(...gate.release());
-      held = { rows, fetchedAt, counts };
+      const stored = await storedDuplicateKeys(gate.held(), ctx.source.id, runCodes, findStored);
+      let ofStored = 0;
+      rows.push(
+        ...gate.release((row, key) => {
+          const codes = stored.get(key);
+          const code = row.code.trim();
+          const dup = codes !== undefined && [...codes].some((c) => c !== code);
+          if (dup) ofStored++;
+          return dup;
+        }),
+      );
+      held = { rows, fetchedAt, counts, ofStored };
     }
     if (!held) throw new Error('off: delta extract read out of order');
     const rows = held.rows.slice(chunk * extractSize, (chunk + 1) * extractSize);
@@ -252,7 +281,9 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
       },
       next,
       events:
-        chunk === 0 ? [deltaEvent(file, held.counts, step.part === 1 ? deltaIndex : null)] : [],
+        chunk === 0
+          ? [deltaEvent(file, held.counts, held.ofStored, step.part === 1 ? deltaIndex : null)]
+          : [],
     };
   }
 
@@ -281,6 +312,8 @@ export function createOffSource(options: OffSourceOptions = {}): Source<'product
 
     async plan(ctx) {
       counts = emptyFilterCounts();
+      runSeen = new Set();
+      runCodes = new Set();
       if (ctx.mode === 'delta') return planDelta(ctx);
       feed = ctx.sampleSize !== null ? await openSample(ctx, ctx.sampleSize) : await openFull(ctx);
       return [{ part: 1 }];

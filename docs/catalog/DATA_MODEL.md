@@ -68,7 +68,7 @@ Admin edits to a field that an import also writes add the field name to the row'
 ### 1.4 GTIN rule
 - Digits only. Validate the check digit. Store as **GTIN-14**: UPC-A gets `00` prepended, EAN-13 gets `0`, EAN-8 gets six `0`s.
 - An 8-digit code that is a valid number-system-0 **UPC-E** is expanded to its UPC-A first, even when it's also a valid EAN-8 (D-078). Number system 1 stays EAN-8.
-- A bad check digit is never stored as a GTIN. For a price it's a validation failure (`gtin_check_digit`). An OFF product with one is kept on `external_id` with `gtin` null, so search finds it and a scan doesn't, unless its normalized name and first brand match another kept product (D-077, D-081).
+- A bad check digit is never stored as a GTIN. For a price it's a validation failure (`gtin_check_digit`). An OFF product with one is kept on `external_id` with `gtin` null, so search finds it and a scan doesn't, unless its normalized name and first brand match another kept product (D-077, D-081). A delta run checks the rows it read earlier and the active stored products as well (D-086).
 - Two codes of one source that normalize to one GTIN (a UPC-E and its UPC-A) are one product: the first record to hold the GTIN keeps the row, and the other goes to `product_sources`. A row the second code had before its code normalized is merged into the holder and loses its GTIN (D-081).
 - Restricted-circulation prefixes are stored in `product_identifiers` with scheme `store_internal` (banner-scoped), not as a GTIN. That covers GS1 prefixes 02 and 20–29 (variable-weight and in-store codes), and EAN-8 prefixes 0 and 2 (RCN-8).
 - PLU codes (4–5 digits) use scheme `plu`.

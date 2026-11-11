@@ -1553,7 +1553,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Re-running changes nothing.
 - ✅ Done 2026-11-10: full OFF run `aef030a6` took over the 3 rows (3 updated), `check:takeover` passes as `anon`, the other 10 legacy rows are byte-identical, and the re-runs (`legacy-import` `68b38bd5`, OFF `34152f6e`) change nothing (D-085).
 
-### [ ] P4.30 OFF deltas apply the bad-code duplicate rule (found in P4.4)
+### [x] P4.30 OFF deltas apply the bad-code duplicate rule (found in P4.4)
 - **Slice:** source-off.
 - **Goal:** a delta and a full run agree on which bad-check-digit rows are kept, so rows don't flip between active and discontinued.
 - **Deps:** P4.3.
@@ -1562,6 +1562,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** merging near-duplicates (Phase 4 "Not in Phase 4").
 - **Files:** `pipeline/src/sources/off/delta.ts`, `index.ts`, tests.
 - **Verification:** a unit test with a delta that holds a bad-code duplicate of a stored product. A delta run on dev drops it, and the next full run on the same dump discontinues 0.
+- ✅ Done 2026-11-10: unit tests (duplicate of an earlier file, of a stored product, self, renamed twin, discontinued twin); `check:off-delta` replays the 24 stored delta files on dev and drops all 15 discontinued rows and no active one; delta run `702c3500` (no new file yet) and full run `0120b991` on the same dump: 0 deactivated, 93,411 unchanged (D-086).
 
 ### [ ] P4.5 Size and unit parser
 - **Slice:** core-units.

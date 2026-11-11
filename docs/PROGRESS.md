@@ -2,6 +2,29 @@
 
 Newest entry first.
 
+## 2026-11-10 — P4.30 OFF deltas apply the bad-code duplicate rule
+
+**What changed** (D-086)
+- **Delta path** (`pipeline/src/sources/off/index.ts`, `csv.ts`): a bad-code row (no GTIN) is dropped when its normalized name + first brand matches a row kept earlier in the run (any file), or an **active** OFF product with a different code. The gate shares one seen-set across the run's files. Stored products the run has already read don't count, so a renamed product is compared by its new name.
+- **Lookup** (`pipeline/src/sources/off/stored.ts`): PostgREST `name ilike any(...)` on active products of the source, 40 names per request, then confirmed with the TS `duplicateKey`. No schema change.
+- `off_delta_file` events now say how many drops matched a stored product (`details.bad_code_duplicate_of_stored`). DATA_MODEL §1.4 mentions the delta rule.
+- New read-only dev check `npm run check:off-delta` (CLAUDE.md Commands). It replays the stored delta extracts through the delta path, serving them locally, so it sends nothing to OFF.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 663 passed, 1 skipped (2 new). Pipeline e2e passes.
+- New unit test: a delta of 2 files. Dropped: a duplicate of a row from the earlier file, and a duplicate of a stored product (counted as stored). Kept: a stored bad-code row listed again, a row matching only the old name of a product the delta renamed, and a row matching only a discontinued product.
+- `check:off-delta` on dev: 24 stored delta files, 3,998 rows, 206 bad-code rows, **46 dropped**. All **15 discontinued** rows are among them. The other 31 were never stored. 0 active rows were dropped, and every bad-code row it keeps is active in the catalog, so the delta and full-run kept sets agree exactly.
+- Live delta run `702c3500`: index 304, 13 of 13 files already imported, so nothing was fetched. OFF hasn't published a file since the last run.
+- Full run `0120b991` on the same dump: 93,411 unchanged, 0 inserted, 0 updated, **0 deactivated**, 359 bad-code duplicates dropped (as before).
+
+**For the owner**
+- `apply_migration` on `supabase-dev` was refused in this run, so the lookup uses an `ilike` pre-filter and needs no migration. It's case-insensitive but not accent-insensitive. A twin that differs only by accents stays active until the next full run discontinues it, and later deltas then drop it. An RPC over `normalize_match_text` would close that gap if you allow migrations in unattended runs.
+- P6.1 is still waiting on the three Actions secrets and a push. Your automation files are still uncommitted.
+
+**Next:** P4.5 Size and unit parser.
+
+---
+
 ## 2026-11-10 — P4.4 Legacy products that hold an OFF GTIN: OFF takes over
 
 **What changed** (D-085)

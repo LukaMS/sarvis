@@ -105,7 +105,7 @@ export function keepRow(row: OffRow, counts: FilterCounts): OffRow | null {
 }
 
 /** Normalized name + first brand: what makes a bad-code row a duplicate of a kept product. */
-export function duplicateKey(row: OffRow): string {
+export function duplicateKey(row: Pick<OffRow, 'product_name' | 'brands'>): string {
   const brand = row.brands.split(',')[0] ?? '';
   return `${normalizeMatchText(row.product_name)}|${normalizeMatchText(brand)}`;
 }
@@ -115,9 +115,11 @@ export function duplicateKey(row: OffRow): string {
  * been read, then releases those whose name and first brand no kept row has (D-077). The first
  * held row with a key wins over later ones. A drop moves the row from `kept` to
  * `bad_code_duplicate`, so `kept` stays the number of rows the extracts hold.
+ *
+ * `seen` holds the keys of the rows kept so far; a delta run passes one set to every file's gate,
+ * so a row kept in an earlier file counts (P4.30).
  */
-export function createBadCodeGate(counts: FilterCounts) {
-  const seen = new Set<string>();
+export function createBadCodeGate(counts: FilterCounts, seen: Set<string> = new Set()) {
   const held: OffRow[] = [];
   return {
     /** The row, to pass on now, or null when it's held for `release`. */
@@ -129,12 +131,18 @@ export function createBadCodeGate(counts: FilterCounts) {
       seen.add(duplicateKey(row));
       return row;
     },
-    /** The held rows that aren't duplicates, in the order they were read. Empties the hold. */
-    release(): OffRow[] {
+    /** The rows held so far, oldest first (a delta looks them up before `release`). */
+    held: (): readonly OffRow[] => held,
+    /**
+     * The held rows that aren't duplicates, in the order they were read. Empties the hold.
+     * `isStoredDuplicate` also drops a row that no kept row matches but a stored product does
+     * (a delta run, P4.30); it's asked only after the kept rows.
+     */
+    release(isStoredDuplicate?: (row: OffRow, key: string) => boolean): OffRow[] {
       const out: OffRow[] = [];
       for (const row of held.splice(0)) {
         const key = duplicateKey(row);
-        if (seen.has(key)) {
+        if (seen.has(key) || isStoredDuplicate?.(row, key)) {
           counts.kept--;
           counts.dropped.bad_code_duplicate++;
           continue;
