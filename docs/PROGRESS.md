@@ -2,6 +2,32 @@
 
 Newest entry first.
 
+## 2026-11-11 — P6.3 Raw-retention cleanup
+
+**What changed** (D-092)
+- **`pipeline/src/raw/cleanup.ts`:** `planRawCleanup()` (pure: groups live files by source and retention rule, applies age, last-N-runs and EDGAR's last-3-filings-per-CIK limits), `loadRawFiles()`, `cleanupRaw()` and the run-level listing. Two guards beat every limit: the files of a running run, and those of each source's newest completed full run (the OFF extract P4.9 re-parses). After a real run it reads one file of every protected run back with `readRaw`.
+- **`store.ts`:** `deleteRawFiles()` removes 100 files per Storage call, then marks the rows; `deleteRawFile()` uses it.
+- **CLI:** `npm run pipeline -- raw cleanup [--dry-run]`, exit 0 or 1.
+- **`Pipeline OFF` workflow:** a `raw-cleanup` job on a second cron (Sundays 10:47 UTC) or a dispatch with `task=raw-cleanup` / `raw-cleanup-dry-run`. Each job names its own cron, so OFF still runs once a day. The failure issue moved to its own job, which runs when either job fails.
+- Tests: 12 planner tests, 5 CLI parse tests, 2 more workflow guards. CLAUDE.md, DATA_MODEL §5 updated.
+- **Wikipedia** keeps its last 3 runs (D-071, already in `retentionFor`). The plan's per-subject rule for Wikipedia predates D-071, so only EDGAR counts per subject.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,123 passed, 2 skipped.
+- **Dry run on dev:** would delete 631 of 4,178 live files (31,286 KB of 52,415 KB), listed as 34 run groups: OFF 70 files (7 old full runs, 1 failed, 2 samples; 29,304 KB), Wikidata 522 (14 old runs), legacy-import 20, open-prices 6, sec-edgar 10 (older copies of the same exhibits), statcan 2, corp-canada 1, wikipedia 0.
+- **Real run:** deleted 631, exit 0, and read back one file of each of the 8 protected runs. Afterwards **Wikidata has 3 live runs** (3,291 files), OFF 3 full extracts + 3 deltas, and every other count-limited source 3 runs. In SQL, no deleted row has a Storage object left and no live row lacks one.
+- **The OFF extract still reads:** `check:taxonomy` read all 10 files of run `7179a9c8` through `readRaw` (93,411 rows, 96.31% mapped, as in P4.8). `check:off-delta` passes on the remaining delta files. A second dry run finds 0 to delete.
+- **GitHub:** push CI and Dev DB checks green on `65992c5`. Dispatch `task=raw-cleanup-dry-run` ([43084752310](https://github.com/LukaMS/sarvis/actions/runs/43084752310)): `off` skipped and `raw-cleanup` **succeeded** (every step green). But the separate `failure-issue` job (`needs: [off, raw-cleanup]`, `if: failure()`) was never created, so the run stayed `in_progress`. **Fix (`32c491b`):** the failure issue is now a step at the end of each job, through a local composite action (`.github/actions/failure-issue`), and a guard test forbids `needs:` in the workflow. CI is green on `32c491b`. The fix is **not yet run on GitHub**, because of the stuck run below.
+
+**For the owner**
+- 631 raw files are gone from dev Storage (the rows stay as provenance). They were old copies: superseded OFF full extracts, Wikidata sample runs, duplicate EDGAR exhibits.
+- **Action needed: run 43084752310 is stuck `in_progress` and holds the `dev-db` queue.** Cancel and force-cancel were accepted but did nothing, and deleting it returns 403. As of 20:18 UTC the push's Dev DB checks ([43092079226](https://github.com/LukaMS/sarvis/actions/runs/43092079226)) were waiting behind it, and tomorrow's 09:17 OFF run will wait too. If it hasn't cleared, cancel it from the Actions page, or contact GitHub support. Then check that 43092079226 goes green, and dispatch `gh workflow run pipeline-off.yml -f task=raw-cleanup-dry-run` once to confirm the new failure-issue step.
+- The weekly cleanup shares the `dev-db` queue. GitHub keeps only one *pending* run per group, so if three runs overlap, the oldest waiting one is cancelled (P6.2 had the same limit).
+
+**Next:** P4.31 OFF delta twin lookup ignores accents.
+
+---
+
 ## 2026-11-11 — P6.2 CI runs the dev-database checks
 
 **What changed** (D-091)

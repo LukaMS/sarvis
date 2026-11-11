@@ -1528,7 +1528,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:** a green run with all four. A deliberately broken writer on a throwaway branch, run through `workflow_dispatch`, turns it red. Record both run URLs.
 - ✅ Done 2026-11-11 (D-091): green push run [43078402898](https://github.com/LukaMS/sarvis/actions/runs/43078402898) (gtin 5, writers 8, pipeline e2e 2, Playwright 28, none skipped). Red dispatch [43078601230](https://github.com/LukaMS/sarvis/actions/runs/43078601230) on a throwaway branch whose price writer dropped provenance: `check:writers` failed. It also showed the pipeline e2e hard-coding `triggered_by: 'cli'`; fixed, then green on push [43079746297](https://github.com/LukaMS/sarvis/actions/runs/43079746297) and dispatch [43079766063](https://github.com/LukaMS/sarvis/actions/runs/43079766063). No secret in any log.
 
-### [ ] P6.3 Raw-retention cleanup (pulled forward by the review; runs here)
+### [x] P6.3 Raw-retention cleanup (pulled forward by the review; runs here)
 - **Slice:** ops.
 - **Goal:** Storage stops growing without bound.
 - **Deps:** P6.1.
@@ -1536,6 +1536,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** row-retention purges and budget monitoring (P6.0).
 - **Files:** `pipeline/src/raw/`, `pipeline/src/cli.ts`, the workflow, tests, `CLAUDE.md`.
 - **Verification:** a dry run lists what would go. After a real run, Wikidata keeps its last 3 runs, and the OFF extract is still readable with `readRaw`.
+- ✅ Done 2026-11-11 (D-092): the dry run listed 631 files in 34 run groups (31,286 KB); the real run deleted them. Wikidata has 3 live runs (3,291 files), OFF has 3 full extracts plus 3 deltas, and Storage matches the rows both ways. `check:taxonomy` read all 10 files of OFF run `7179a9c8` back (93,411 rows) and `check:off-delta` passes. A second dry run finds 0. Weekly job in `Pipeline OFF`.
 
 ### [x] P4.4 Legacy products that hold an OFF GTIN: OFF takes over
 - **Slice:** pipeline-db.
