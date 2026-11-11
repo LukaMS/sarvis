@@ -1,6 +1,7 @@
 {
   "enableAllProjectMcpServers": true,
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "additionalDirectories": ["C:/Users/lukam/Coding Projects/MobileDev/Ethical-App"],
     "allow": [
       "Bash(git status:*)",
@@ -11,11 +12,42 @@
       "Bash(npm run:*)",
       "Bash(npx expo:*)",
       "Bash(npx tsc:*)",
-      "Bash(adb devices:*)"
+      "Bash(adb devices:*)",
+      "Bash(*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "PowerShell(Get-*)",
+      "PowerShell(git *)",
+      "mcp__supabase-dev__execute_sql",
+      "mcp__supabase-dev__apply_migration",
+      "mcp__supabase-dev__list_migrations",
+      "mcp__supabase-dev__list_tables",
+      "mcp__supabase-dev__list_extensions",
+      "mcp__supabase-dev__generate_typescript_types",
+      "mcp__supabase-dev__get_advisors",
+      "mcp__supabase-dev__query_logs",
+      "mcp__supabase-dev__get_project_url",
+      "mcp__supabase-dev__get_publishable_keys",
+      "mcp__supabase-dev__search_docs",
+      "mcp__supabase-dev__list_storage_buckets",
+      "mcp__supabase-dev__get_storage_config",
+      "mcp__supabase-dev__list_edge_functions",
+      "mcp__supabase-dev__get_edge_function",
+      "mcp__supabase-legacy",
+      "mcp__playwright",
+      "mcp__chrome-devtools",
+      "mcp__mobile",
+      "mcp__context7",
+      "PowerShell(npm *)",
+      "PowerShell(npx *)",
+      "PowerShell(node *)",
+      "PowerShell(gh *)",
+      "PowerShell(adb *)",
+      "WebSearch",
+      "WebFetch"
     ],
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)"
+      
     ]
   }
 }
