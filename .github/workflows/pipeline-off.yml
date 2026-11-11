@@ -88,6 +88,13 @@ jobs:
           path: .cache/http
           key: pipeline-http-${{ github.run_id }}
 
+      # Each job opens its own issue: a separate job that `needs` both hung when one was skipped.
+      - name: Open or update the failure issue
+        if: ${{ failure() }}
+        uses: ./.github/actions/failure-issue
+        with:
+          title: Pipeline OFF failed
+
   raw-cleanup:
     if: ${{ github.event.schedule == '47 10 * * 0' || (github.event_name == 'workflow_dispatch' && startsWith(inputs.task, 'raw-cleanup')) }}
     runs-on: ubuntu-latest
@@ -108,31 +115,8 @@ jobs:
           DRY_RUN: ${{ inputs.task == 'raw-cleanup-dry-run' && '--dry-run' || '' }}
         run: npm run pipeline -- raw cleanup $DRY_RUN
 
-  failure-issue:
-    needs: [off, raw-cleanup]
-    # A skipped job isn't a failure, so this runs only when the task that ran failed.
-    if: ${{ failure() }}
-    runs-on: ubuntu-latest
-    steps:
-      # One open issue per workflow: a later failure comments on it instead of opening another.
-      # The body holds links only, no log lines.
       - name: Open or update the failure issue
-        env:
-          GH_TOKEN: ${{ github.token }}
-          # No checkout in this job, so gh needs the repository named.
-          GH_REPO: ${{ github.repository }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          EVENT: ${{ github.event_name }}
-          SHA: ${{ github.sha }}
-        run: |
-          title="Pipeline OFF failed"
-          body="The ${EVENT} run at ${SHA} failed: ${RUN_URL}"
-          gh label create pipeline-failure --color B60205 --description "A scheduled pipeline run failed" 2>/dev/null || true
-          existing=$(gh issue list --state open --label pipeline-failure --search "\"${title}\" in:title" --json number --jq '.[0].number')
-          if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body "$body"
-          else
-            gh issue create --title "$title" --label pipeline-failure --body "$body
-
-          Close this issue once it is fixed; the next failure opens a new one."
-          fi
+        if: ${{ failure() }}
+        uses: ./.github/actions/failure-issue
+        with:
+          title: Raw cleanup failed

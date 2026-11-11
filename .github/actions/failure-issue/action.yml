@@ -1,0 +1,32 @@
+# Opens a `pipeline-failure` issue for a failed scheduled job, or comments on the open one with the
+# same title, so repeated failures don't pile up issues (P6.1). The body holds links only, no log
+# lines. Used as the last step of each job, with `if: ${{ failure() }}` (P6.3: a separate job that
+# `needs` the others hung when one of them was skipped).
+name: Failure issue
+description: Open or update the failure issue for this workflow job
+inputs:
+  title:
+    description: Issue title; one open issue per title
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Open or update the failure issue
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TITLE: ${{ inputs.title }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        EVENT: ${{ github.event_name }}
+        SHA: ${{ github.sha }}
+      run: |
+        body="The ${EVENT} run at ${SHA} failed: ${RUN_URL}"
+        gh label create pipeline-failure --color B60205 --description "A scheduled pipeline run failed" 2>/dev/null || true
+        existing=$(gh issue list --state open --label pipeline-failure --search "\"${TITLE}\" in:title" --json number --jq '.[0].number')
+        if [ -n "$existing" ]; then
+          gh issue comment "$existing" --body "$body"
+        else
+          gh issue create --title "$TITLE" --label pipeline-failure --body "$body
+
+        Close this issue once it is fixed; the next failure opens a new one."
+        fi

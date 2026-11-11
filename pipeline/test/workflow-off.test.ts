@@ -73,10 +73,22 @@ describe('pipeline-off workflow', () => {
     expect(text).toMatch(/npm run pipeline -- raw cleanup \$DRY_RUN/);
   });
 
-  it('opens a failure issue when either job fails', () => {
-    expect(text).toMatch(/needs: \[off, raw-cleanup\]/);
-    expect(text).toMatch(/if: \$\{\{ failure\(\) \}\}/);
-    expect(text).toMatch(/GH_REPO: \$\{\{ github\.repository \}\}/);
-    expect(text).toMatch(/gh issue create/);
+  it('opens a failure issue when either job fails, from a step in that job', () => {
+    // A separate job that `needs` both hung for 30 minutes when one of them was skipped (P6.3).
+    expect(text).not.toMatch(/^ {4}needs:/m);
+    const steps = [
+      ...text.matchAll(
+        /if: \$\{\{ failure\(\) \}\}\r?\n\s+uses: \.\/\.github\/actions\/failure-issue/g,
+      ),
+    ];
+    expect(steps).toHaveLength(2);
+    expect(text).toMatch(/title: Pipeline OFF failed/);
+    expect(text).toMatch(/title: Raw cleanup failed/);
+    const action = readFileSync(
+      new URL('../../.github/actions/failure-issue/action.yml', import.meta.url),
+      'utf8',
+    );
+    expect(action).toMatch(/gh issue create/);
+    expect(action).toMatch(/gh issue comment/);
   });
 });
