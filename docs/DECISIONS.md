@@ -413,6 +413,14 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-091 Dev-DB checks run in their own workflow, on main pushes and by hand — Accepted (P6.2)
+- **Separate workflow** (`.github/workflows/dev-db-checks.yml`), not a job in `ci.yml`: CI runs on every push and pull request with no secrets; this one runs on pushes to `main` and `workflow_dispatch` only, so forks never reach the secrets. It shares the `dev-db` concurrency group with the OFF refresh, never cancelling a running one.
+- **Order:** `check:gtin`, `check:writers`, the pipeline e2e, then Chromium and the Playwright e2e. Every step after the first runs with `!cancelled()`, so one red run shows every failing check.
+- **No silent skip:** the dev-DB checks skip themselves without the service-role key, which would read as green, so the first step fails when any of the three secrets is empty.
+- **A fourth secret, `SUPABASE_DEV_ANON_KEY`:** the Playwright e2e builds the web app, which needs the anon key. It is public by design, but it would sit next to the dev URL, which the repo keeps secret, so it went in as a secret (set with `gh secret set` from `.env`, never printed).
+- **No artifacts:** a Playwright trace holds request headers with the dev URL and the test users' sessions, and artifacts on a public repo are public. A failure is read from the log (`github` reporter).
+- **Pipeline e2e trigger:** the two e2e files now expect `triggered_by` from `runTrigger(process.env)` instead of `'cli'`, since a dispatched run records `dispatch`.
+
 ## D-090 Taxonomy: a generated seed, OFF tag mappings with a pick rule, and two new columns — Accepted (P4.8)
 - **Source of truth:** `pipeline/src/taxonomy/tree.ts`. The seed migration is printed from it (`npm run taxonomy:sql`), and a unit test fails if the checked-in `20261111135803_taxonomy_v1.sql` differs from the generator. The rows travel as compact JSON (`jsonb_array_elements`, `jsonb_each`), so the file is 72 KB instead of 131 KB. The seed upserts and never deletes. A mapping an admin decided (`decision_method = admin`) is never overwritten.
 - **Shape:** 3 levels (aisle, group, leaf), 17 + 79 + 325 = 421 nodes, every leaf at level 2. That is over the plan's "about 200–400", because StatCan prices items that need their own leaves (frozen peas, chicken thighs).

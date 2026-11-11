@@ -2,6 +2,30 @@
 
 Newest entry first.
 
+## 2026-11-11 — P6.2 CI runs the dev-database checks
+
+**What changed** (D-091)
+- **`.github/workflows/dev-db-checks.yml`:** on pushes to `main` and `workflow_dispatch` (any branch), never on pull requests. Steps: fail if a secret is empty, `npm ci`, `check:gtin`, `check:writers`, pipeline e2e, install Chromium, Playwright e2e. Each check runs even after an earlier one fails. `dev-db` concurrency group shared with `Pipeline OFF`. No artifacts (traces would hold the dev URL and sessions).
+- **New Actions secret `SUPABASE_DEV_ANON_KEY`**, set with `gh secret set` from `.env` (never printed). The Playwright e2e needs it to build the web app.
+- **Pipeline e2e:** both files expected `triggered_by: 'cli'`, which fails in a dispatched run (`dispatch`). They now expect `runTrigger(process.env)`.
+- `pipeline/test/workflow-dev-db.test.ts` (7 guards: triggers, queue, permissions, secrets, the empty-secret check, the four checks in order, no artifacts). `ci.yml` header and CLAUDE.md updated.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,105 passed, 2 skipped. Pipeline e2e passes locally.
+- **Green:** push run [43078402898](https://github.com/LukaMS/sarvis/actions/runs/43078402898), 3 min 18 s: gtin 5/5, writers 8/8, pipeline e2e 2/2, Playwright 28/28 (none skipped, none flaky).
+- **Red:** dispatch [43078601230](https://github.com/LukaMS/sarvis/actions/runs/43078601230) on `throwaway/p6-2-broken-writer` (price writer dropped its provenance): `check:writers` failed (`invalid input syntax for type uuid`), the rest ran. The pipeline e2e also failed there on the trigger bug above.
+- **After the fix:** push [43079746297](https://github.com/LukaMS/sarvis/actions/runs/43079746297) and dispatch on `main` [43079766063](https://github.com/LukaMS/sarvis/actions/runs/43079766063) both green with the same counts.
+- All logs scanned for the dev URL host, the anon key, the service-role key and the contact email: 0 hits. Dev holds no fixture products, brands or prices after the red run. The throwaway branch is deleted.
+
+**For the owner**
+- A fourth secret now exists (`SUPABASE_DEV_ANON_KEY`). Rotating the dev keys means updating it too.
+- Every push to `main` now writes and deletes test rows on dev for about 3 minutes, and recreates the e2e users.
+- `run-tasks.ps1` has your uncommitted edits; I left them uncommitted. (They briefly rode along on the throwaway branch, now deleted.)
+
+**Next:** P6.3 Raw-retention cleanup.
+
+---
+
 ## 2026-11-11 — P4.8 Taxonomy and OFF tag mappings
 
 **What changed** (D-090)

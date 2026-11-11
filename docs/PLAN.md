@@ -1518,7 +1518,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - ⏳ 2026-11-10: built and tested locally (D-084): `--mode auto`, the workflow, unit and workflow tests, and a live `--mode auto` run on dev. Still open: the three secrets, a push of the workflow to `main`, then a manual dispatch (`gh workflow run pipeline-off.yml`) and a forced-failure dispatch (`-f force_failure=true`).
 - ✅ Done 2026-11-11: secrets added, `main` pushed. Dispatch [43028002186](https://github.com/LukaMS/sarvis/actions/runs/43028002186): `--mode auto` chose delta, run `0e5cbe4c` completed (106 valid, 38 inserted, 68 updated), and its row holds that `actions_run_url` and `git_sha`. Forced failure [43028260028](https://github.com/LukaMS/sarvis/actions/runs/43028260028) opened issue #1 (links only; closed after the check). Neither log holds the key, URL or contact email.
 
-### [ ] P6.2 CI runs the dev-database checks (pulled forward by the review; runs here)
+### [x] P6.2 CI runs the dev-database checks (pulled forward by the review; runs here)
 - **Slice:** ci.
 - **Goal:** a broken writer or auth flow fails a build instead of waiting for a manual check (review M-3, M-8).
 - **Deps:** P6.1.
@@ -1526,6 +1526,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** running these on pull requests.
 - **Files:** `.github/workflows/ci.yml` or a new workflow, `CLAUDE.md`.
 - **Verification:** a green run with all four. A deliberately broken writer on a throwaway branch, run through `workflow_dispatch`, turns it red. Record both run URLs.
+- ✅ Done 2026-11-11 (D-091): green push run [43078402898](https://github.com/LukaMS/sarvis/actions/runs/43078402898) (gtin 5, writers 8, pipeline e2e 2, Playwright 28, none skipped). Red dispatch [43078601230](https://github.com/LukaMS/sarvis/actions/runs/43078601230) on a throwaway branch whose price writer dropped provenance: `check:writers` failed. It also showed the pipeline e2e hard-coding `triggered_by: 'cli'`; fixed, then green on push [43079746297](https://github.com/LukaMS/sarvis/actions/runs/43079746297) and dispatch [43079766063](https://github.com/LukaMS/sarvis/actions/runs/43079766063). No secret in any log.
 
 ### [ ] P6.3 Raw-retention cleanup (pulled forward by the review; runs here)
 - **Slice:** ops.
