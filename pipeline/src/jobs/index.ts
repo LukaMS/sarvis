@@ -2,6 +2,11 @@
 // dev database.
 import type { ServiceClient } from '../db/client.ts';
 import { ConfigurationError } from '../errors.ts';
+import {
+  CATEGORIZE_TAGS_JOB_NAME,
+  createCategorizeTagsJob,
+  supabaseCategorizeTagsDeps,
+} from './categorize-tags.ts';
 import { FIXTURE_JOB_NAME, createFixtureJob, supabaseFixtureTable } from './fixture.ts';
 import type { Job } from './job.ts';
 
@@ -10,6 +15,7 @@ export type { Job, JobContext, JobWork } from './job.ts';
 // Generic in each job's own item and change types; the runner only sees `Job`.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const JOBS: Record<string, (db: ServiceClient) => Job<any, any>> = {
+  [CATEGORIZE_TAGS_JOB_NAME]: (db) => createCategorizeTagsJob(supabaseCategorizeTagsDeps(db)),
   [FIXTURE_JOB_NAME]: (db) => createFixtureJob(supabaseFixtureTable(db)),
 };
 

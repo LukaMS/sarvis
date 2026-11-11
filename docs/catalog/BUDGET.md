@@ -186,6 +186,18 @@ Full run `5a9ea4ac` on the unchanged 2026-11-10 dump (so every write is from the
 | Run time | ~5 min per full run | — | download revalidated (304) |
 | Whole DB | 116 MB | alarm 400 MB | ✅ (+0.5 MB) |
 
+### Actuals: categories from OFF tags (P4.9, 2026-11-11, dev project)
+
+Job `categorize-tags`: sample `e132ebe3` (100), full `1e373c9d` (37,135), then `0b9abeab` (0 read, 0 updated). Only `category_id` and `category_rule` change, and both columns already existed (P4.8).
+
+| Measure | Actual | Estimate | Note |
+|---|---:|---:|---|
+| Rows updated | 37,235 of 93,423 active OFF products (39.9%) | 37,252 mapped (TAXONOMY §6) | 26 mapped codes have no active product |
+| `products` (with indexes) | 75 MB, 93,447 live rows | 71 MB before | +4 MB: new row versions and index entries from one update of 40% of the table |
+| `products` dead tuples | 0 after autovacuum (3,923 before the run) | — | the update passed the 20% autovacuum trigger, and the vacuum ran at once |
+| Run time | ~1 min full (10 extracts + 1 delta read back, 94 scan pages, 75 RPC calls) | — | the cached-dump fallback alone takes ~100 s |
+| Whole DB | 121 MB | alarm 400 MB | ✅ (+4 MB) |
+
 ### Actuals: OFF daily deltas (P3.7, 2026-10-30, dev project)
 
 First delta run over the 13 files listed (2026-10-17 → 2026-10-30): 104,412 changed products scanned worldwide, 2,584 Canadian ones kept (~200 a day), 2,444 valid.

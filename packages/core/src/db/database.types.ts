@@ -4288,6 +4288,10 @@ export type Database = {
           products: number
         }[]
       }
+      set_product_categories: {
+        Args: { category_ids: string[]; ids: string[]; rules: number[] }
+        Returns: string[]
+      }
     }
     Enums: {
       [_ in never]: never

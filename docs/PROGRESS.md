@@ -2,6 +2,33 @@
 
 Newest entry first.
 
+## 2026-11-11 — P4.9 Categories from OFF tags
+
+**What changed** (D-093)
+- **`pipeline/src/jobs/categorize-tags.ts`:** the `categorize-tags` job. `prepare` reads the extracts of the latest completed full OFF run (`7179a9c8`, 10 parts) plus the completed deltas after it (1 part), and keeps one `pickCategory` result per code. If a full-run part is gone, it reads the cached dump instead, but only when the dump's sha-256 matches the run's. `read` returns only the active OFF products whose category would change. It writes `category_id` and `category_rule = 1`, never over a manual rule (90+) or a locked row, and clears a rule-1 category whose tags stopped mapping.
+- **Migration `20261111221202_set_product_categories`:** `public.set_product_categories(ids, category_ids, rules)`, one batched update with the same guards, `service_role` only. Types regenerated.
+- 13 unit tests (decision rules, a full run over a memory catalog, a re-run, dry run, sample, scanning past rows that need no work, a failed write, no mappings). CLAUDE.md, TAXONOMY §4, BUDGET updated.
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,137 passed, 2 skipped.
+- **On dev:** dry run `86724d2b` would change 37,235 rows. Sample `e132ebe3` updated 100. Full `1e373c9d` updated 37,135 in ~1 min. A second full run (`0b9abeab`) read 0 and updated 0. Now 37,235 of 93,423 active OFF products have a category, all rule 1. That's 26 fewer than the 37,261 mapped codes, because those 26 have no active product.
+- **By aisle:** snacks 5,958, pantry 5,750, beverages 4,081, dairy-eggs 3,473, breakfast 2,858, candy-chocolate 2,714, bakery 2,386, condiments 2,359, meat-seafood 2,143, deli 1,363, prepared-meals 1,147, produce 1,027, frozen 911, health 878, personal-care 101, baby 70, household 16. **By depth:** leaf 26,190, group 8,746, aisle 2,299. This matches P4.8's coverage figures.
+- **Hand check of 50 random products** (`setseed(0.49)`): 42 right, 6 doubtful, 2 wrong.
+  - **Wrong:** a fibre laxative filed under `pantry/baking`. Our mapping caused it: a weak group beats a supplements aisle tag. P4.32 is added for it. A soy "drumstick" filed under `chicken-drumsticks`, because OFF tags it that way.
+  - **Doubtful:** baking chocolate under dark chocolate; Cullen's kidney beans as dried; apple compote under fruit snacks; Paysan cooked turkey breast under raw turkey; an energy drink under soft drinks; "moût de pommes", which OFF tags as cider.
+  - 3 of the right ones stop at a group or aisle (an eggnog ice cream under `frozen/desserts`, an Old Fort cheddar under `cheese`).
+- **Dump fallback**, run once by hand on the cached dump: 93,770 rows in ~100 s. That's the extract's 93,411 plus the 359 bad-code duplicates the full run drops. A wrong sha-256 is refused with a clear error.
+- **Budget:** `products` 71 → 75 MB. Autovacuum ran at 22:17 UTC, so 0 dead tuples. Whole DB 117 → 121 MB. Advisors: only leaked-password protection, as before.
+
+**For the owner**
+- Categories aren't shown in the app yet. They're only data so far.
+- **New task P4.32** (found here): supplement tags should beat a weak pantry tag. It's a small taxonomy change.
+- `run-tasks.ps1` still has your uncommitted edits. I left them out of the commit.
+
+**Next:** P4.32 Supplements beat cooking-helper tags (then P4.10).
+
+---
+
 ## 2026-11-11 — P4.31 OFF delta twin lookup ignores accents
 
 **What changed** (D-086 updated)

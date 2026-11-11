@@ -1644,7 +1644,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Advisors are clean and RLS is on. Every StatCan product maps to a node.
 - ✅ Done 2026-11-11: 421 nodes (17 / 79 / 325, 84 sold loose), 1,350 OFF and 105 StatCan mappings; `check:taxonomy` on run `7179a9c8`: 96.31% of 38,680 categorised products mapped (leaf 67.7%, group 22.6%, aisle 5.9%), every chain reaches an aisle, every StatCan label maps, anon reads both tables, advisors unchanged (D-090).
 
-### [ ] P4.9 Categories from OFF tags
+### [x] P4.9 Categories from OFF tags
 - **Slice:** taxonomy.
 - **Goal:** every OFF product with mapped tags gets a category.
 - **Deps:** P4.2, P4.7, P4.8.
@@ -1658,6 +1658,17 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Sample, then full, then a second run with 0 updates.
   - Counts by level 1 node, and a hand check of 50 random products with errors reported.
   - Budget check.
+- ✅ Done 2026-11-11: dry run `86724d2b` (37,235 would change), sample `e132ebe3` (100), full `1e373c9d` (37,135 updated, ~1 min), second full `0b9abeab` (0 read, 0 updated). 37,235 of 93,423 active OFF products categorised (leaf 26,190, group 8,746, aisle 2,299). Hand check of 50: 42 right, 6 doubtful, 2 wrong (one from our mapping, P4.32; one from OFF's tags). `products` 71 → 75 MB, 0 dead tuples after autovacuum (D-093).
+
+### [ ] P4.32 Supplements beat cooking-helper tags (found in P4.9)
+- **Slice:** taxonomy.
+- **Goal:** a dietary supplement isn't filed under baking.
+- **Deps:** P4.9.
+- **Found:** "Smooth Texture Fibre Laxative" (`0057800913405`, tags `en:cooking-helpers, en:dietary-supplements, en:flavoured-dietary-supplements, en:psyllium`) landed in `pantry/baking`: `en:cooking-helpers` maps (weak) to that group, and `en:dietary-supplements` only to the `health` aisle. Depth beats confidence, so the weak group wins.
+- **In:** in `tree.ts`, give the supplement tags (`en:dietary-supplements`, `en:flavoured-dietary-supplements`, `en:psyllium` where seen) a `health` group or leaf, so they beat a weak pantry group. Or decide that a weak tag never beats a tag from another aisle, and change `pickCategory`. Count how many products move. Bump `TAXONOMY_METHOD_VERSION`, generate and apply the seed migration, then run `job categorize-tags` (it re-files the moved products).
+- **Out:** OFF products whose own tags are wrong (a soy "drumstick" tagged `en:chicken-drumsticks`): P4.17 name rules or review.
+- **Files:** `pipeline/src/taxonomy/tree.ts`, the generated migration, `pipeline/src/taxonomy/sql.ts`, `docs/catalog/TAXONOMY.md`, tests.
+- **Verification:** `check:taxonomy` still ≥ 95%. A list of every product that changes category, checked by hand. A second job run updates 0.
 
 ### [ ] P4.10 Edges keep evidence from several sources
 - **Slice:** schema.

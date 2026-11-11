@@ -57,6 +57,8 @@ One `smallint` per product records which rule set `category_id`, in place of a `
 | 50–59 | AI classification | Phase 7 |
 | 90 | Manual (admin) | Phase 5 |
 
+The `categorize-tags` job (rule 1, D-093) replaces a name or AI rule when tags map, never a manual one, and clears its own rule when the tags stop mapping. On 2026-11-11 it set 37,235 OFF products (run `1e373c9d`, after sample `e132ebe3`).
+
 ## 5. StatCan mappings
 
 All 105 StatCan product labels in `reference_prices` map to a node (105 rows under `statcan-18100245`, keyed on the label). Most map to a leaf. These map to a group because the label spans several leaves: Block cheese → `dairy-eggs/cheese`, Yogurt → `dairy-eggs/yogurt`, Flatbread and pita → `bakery/flatbreads`, Dry or fresh pasta → `pantry/pasta`, Pasta sauce → `condiments/pasta-sauces`, Salad dressing → `condiments/dressings`, Cereal → `breakfast/cereal`, Crackers and crisp breads → `snacks/crackers`, Cookies and sweet biscuits → `snacks/cookies`, Frozen pizza → `prepared-meals/pizza`, Tea → `beverages/tea`, Baby food → `baby/food`, Infant formula → `baby/formula`. Setting `reference_prices.category_id` from these is P4.21's job.
