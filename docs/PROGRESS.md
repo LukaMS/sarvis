@@ -2,6 +2,29 @@
 
 Newest entry first.
 
+## 2026-11-11 — P4.32 Supplements beat cooking-helper tags
+
+**What changed** (D-094)
+- **`tree.ts` → taxonomy 1.1.0:** `en:psyllium` maps to `health/vitamins/other-supplements`, and `en:flavoured-dietary-supplements` to `health/vitamins`. Both tags occur in the dump.
+- **Migration `20261111223435_taxonomy_v1_1`:** the generated seed, applied on dev. Its md5 on dev matches the checked-in file. `TAXONOMY_MIGRATION` points at it. All 1,457 mappings now read `taxonomy@1.1.0`.
+- 3 new expectations in the pick test: the laxative, a bare flavoured supplement, and an electrolyte powder that stays a sports drink. TAXONOMY.md §1, §3, §6 updated.
+- **Tried and rejected:** the other option, "a weak tag never beats another aisle's strong tag". Measured on the extract, it moves 60 products, many for the worse (chicken salads → poultry, veal stock → beef).
+
+**Verification**
+- `typecheck`, `lint`, `format:check` pass. `npm test`: 1,137 passed, 2 skipped.
+- `check:taxonomy` passes: 37,252 of 38,680 mapped (96.31%), all 1,352 OFF tags seen in the dump.
+- **Every product that changes**, from a diff of old vs. new picks on the full extract, then confirmed by the job's dry run (`3676bd8d`: 8 set, all `health`). Checked by hand:
+  - **To `other-supplements`:** Life Brand Smooth Texture Fibre Laxative, plus 4 psyllium husk products (no-name, Yupik, 2 × NOW). All right: fibre supplements.
+  - **From the `health` aisle to `health/vitamins`:** NutriPur Genius kids and teens, Nosugar Ginger & Turmeric (right), and Elev8 Creamy Rice Chocolatecake (doubtful: it's a carb powder, so sports nutrition would be closer, but it stays in `health`).
+- Job `d7b15607` updated 8, and a second run, `0c24d888`, read 0 and updated 0. On dev, all 8 have their new category with `category_rule = 1`.
+
+**For the owner**
+- `run-tasks.ps1` (your edits) and a line-ending-only change to `pipeline/src/raw/retention.ts` are still uncommitted. I left both out.
+
+**Next:** P4.10 Edges keep evidence from several sources.
+
+---
+
 ## 2026-11-11 — P4.9 Categories from OFF tags
 
 **What changed** (D-093)

@@ -14,7 +14,7 @@
 // deli, bulk). P4.28 seeds generic items from those leaves. `statcan` lists the StatCan
 // table 18-10-0245-01 product labels the node benchmarks.
 
-export const TAXONOMY_VERSION = '1.0.0';
+export const TAXONOMY_VERSION = '1.1.0';
 export const TAXONOMY_METHOD_VERSION = `taxonomy@${TAXONOMY_VERSION}`;
 /** Confidence of a mapping: an ordinary tag, and a weak (`~`) one. */
 export const STRONG_CONFIDENCE = 0.9;
@@ -2140,22 +2140,36 @@ export const TAXONOMY: readonly NodeSpec[] = [
         }),
       ],
     ),
-    node('vitamins', 'Vitamins & supplements', { off: ['en:nutritional-supplement'] }, [
-      leaf('vitamins-minerals', 'Vitamins & minerals', {
-        off: [
-          'en:vitamin-supplements',
-          'en:multivitamin',
-          'en:vitamins',
-          'en:multivitamins',
-          'en:vitamin-b',
-          'en:mineral-supplements',
-          'en:iron-supplements',
-        ],
-      }),
-      leaf('other-supplements', 'Omega-3, probiotics & other supplements', {
-        off: ['en:fish-oils', 'en:herbal-supplements', 'en:spirulina', 'en:maca', 'en:supplements'],
-      }),
-    ]),
+    // P4.32: a flavoured supplement (drink mixes, gummies) or psyllium is filed here, so it beats
+    // a weak pantry tag such as en:cooking-helpers.
+    node(
+      'vitamins',
+      'Vitamins & supplements',
+      { off: ['en:nutritional-supplement', 'en:flavoured-dietary-supplements'] },
+      [
+        leaf('vitamins-minerals', 'Vitamins & minerals', {
+          off: [
+            'en:vitamin-supplements',
+            'en:multivitamin',
+            'en:vitamins',
+            'en:multivitamins',
+            'en:vitamin-b',
+            'en:mineral-supplements',
+            'en:iron-supplements',
+          ],
+        }),
+        leaf('other-supplements', 'Omega-3, probiotics & other supplements', {
+          off: [
+            'en:fish-oils',
+            'en:herbal-supplements',
+            'en:spirulina',
+            'en:maca',
+            'en:supplements',
+            'en:psyllium',
+          ],
+        }),
+      ],
+    ),
   ]),
 
   node('household', 'Household', { off: ['~en:household-supplies', '~en:home-garden'] }, [

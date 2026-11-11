@@ -125,6 +125,22 @@ describe('pickCategory', () => {
     expect(pick('en:seafood,en:fishes,en:fatty-fishes,en:salmons,en:smoked-salmons')).toBe(
       'meat-seafood/seafood/smoked-fish',
     );
+    // P4.32: a psyllium laxative is a supplement, not a baking ingredient.
+    expect(
+      pick(
+        'en:plant-based-foods-and-beverages,en:plant-based-foods,en:cooking-helpers,' +
+          'en:dietary-supplements,en:flavoured-dietary-supplements,en:psyllium',
+      ),
+    ).toBe('health/vitamins/other-supplements');
+    // A flavoured supplement with no narrower tag reaches the vitamins group...
+    expect(pick('en:dietary-supplements,en:flavoured-dietary-supplements')).toBe('health/vitamins');
+    // ...but an electrolyte powder stays with the sports drinks.
+    expect(
+      pick(
+        'en:dietary-supplements,en:electrolyte-powders,en:flavoured-dietary-supplements,' +
+          'en:flavoured-electrolyte-powders',
+      ),
+    ).toBe('beverages/energy-sports/sports-drinks');
   });
 });
 

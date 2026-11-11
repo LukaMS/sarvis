@@ -1660,7 +1660,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - Budget check.
 - ✅ Done 2026-11-11: dry run `86724d2b` (37,235 would change), sample `e132ebe3` (100), full `1e373c9d` (37,135 updated, ~1 min), second full `0b9abeab` (0 read, 0 updated). 37,235 of 93,423 active OFF products categorised (leaf 26,190, group 8,746, aisle 2,299). Hand check of 50: 42 right, 6 doubtful, 2 wrong (one from our mapping, P4.32; one from OFF's tags). `products` 71 → 75 MB, 0 dead tuples after autovacuum (D-093).
 
-### [ ] P4.32 Supplements beat cooking-helper tags (found in P4.9)
+### [x] P4.32 Supplements beat cooking-helper tags (found in P4.9)
 - **Slice:** taxonomy.
 - **Goal:** a dietary supplement isn't filed under baking.
 - **Deps:** P4.9.
@@ -1669,6 +1669,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Out:** OFF products whose own tags are wrong (a soy "drumstick" tagged `en:chicken-drumsticks`): P4.17 name rules or review.
 - **Files:** `pipeline/src/taxonomy/tree.ts`, the generated migration, `pipeline/src/taxonomy/sql.ts`, `docs/catalog/TAXONOMY.md`, tests.
 - **Verification:** `check:taxonomy` still ≥ 95%. A list of every product that changes category, checked by hand. A second job run updates 0.
+- ✅ Done 2026-11-11: taxonomy 1.1.0 maps `en:psyllium` and `en:flavoured-dietary-supplements` to health nodes (migration `20261111223435`). `check:taxonomy` 96.31%. 8 products change, all checked by hand (5 psyllium out of `pantry/baking`, 3 supplements from the `health` aisle to `health/vitamins`). Job run `d7b15607` updated 8, `0c24d888` updated 0. The pick-rule alternative was measured and rejected (60 moves, many worse) (D-094).
 
 ### [ ] P4.10 Edges keep evidence from several sources
 - **Slice:** schema.

@@ -1,8 +1,8 @@
 # Sarvis taxonomy
 
-Version `taxonomy@1.0.0` (P4.8, D-090). This is the grocery category tree that products, generic items (P4.28), price bounds (P4.21) and "similar product" alternatives (Phase 9) use.
+Version `taxonomy@1.1.0` (P4.8, D-090; 1.1.0 is P4.32, D-094). This is the grocery category tree that products, generic items (P4.28), price bounds (P4.21) and "similar product" alternatives (Phase 9) use.
 
-**The source of truth is `pipeline/src/taxonomy/tree.ts`.** The seed migration (`supabase/migrations/20261111135803_taxonomy_v1.sql`) is generated from it by `npm run taxonomy:sql --workspace @sarvis/pipeline`, and a unit test keeps the two identical. `npm run check:taxonomy --workspace @sarvis/pipeline` compares dev with the tree and measures coverage.
+**The source of truth is `pipeline/src/taxonomy/tree.ts`.** The seed migration (`supabase/migrations/20261111223435_taxonomy_v1_1.sql`; `20261111135803_taxonomy_v1.sql` was 1.0.0) is generated from it by `npm run taxonomy:sql --workspace @sarvis/pipeline`, and a unit test keeps the two identical. `npm run check:taxonomy --workspace @sarvis/pipeline` compares dev with the tree and measures coverage.
 
 ## 1. Shape
 
@@ -28,9 +28,9 @@ Total: 421 nodes. That is a little over the plan's "about 200–400", because St
 
 ## 3. OFF tag mappings
 
-`category_mappings` holds 1,350 rows under the `off` source, keyed on the OFF tag (`en:cheddar-cheese`). They are `approved` / `auto` with `method = derived` and `method_version = taxonomy@1.0.0` (reference data, like `sources`). An admin decision on a mapping (`decision_method = admin`) is never overwritten by a re-seed.
+`category_mappings` holds 1,352 rows under the `off` source, keyed on the OFF tag (`en:cheddar-cheese`). They are `approved` / `auto` with `method = derived` and `method_version = taxonomy@1.1.0` (reference data, like `sources`). An admin decision on a mapping (`decision_method = admin`) is never overwritten by a re-seed.
 
-- **Only tags seen in the dump are mapped.** All 1,350 occur in run `7179a9c8`. Tags guessed while designing the tree but absent from the Canadian dump were removed.
+- **Only tags seen in the dump are mapped.** All 1,352 occur in run `7179a9c8`. Tags guessed while designing the tree but absent from the Canadian dump were removed.
 - **OFF tags carry their ancestors**, so a product holding `en:cheddar-cheese` also holds `en:cheeses` and `en:dairies`. Broad tags map to groups or aisles, and rare tags need no row of their own.
 - **Confidence:** 0.90 for an ordinary tag, and 0.60 for a **weak** tag (`~` in the tree). A weak tag is one whose products often belong elsewhere: `en:cheeses` on cheese crisps, `en:hazelnut-butters` on Nutella, `en:fatty-fishes` on canned tuna, `en:sandwiches` on burgers and burritos, `en:tomatoes` on canned tomatoes. 128 tags are weak. StatCan mappings are 1.00.
 
@@ -43,6 +43,7 @@ Examples (unit tests): Old Dutch Cheese Pleesers → `snacks/chips` (crisps beat
 
 **Known limits:**
 - `en:tomatoes` alone means canned tomatoes in 8 of 12 sampled products, so it maps (weak) to `pantry/canned/canned-tomatoes`. A fresh tomato tagged only `en:tomatoes` lands there too. Fresh tomatoes are usually also tagged `en:fresh-vegetables` or `en:cherry-tomatoes`.
+- **Supplements vs. cooking helpers (P4.32):** `en:psyllium` maps to `health/vitamins/other-supplements` and `en:flavoured-dietary-supplements` to `health/vitamins`, so a psyllium laxative no longer lands in `pantry/baking` through the weak `en:cooking-helpers`. Psyllium husk sold for baking files there too: in Canadian stores it sits with the fibre supplements. Supplement bars and electrolyte powders keep their snack and sports-drink leaves, because those leaves are deeper than `health`.
 - `en:fruits` and `en:vegetables` alone are mixed (fresh, canned and juice), so they map weak to the fresh groups.
 - **Unmapped on purpose:** tags that say nothing about the aisle, such as `en:plant-based-foods-and-beverages`, `en:plant-based-foods`, `en:cereals-and-potatoes`, `en:cereals-and-their-products` (breads, pastas and cereals), `en:fats`, `en:desserts`, `en:sweeteners`, and pet food. A product with only these tags gets no category from tags. P4.17 (name rules) can still classify it.
 
@@ -76,6 +77,8 @@ All 105 StatCan product labels in `reference_prices` map to a node (105 rows und
 | Unmapped | 1,428 | 3.69% |
 
 By aisle: snacks 5,961, pantry 5,751, beverages 4,092, dairy-eggs 3,472, breakfast 2,858, candy-chocolate 2,718, bakery 2,386, condiments 2,359, meat-seafood 2,143, deli 1,363, prepared-meals 1,147, produce 1,027, frozen 911, health 877, personal-care 101, baby 70, household 16.
+
+After 1.1.0 (P4.32): leaf 26,208, group 8,748, aisle 2,296, still 37,252 mapped (96.31%); pantry 5,746, health 882.
 
 **Hand check while designing:** 70 random categorised products were read against their picked node. The conflicts between same-level mappings were listed, and the wrong ones were fixed with weak tags. After the fixes, 4 of the 70 are wrong: a muffin mix under cakes (OFF tags it `en:chocolate-cakes`), tzatziki under yogurt, a yogurt starter under creamers, and dried basil under the condiments aisle. About 10 more stop at a vague but correct node (a multigrain bread at `bakery`). P4.9's 50-product hand check measures the final rate.
 

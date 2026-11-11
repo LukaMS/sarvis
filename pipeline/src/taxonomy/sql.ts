@@ -1,6 +1,6 @@
 // The seed migration for the taxonomy (P4.8, D-090), printed from `tree.ts`:
 //
-//   npm run taxonomy:sql --workspace @sarvis/pipeline > supabase/migrations/<version>_taxonomy_v1.sql
+//   npm run taxonomy:sql --workspace @sarvis/pipeline > supabase/migrations/<version>_taxonomy_v<x_y>.sql
 //
 // It upserts the categories level by level (a child's parent must exist first), then the OFF tag
 // and StatCan label mappings as `approved` / `auto` reference data. The rows travel as compact
@@ -18,7 +18,7 @@ import {
 } from './tree.ts';
 
 /** The checked-in migration that holds this version's seed (a unit test compares the two). */
-export const TAXONOMY_MIGRATION = '20261111135803_taxonomy_v1.sql';
+export const TAXONOMY_MIGRATION = '20261111223435_taxonomy_v1_1.sql';
 /** When the mappings were made: their `fetched_at` and `reviewed_at`. */
 export const TAXONOMY_MADE_AT = '2026-11-11T00:00:00Z';
 export const TAXONOMY_DOC_URL =

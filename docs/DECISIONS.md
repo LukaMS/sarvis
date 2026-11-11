@@ -413,6 +413,12 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-094 Supplement tags get health nodes; the pick rule stays — Accepted (P4.32)
+- **Change:** taxonomy 1.1.0 maps `en:psyllium` → `health/vitamins/other-supplements` (leaf) and `en:flavoured-dietary-supplements` → `health/vitamins` (group). Both occur in run `7179a9c8`. Migration `20261111223435_taxonomy_v1_1` re-seeds the tree, and every mapping's `method_version` becomes `taxonomy@1.1.0`.
+- **Effect:** 8 OFF products move, all into `health`: 5 psyllium products (the laxative among them) out of `pantry/baking`, and 3 flavoured supplements from the `health` aisle to the `vitamins` group. Nothing else changes.
+- **Rejected: "a weak tag never beats a strong tag from another aisle"** in `pickCategory`. On the same extract it moves 60 products and makes many of them worse: chicken salads → `meat-seafood/poultry`, veal stock → `beef`, meatballs from an entrée to a raw-meat group. The only clear wins are 14 fresh tomatoes. A weak tag already loses a tie, and that is enough.
+- **Kept:** supplement-tagged bars (`en:dietary-supplements` + `en:protein-bars`, ~200) and electrolyte powders stay in `snacks` and `beverages`. Their leaves are deeper than the `health` aisle, and a shopper looks for them there.
+
 ## D-093 Categories from OFF tags: one pick per code in memory, a batched RPC, tags beat rules below manual — Accepted (P4.9)
 - **Tags:** `categorize-tags` (`pipeline/src/jobs/categorize-tags.ts`) reads the newest completed full OFF run's extracts with `readRaw`, then the completed delta runs after it, oldest first, so a product's latest row wins. Each row goes through `pickCategory` at once, and only the pick per code is kept (93,449 codes).
 - **Fallback:** if a part of the full run is gone (deleted by retention, or `readRaw` reports it missing), the job reads the cached dump in `.cache/dumps/` through the import filter, but only if the sidecar's sha-256 equals the run's `dump_sha256`. Otherwise it fails and asks for a fresh full import. The job fetches nothing. A missing delta part is skipped and counted, and the summary event turns `warn`. On GitHub the dump cache is empty, so there the fallback fails cleanly.
