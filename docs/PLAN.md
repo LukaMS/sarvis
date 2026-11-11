@@ -1501,7 +1501,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - `check:writers` and the pipeline e2e pass. Advisors are clean.
 - ✅ Done 2026-11-10: unit tests for all three, a live lock check on dev, `check:writers` 8 of 8, pipeline e2e passes, advisors unchanged (D-083).
 
-### [ ] P6.1 🟡 Scheduled keep-alive and OFF refresh (pulled forward by the review; runs here)
+### [x] P6.1 🟡 Scheduled keep-alive and OFF refresh (pulled forward by the review; runs here)
 - **Slice:** ops.
 - **Goal:** the dev project never pauses, and OFF stays fresh without anyone remembering (review H-8).
 - **Deps:** P4.3, P2.24.
@@ -1516,6 +1516,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
   - A manual dispatch completes, and its run row shows the Actions URL.
   - A forced failure opens an issue. The public log shows no key, email or row data.
 - ⏳ 2026-11-10: built and tested locally (D-084): `--mode auto`, the workflow, unit and workflow tests, and a live `--mode auto` run on dev. Still open: the three secrets, a push of the workflow to `main`, then a manual dispatch (`gh workflow run pipeline-off.yml`) and a forced-failure dispatch (`-f force_failure=true`).
+- ✅ Done 2026-11-11: secrets added, `main` pushed. Dispatch [43028002186](https://github.com/LukaMS/sarvis/actions/runs/43028002186): `--mode auto` chose delta, run `0e5cbe4c` completed (106 valid, 38 inserted, 68 updated), and its row holds that `actions_run_url` and `git_sha`. Forced failure [43028260028](https://github.com/LukaMS/sarvis/actions/runs/43028260028) opened issue #1 (links only; closed after the check). Neither log holds the key, URL or contact email.
 
 ### [ ] P6.2 CI runs the dev-database checks (pulled forward by the review; runs here)
 - **Slice:** ci.
@@ -1563,6 +1564,16 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Files:** `pipeline/src/sources/off/delta.ts`, `index.ts`, tests.
 - **Verification:** a unit test with a delta that holds a bad-code duplicate of a stored product. A delta run on dev drops it, and the next full run on the same dump discontinues 0.
 - ✅ Done 2026-11-10: unit tests (duplicate of an earlier file, of a stored product, self, renamed twin, discontinued twin); `check:off-delta` replays the 24 stored delta files on dev and drops all 15 discontinued rows and no active one; delta run `702c3500` (no new file yet) and full run `0120b991` on the same dump: 0 deactivated, 93,411 unchanged (D-086).
+
+### [ ] P4.31 OFF delta twin lookup ignores accents (found in P4.30)
+- **Slice:** source-off.
+- **Goal:** the delta duplicate rule finds a stored twin that differs only by accents (`Crème` / `Creme`), as a full run does.
+- **Deps:** P4.30.
+- **Found:** D-086 looks up stored twins with `name ilike any(...)`, which is case-insensitive but not accent-insensitive. The P4.30 session drafted an RPC over `normalize_match_text`, but `apply_migration` wasn't permitted in unattended runs then. It is now (2026-11-11).
+- **In:** a migration adding `public.active_products_named(source_key text, names text[], brands text[])` (security invoker, `search_path = ''`, `EXECUTE` for `service_role` only; draft SQL in `.claude/logs/run-20261110-184901.json` permission denials). `supabaseStoredProducts` in `pipeline/src/sources/off/stored.ts` calls it in batches, still confirming each match with the TS `duplicateKey`. Regenerate types. Update D-086.
+- **Out:** other duplicate rules.
+- **Files:** a new migration, `pipeline/src/sources/off/stored.ts`, tests, `packages/core/src/db/database.types.ts`, `docs/DECISIONS.md`.
+- **Verification:** a unit test with an accent-only twin. `check:off-delta` still passes. Advisors are clean. The RPC runs fast enough on dev for a batch of names (report the time).
 
 ### [x] P4.5 Size and unit parser
 - **Slice:** core-units.

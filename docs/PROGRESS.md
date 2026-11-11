@@ -2,6 +2,26 @@
 
 Newest entry first.
 
+## 2026-11-11 — P6.1 Scheduled OFF refresh: verified on GitHub (interactive session)
+
+**What changed**
+- Owner added the Actions secrets `SUPABASE_DEV_URL`, `SUPABASE_DEV_SERVICE_ROLE_KEY`, `PIPELINE_CONTACT_EMAIL`. Pushed `main` (P6.1, P4.4, P4.30, P4.5, P4.6; CI green).
+- **P4.7 (IN PROGRESS, not committed):** its `seed_sarvis_derived_source` migration, refused in the last unattended run, is now applied on dev (`20261111131930`, the SQL that run drafted) and saved to `supabase/migrations/`. The `sarvis-derived` row exists (`internal`, `use`). The rest of P4.7 is the uncommitted work in `pipeline/src/jobs/`, `pipeline/src/runs/start.ts` and `driver.ts`; resume from there.
+- **New task P4.31:** the accent-insensitive twin lookup that P4.30 couldn't add (D-086).
+- Unattended runs can now apply migrations and use the other MCP tools (`.claude/settings.json` allow list; `run-tasks.ps1` uses `acceptEdits`, so the allow list is what counts). `auto-next.md` now pushes after each task.
+
+**Verification**
+- Dispatch [43028002186](https://github.com/LukaMS/sarvis/actions/runs/43028002186): `--mode auto` chose delta (gap 0.5 days). Run `0e5cbe4c`: 1 new delta file, 106 valid, 0 invalid, 38 inserted, 68 updated, 1 bad-code duplicate of a stored product dropped. The run row has `triggered_by = dispatch`, `actions_run_url` = that run, `git_sha` `743bb20`.
+- Forced failure [43028260028](https://github.com/LukaMS/sarvis/actions/runs/43028260028): `Run OFF` skipped, issue #1 "Pipeline OFF failed" opened with the run link and SHA only. Closed after the check.
+- Both logs scanned for the service-role key, the dev URL and the contact email: 0 hits each. No product rows in the logs (counts only).
+
+**For the owner**
+- The daily 09:17 UTC run now keeps the dev project from pausing.
+
+**Next:** finish P4.7 Pipeline: derived-job runner (in progress).
+
+---
+
 ## 2026-11-10 — P4.6 OFF: apply the size parser
 
 **What changed** (D-088)
