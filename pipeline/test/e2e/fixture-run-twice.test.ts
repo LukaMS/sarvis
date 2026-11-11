@@ -9,7 +9,7 @@
 // Skipped when SUPABASE_DEV_SERVICE_ROLE_KEY is unset, so `npm test` in CI needs no secrets (D-019).
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { parseCliArgs, runCommand } from '../../src/cli.ts';
+import { parseCliArgs, runCommand, runTrigger } from '../../src/cli.ts';
 import { getServiceClient } from '../../src/db/client.ts';
 import { createLogger, logger } from '../../src/log.ts';
 import { RAW_BUCKET, readRaw } from '../../src/raw/store.ts';
@@ -157,7 +157,8 @@ describe.skipIf(!enabled)('e2e: fixture source run twice against dev', () => {
     expect(runs.error).toBeNull();
     for (const r of runs.data ?? []) {
       expect(r).toMatchObject({
-        triggered_by: 'cli',
+        // 'dispatch' or 'schedule' inside GitHub Actions (P6.2).
+        triggered_by: runTrigger(process.env),
         mode: 'full',
         job: FIXTURE_JOB,
         job_version: FIXTURE_VERSION,
