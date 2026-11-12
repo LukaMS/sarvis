@@ -1735,6 +1735,7 @@ Goal: know exactly what the legacy app does and looks like, what the catalog sou
 - **Verification:**
   - Every banner has an approved operator company. Stores linked and not linked are counted.
   - A second run changes nothing.
+- ⏸ 2026-11-11: list built (`docs/catalog/BANNERS.md`, 40 banners, D-098). Waiting on the owner's approval (PROGRESS, "Waiting on Luka"). Left to do after approval: the `banners.aliases` migration and types, the `banner-seed` job and its tests, the write, the store links, the second run.
 
 ### [ ] P4.12 🟡 Private-label and high-impact brand seed
 - **Slice:** brand-resolver.

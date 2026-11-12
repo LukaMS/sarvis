@@ -2,6 +2,53 @@
 
 Newest entry first.
 
+## Waiting on Luka
+
+**P4.29 banner list: approve, edit, or reject.** The full table with citations is in `docs/catalog/BANNERS.md`. I opened and read every citation. Nothing has been written to the database yet.
+
+| Operator | Banners |
+|---|---|
+| Loblaw Companies | Loblaws, No Frills, Real Canadian Superstore, Fortinos, Zehrs, Valu-mart, Your Independent Grocer, Real Canadian Wholesale Club, Provigo, Maxi, Dominion (NL), T&T Supermarket, Shoppers Drug Mart, Pharmaprix |
+| Metro | Metro, Food Basics, Super C, Marché Adonis (55.5%), Jean Coutu |
+| Sobeys | Sobeys, FreshCo, Foodland, IGA (franchised), Thrifty Foods |
+| Empire Company | Farm Boy (majority), Longo's (51%) |
+| Walmart Canada | Walmart (with Walmart Supercentre) |
+| Costco | Costco, Costco Business Centre |
+| Pattison Food Group | Save-On-Foods, Choices Market |
+| Itself | Giant Tiger, Whole Foods Market (top parent Amazon), London Drugs, Calgary Co-op, Bulk Barn, Healthy Planet, Highland Farms, Dollarama, Dollar Tree (**new company row**) |
+
+Questions:
+1. **Operator rule (D-098):** the controlling group, not the Wikidata row named after the banner. So Farm Boy → Empire, not `farm-boy`, which today has no parent edge. **Recommend: yes.**
+2. **Beyond grocery:** keep Shoppers Drug Mart, Pharmaprix, Jean Coutu, London Drugs, Dollarama and Dollar Tree? They sell food and Open Prices users log prices there (14 stores). **Recommend: keep.**
+3. **Costco Business Centre** as its own banner, because it has different prices from a Costco warehouse. **Recommend: yes.**
+4. **New column `banners.aliases`** for the receipt spellings. It's an added column, so no data is dropped. **Recommend: yes.**
+
+With this list, 73 of the 100 stores link. The 27 left are one-store independents, non-grocery shops, and bus stops.
+
+Reply "approve" (or with edits) and the next session writes it.
+
+---
+
+## 2026-11-11 — P4.29 Banner seed: list built (waiting on approval)
+
+**What changed** (D-098, Proposed)
+- **`docs/catalog/BANNERS.md`:** 40 banners, each with an operator, spellings and a citation. 39 banners have an existing approved operator company. Dollar Tree's operator would be a new company row. It also has the rules, the store-link preview, and what was left out.
+- The PLAN task has a ⏸ note listing what's left after approval. There are no code or database changes.
+
+**Verification so far**
+- **Citations:** every row's citation was opened on 2026-11-11 (Wikipedia, plus Wikidata for Healthy Planet, whose site returned 403). Each one supports the operator.
+- **Store-link preview** (read-only SQL, prefix rule on folded names): 73 of 100 stores → 29 banners, and 27 unlinked. The counts by banner and the unlinked names are in BANNERS.md.
+- **Not run yet:** the job, the second run and the `anon` checks. They come after approval.
+
+**For the owner**
+- See "Waiting on Luka" above.
+- **Found:** `avril` (pending) is the French agri group, not the Quebec grocer Avril. Wikidata has no parent edge from `farm-boy`, `longos`, `choices-market` or `dominion` to their groups. That doesn't matter for banners under D-098, but it does for Farm Boy and Longo's as own brands (P4.12).
+- `run-tasks.ps1` (your edits) and the line-ending-only change to `pipeline/src/raw/retention.ts` are still uncommitted. I left both out.
+
+**Next:** P4.12 Private-label brand seed (builds its list, then waits for your approval).
+
+---
+
 ## 2026-11-11 — P4.27 Ownership chains stop at an organisation
 
 **What changed** (D-097, Proposed)

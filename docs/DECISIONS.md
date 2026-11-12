@@ -413,6 +413,13 @@ Root dev dependencies only. The workspaces have no runtime dependencies yet.
 - **Politeness:** 500 ms by default between steps, jittered up to 1.5×, on top of the HTTP client's 1 req/s. A source or the caller can change it, and the wait is cancellable.
 - **Sample:** the driver stops fetching once `fetched ≥ N` and trims the last page to N.
 
+## D-098 A banner's operator is the controlling group; spellings live on the banner — Proposed (P4.29)
+- **Operator** = the company that controls the banner's stores, at group level (Loblaw Companies, Metro, Sobeys, Empire, Pattison Food Group, …), whether it owns the banner outright, holds a majority (Longo's, Marché Adonis) or franchises it (Valu-mart, IGA). Not the Wikidata company row named after the banner (`no-frills`, `farm-boy`): those duplicate the banner and some have no edge to their group, so the top parent would be wrong.
+- **Spellings** go in a new `banners.aliases text[]` column, like `brands.aliases`. An added column, so no data is dropped. The migration ships with the approved write.
+- **Store links:** folded name (case, accents, punctuation) starts with a spelling at a word break; longest spelling wins; a linked or locked store is left alone.
+- The list is in `docs/catalog/BANNERS.md` (40 banners, every citation opened). It's written only after the owner approves it.
+**Why:** review H-6. The matcher, the receipt gold set and the price rollups key on a banner, and a user should see the group that runs the store.
+
 ## D-097 The top parent is a corporate parent: the walk stops below people and nonprofits — Proposed (P4.27)
 - **Rule:** `company_ultimate_parent` climbs approved, current `subsidiary` / `majority_stake` / `division` edges, but never into a parent whose `kind` is `individual` or `nonprofit`. An `individual` has no row at all, so nothing shows a person as a top parent. The edges stay in `company_ownership`.
 - **Why nonprofits too (beyond the plan's "not individual"):** the plan's own check, Hershey's → The Hershey Company, can't pass otherwise. Its controller is Hershey Trust Company, trustee of the Milton Hershey School Trust. Foundations that control a company (Stichting INGKA → IKEA, Dieter Schwarz Stiftung → Schwarz group) are the same case: users and scores should see the operating group, not the charity. Government bodies and cooperatives stay walkable: a state or a co-op is the real owner in the sense users mean.
